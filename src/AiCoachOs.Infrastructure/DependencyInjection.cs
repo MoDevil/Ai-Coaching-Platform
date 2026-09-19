@@ -93,6 +93,10 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Programs.Engine.IProgramBuilder, AiCoachOs.Application.Programs.Engine.ProgramBuilder>();
         services.AddScoped<AiCoachOs.Application.Programs.Services.IProgramService, ProgramService>();
 
+        // M6 Workout Logging & Progression Services
+        services.AddScoped<AiCoachOs.Application.Workouts.Engine.IProgressionEvaluator, AiCoachOs.Application.Workouts.Engine.ProgressionEvaluator>();
+        services.AddScoped<AiCoachOs.Application.Workouts.Services.IWorkoutService, WorkoutService>();
+
         return services;
     }
 }

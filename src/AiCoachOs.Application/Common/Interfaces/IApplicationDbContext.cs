@@ -38,6 +38,10 @@ public interface IApplicationDbContext
     IQueryable<AiCoachOs.Domain.Programs.ExerciseSlot> ExerciseSlots { get; }
     IQueryable<AiCoachOs.Domain.Programs.ProgramMusclePriority> ProgramMusclePriorities { get; }
 
+    IQueryable<AiCoachOs.Domain.Workouts.WorkoutSession> WorkoutSessions { get; }
+    IQueryable<AiCoachOs.Domain.Workouts.WorkoutExercise> WorkoutExercises { get; }
+    IQueryable<AiCoachOs.Domain.Workouts.WorkoutSet> WorkoutSets { get; }
+
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
     Task AddConsentRecordAsync(ConsentRecord consentRecord, CancellationToken cancellationToken = default);
@@ -47,6 +51,9 @@ public interface IApplicationDbContext
     Task AddKnowledgeClaimAsync(KnowledgeClaim claim, CancellationToken cancellationToken = default);
     Task AddBiomechanicalConsiderationAsync(AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration consideration, CancellationToken cancellationToken = default);
     Task AddProgramAsync(AiCoachOs.Domain.Programs.Program program, CancellationToken cancellationToken = default);
+    Task AddWorkoutSessionAsync(AiCoachOs.Domain.Workouts.WorkoutSession session, CancellationToken cancellationToken = default);
+    Task AddWorkoutExerciseAsync(AiCoachOs.Domain.Workouts.WorkoutExercise exercise, CancellationToken cancellationToken = default);
+    Task AddWorkoutSetAsync(AiCoachOs.Domain.Workouts.WorkoutSet set, CancellationToken cancellationToken = default);
 
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
@@ -59,6 +66,7 @@ public interface IApplicationDbContext
     Task<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint?> FindJointByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction?> FindJointActionByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Programs.Program?> FindProgramByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Workouts.WorkoutSession?> FindWorkoutSessionByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

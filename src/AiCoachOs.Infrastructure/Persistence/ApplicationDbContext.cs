@@ -49,6 +49,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<AiCoachOs.Domain.Programs.ExerciseSlot> ExerciseSlotsDbSet => Set<AiCoachOs.Domain.Programs.ExerciseSlot>();
     public DbSet<AiCoachOs.Domain.Programs.ProgramMusclePriority> ProgramMusclePrioritiesDbSet => Set<AiCoachOs.Domain.Programs.ProgramMusclePriority>();
 
+    public DbSet<AiCoachOs.Domain.Workouts.WorkoutSession> WorkoutSessionsDbSet => Set<AiCoachOs.Domain.Workouts.WorkoutSession>();
+    public DbSet<AiCoachOs.Domain.Workouts.WorkoutExercise> WorkoutExercisesDbSet => Set<AiCoachOs.Domain.Workouts.WorkoutExercise>();
+    public DbSet<AiCoachOs.Domain.Workouts.WorkoutSet> WorkoutSetsDbSet => Set<AiCoachOs.Domain.Workouts.WorkoutSet>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
@@ -79,6 +83,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<AiCoachOs.Domain.Programs.TrainingSession> IApplicationDbContext.TrainingSessions => TrainingSessionsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.Programs.ExerciseSlot> IApplicationDbContext.ExerciseSlots => ExerciseSlotsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.Programs.ProgramMusclePriority> IApplicationDbContext.ProgramMusclePriorities => ProgramMusclePrioritiesDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Workouts.WorkoutSession> IApplicationDbContext.WorkoutSessions => WorkoutSessionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Workouts.WorkoutExercise> IApplicationDbContext.WorkoutExercises => WorkoutExercisesDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Workouts.WorkoutSet> IApplicationDbContext.WorkoutSets => WorkoutSetsDbSet.AsNoTracking();
 
     public async Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default)
     {
@@ -123,6 +131,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task AddProgramAsync(AiCoachOs.Domain.Programs.Program program, CancellationToken cancellationToken = default)
     {
         await ProgramsDbSet.AddAsync(program, cancellationToken);
+    }
+
+    public async Task AddWorkoutSessionAsync(AiCoachOs.Domain.Workouts.WorkoutSession session, CancellationToken cancellationToken = default)
+    {
+        await WorkoutSessionsDbSet.AddAsync(session, cancellationToken);
+    }
+
+    public async Task AddWorkoutExerciseAsync(AiCoachOs.Domain.Workouts.WorkoutExercise exercise, CancellationToken cancellationToken = default)
+    {
+        await WorkoutExercisesDbSet.AddAsync(exercise, cancellationToken);
+    }
+
+    public async Task AddWorkoutSetAsync(AiCoachOs.Domain.Workouts.WorkoutSet set, CancellationToken cancellationToken = default)
+    {
+        await WorkoutSetsDbSet.AddAsync(set, cancellationToken);
     }
 
     public async Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -221,6 +244,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
                             .ThenInclude(sl => sl.Exercise)
                                 .ThenInclude(e => e.Muscles)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Workouts.WorkoutSession?> FindWorkoutSessionByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await WorkoutSessionsDbSet
+            .Include(w => w.Client)
+            .Include(w => w.Coach)
+            .Include(w => w.TrainingSession)
+                .ThenInclude(ts => ts!.Slots)
+                    .ThenInclude(sl => sl.Exercise)
+            .Include(w => w.Exercises)
+                .ThenInclude(e => e.Exercise)
+            .Include(w => w.Exercises)
+                .ThenInclude(e => e.ExerciseSlot)
+                    .ThenInclude(sl => sl!.Exercise)
+            .Include(w => w.Exercises)
+                .ThenInclude(e => e.Sets)
+            .FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

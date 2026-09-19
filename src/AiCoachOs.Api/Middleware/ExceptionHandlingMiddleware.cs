@@ -39,6 +39,8 @@ public class ExceptionHandlingMiddleware
         {
             ValidationException => HttpStatusCode.BadRequest,
             UnauthorizedException => HttpStatusCode.Unauthorized,
+            ForbiddenException => HttpStatusCode.Forbidden,
+            UnauthorizedAccessException => HttpStatusCode.Forbidden,
             NotFoundException => HttpStatusCode.NotFound,
             ConflictException => HttpStatusCode.Conflict,
             ArgumentException => HttpStatusCode.BadRequest,

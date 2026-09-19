@@ -1,0 +1,208 @@
+.workout-logger-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1f2937;
+}
+
+.workout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.client-badge {
+  display: inline-block;
+  background-color: #e0e7ff;
+  color: #3730a3;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.session-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.status-1 { background: #dbeafe; color: #1e40af; } /* InProgress */
+.status-2 { background: #d1fae5; color: #065f46; } /* Completed */
+.status-3 { background: #fee2e2; color: #991b1b; } /* Abandoned */
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+
+.btn-success { background: #059669; color: #fff; }
+.btn-success:hover { background: #047857; }
+
+.btn-secondary { background: #e5e7eb; color: #374151; }
+.btn-secondary:hover { background: #d1d5db; }
+
+.exercise-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.exercise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.planned-target {
+  margin-top: 0.25rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.badge-plan {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.badge-rule {
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.progression-badge {
+  max-width: 350px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.prog-1 { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; } /* Met */
+.prog-2 { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; } /* NotMet */
+.prog-3 { background: #f3f4f6; border: 1px solid #e5e7eb; color: #4b5563; } /* Incomplete */
+.prog-4 { background: #f9fafb; border: 1px solid #f3f4f6; color: #6b7280; } /* NotEvaluable */
+
+.prog-status { font-weight: 700; display: block; margin-bottom: 0.2rem; }
+.prog-reason { display: block; }
+.prog-target { display: block; margin-top: 0.25rem; font-weight: 600; color: #047857; }
+
+.sets-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.sets-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sets-table th, .sets-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.9rem;
+}
+
+.sets-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.badge-completed {
+  color: #059669;
+  font-weight: 600;
+}
+
+.empty-sets {
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  padding: 1rem;
+}
+
+.add-set-form {
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.input-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.input-group input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  width: 90px;
+}
+
+.error-banner {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.success-banner {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}

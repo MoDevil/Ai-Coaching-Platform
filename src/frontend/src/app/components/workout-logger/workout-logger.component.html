@@ -1,0 +1,106 @@
+<div class="workout-logger-container">
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading workout session...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-banner">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="success-banner">
+    {{ successMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && workout" class="workout-content">
+    <header class="workout-header">
+      <div class="header-main">
+        <span class="client-badge">{{ workout.clientName }}</span>
+        <h1>{{ workout.plannedSessionName || 'Workout Session' }}</h1>
+        <div class="session-meta">
+          <span class="status-badge" [class]="'status-' + workout.status">
+            {{ WorkoutStatusLabels[workout.status] }}
+          </span>
+          <span class="started-at">Started: {{ workout.startedAtUtc | date:'short' }}</span>
+          <span *ngIf="workout.completedAtUtc" class="completed-at">
+            Finished: {{ workout.completedAtUtc | date:'short' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="header-actions" *ngIf="workout.status === WorkoutStatus.InProgress">
+        <button class="btn btn-success" (click)="completeWorkout()">Complete Workout</button>
+        <button class="btn btn-secondary" (click)="abandonWorkout()">Abandon</button>
+      </div>
+    </header>
+
+    <section class="exercises-section">
+      <div *ngFor="let ex of workout.exercises" class="exercise-card">
+        <div class="exercise-header">
+          <div class="exercise-info">
+            <h3>{{ ex.orderInSession }}. {{ ex.exerciseName }}</h3>
+            <div class="planned-target" *ngIf="ex.exerciseSlotId">
+              <span class="badge-plan">Planned: {{ ex.plannedTargetSets }} sets &times; {{ ex.plannedTargetRepRange }} reps @ {{ ex.plannedEffortGuideline }}</span>
+              <span class="badge-rule" *ngIf="ex.plannedProgressionRule">Rule: {{ ex.plannedProgressionRule }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="ex.progressionResult" class="progression-badge" [class]="'prog-' + ex.progressionResult.status">
+            <span class="prog-status">{{ ProgressionEvaluationStatusLabels[ex.progressionResult.status] }}</span>
+            <span class="prog-reason">{{ ex.progressionResult.reason }}</span>
+            <span *ngIf="ex.progressionResult.suggestedNextTarget" class="prog-target">
+              &rarr; {{ ex.progressionResult.suggestedNextTarget }}
+            </span>
+          </div>
+        </div>
+
+        <div class="sets-table-wrapper">
+          <table class="sets-table">
+            <thead>
+              <tr>
+                <th>Set</th>
+                <th>Load (kg)</th>
+                <th>Reps</th>
+                <th>RIR</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of ex.sets">
+                <td>#{{ s.setNumber }}</td>
+                <td>{{ s.loadKg }} kg</td>
+                <td>{{ s.repetitions }}</td>
+                <td>{{ s.rir !== undefined && s.rir !== null ? s.rir : '—' }}</td>
+                <td>
+                  <span class="badge-completed" *ngIf="s.isCompleted">&check; Done</span>
+                  <span class="badge-missed" *ngIf="!s.isCompleted">&times; Missed</span>
+                </td>
+              </tr>
+              <tr *ngIf="ex.sets.length === 0">
+                <td colspan="5" class="empty-sets">No sets recorded yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="add-set-form" *ngIf="workout.status === WorkoutStatus.InProgress">
+          <div class="form-row">
+            <div class="input-group">
+              <label>Load (kg)</label>
+              <input type="number" step="0.5" [(ngModel)]="newSetLoad[ex.id]" placeholder="kg" />
+            </div>
+            <div class="input-group">
+              <label>Reps</label>
+              <input type="number" min="0" [(ngModel)]="newSetReps[ex.id]" placeholder="reps" />
+            </div>
+            <div class="input-group">
+              <label>RIR</label>
+              <input type="number" min="0" max="10" step="0.5" [(ngModel)]="newSetRir[ex.id]" placeholder="RIR" />
+            </div>
+            <button class="btn btn-primary" (click)="addSet(ex)">Record Set</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

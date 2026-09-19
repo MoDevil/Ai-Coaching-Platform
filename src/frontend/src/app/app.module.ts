@@ -15,6 +15,7 @@ import { ExerciseListComponent } from './components/exercise-list/exercise-list.
 import { ExerciseDetailComponent } from './components/exercise-detail/exercise-detail.component';
 import { ClientTrainingProfileComponent } from './components/client-training-profile/client-training-profile.component';
 import { ProgramDetailComponent } from './components/program-detail/program-detail.component';
+import { WorkoutLoggerComponent } from './components/workout-logger/workout-logger.component';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
 @NgModule({
@@ -29,7 +30,8 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
     ExerciseListComponent,
     ExerciseDetailComponent,
     ClientTrainingProfileComponent,
-    ProgramDetailComponent
+    ProgramDetailComponent,
+    WorkoutLoggerComponent
   ],
   imports: [
     BrowserModule,
