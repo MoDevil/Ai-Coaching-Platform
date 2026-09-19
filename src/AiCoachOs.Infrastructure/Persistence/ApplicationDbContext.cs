@@ -42,6 +42,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction> ExerciseJointActionsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction>();
     public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration> BiomechanicalConsiderationsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration>();
 
+    public DbSet<AiCoachOs.Domain.Programs.Program> ProgramsDbSet => Set<AiCoachOs.Domain.Programs.Program>();
+    public DbSet<AiCoachOs.Domain.Programs.ProgramVersion> ProgramVersionsDbSet => Set<AiCoachOs.Domain.Programs.ProgramVersion>();
+    public DbSet<AiCoachOs.Domain.Programs.TrainingWeek> TrainingWeeksDbSet => Set<AiCoachOs.Domain.Programs.TrainingWeek>();
+    public DbSet<AiCoachOs.Domain.Programs.TrainingSession> TrainingSessionsDbSet => Set<AiCoachOs.Domain.Programs.TrainingSession>();
+    public DbSet<AiCoachOs.Domain.Programs.ExerciseSlot> ExerciseSlotsDbSet => Set<AiCoachOs.Domain.Programs.ExerciseSlot>();
+    public DbSet<AiCoachOs.Domain.Programs.ProgramMusclePriority> ProgramMusclePrioritiesDbSet => Set<AiCoachOs.Domain.Programs.ProgramMusclePriority>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
@@ -65,6 +72,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.MuscleJointAction> IApplicationDbContext.MuscleJointActions => MuscleJointActionsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction> IApplicationDbContext.ExerciseJointActions => ExerciseJointActionsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration> IApplicationDbContext.BiomechanicalConsiderations => BiomechanicalConsiderationsDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Programs.Program> IApplicationDbContext.Programs => ProgramsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Programs.ProgramVersion> IApplicationDbContext.ProgramVersions => ProgramVersionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Programs.TrainingWeek> IApplicationDbContext.TrainingWeeks => TrainingWeeksDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Programs.TrainingSession> IApplicationDbContext.TrainingSessions => TrainingSessionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Programs.ExerciseSlot> IApplicationDbContext.ExerciseSlots => ExerciseSlotsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Programs.ProgramMusclePriority> IApplicationDbContext.ProgramMusclePriorities => ProgramMusclePrioritiesDbSet.AsNoTracking();
 
     public async Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default)
     {
@@ -104,6 +118,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task AddBiomechanicalConsiderationAsync(AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration consideration, CancellationToken cancellationToken = default)
     {
         await BiomechanicalConsiderationsDbSet.AddAsync(consideration, cancellationToken);
+    }
+
+    public async Task AddProgramAsync(AiCoachOs.Domain.Programs.Program program, CancellationToken cancellationToken = default)
+    {
+        await ProgramsDbSet.AddAsync(program, cancellationToken);
     }
 
     public async Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -180,6 +199,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
             .Include(ja => ja.Muscles)
                 .ThenInclude(mja => mja.Muscle)
             .FirstOrDefaultAsync(ja => ja.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Programs.Program?> FindProgramByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ProgramsDbSet
+            .Include(p => p.Client)
+            .Include(p => p.Versions)
+                .ThenInclude(v => v.MusclePriorities)
+                    .ThenInclude(mp => mp.Muscle)
+            .Include(p => p.Versions)
+                .ThenInclude(v => v.Weeks)
+                    .ThenInclude(w => w.Sessions)
+                        .ThenInclude(s => s.Slots)
+                            .ThenInclude(sl => sl.Exercise)
+                                .ThenInclude(e => e.MovementPattern)
+            .Include(p => p.Versions)
+                .ThenInclude(v => v.Weeks)
+                    .ThenInclude(w => w.Sessions)
+                        .ThenInclude(s => s.Slots)
+                            .ThenInclude(sl => sl.Exercise)
+                                .ThenInclude(e => e.Muscles)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

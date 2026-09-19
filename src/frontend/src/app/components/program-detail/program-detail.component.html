@@ -1,0 +1,165 @@
+<div class="program-container">
+  <!-- Loading & Error States -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Assembling deterministic program design...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-banner">
+    <p>{{ errorMessage }}</p>
+    <button (click)="goBack()" class="btn btn-secondary">Return to Client</button>
+  </div>
+
+  <div *ngIf="!isLoading && program" class="program-content">
+    <!-- Header -->
+    <header class="program-header">
+      <div class="header-main">
+        <div class="title-row">
+          <h1>{{ program.name }}</h1>
+          <span class="badge status-badge" [ngClass]="'status-' + program.status">
+            {{ ProgramStatusLabels[program.status] }}
+          </span>
+        </div>
+        <p class="subtitle">
+          Designed for <strong>{{ program.clientName }}</strong> • 
+          Goal: <strong>{{ PrimaryGoalTypeLabels[program.goalSnapshot.primaryGoal] }}</strong> •
+          Version: <strong>v{{ program.activeVersion?.versionNumber || 1 }}</strong>
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button (click)="goBack()" class="btn btn-outline">Back to Client</button>
+        <button 
+          *ngIf="program.status === ProgramStatus.Draft" 
+          (click)="updateStatus(ProgramStatus.Active)" 
+          class="btn btn-primary">
+          Activate Program
+        </button>
+        <button 
+          *ngIf="program.status === ProgramStatus.Active" 
+          (click)="updateStatus(ProgramStatus.Completed)" 
+          class="btn btn-secondary">
+          Mark Completed
+        </button>
+      </div>
+    </header>
+
+    <!-- Deterministic Rationale Banner -->
+    <section class="rationale-card">
+      <div class="section-badge">Deterministic Engine Rationale</div>
+      <p class="rationale-text">{{ program.rationaleSummary }}</p>
+      <div class="meta-pills" *ngIf="program.activeVersion">
+        <span class="pill">Recovery Capacity: <strong>{{ RecoveryCapacityLabels[program.activeVersion.recoveryCapacity] }}</strong></span>
+        <span class="pill" *ngIf="program.volumeSummary">Weekly Volume: <strong>{{ program.volumeSummary.totalWeeklySets }} total sets</strong> across <strong>{{ program.volumeSummary.totalWeeklySessions }} sessions</strong></span>
+        <span class="pill" *ngIf="program.volumeSummary">Est. Duration: <strong>~{{ program.volumeSummary.averageSessionDurationMinutes }} min/session</strong></span>
+      </div>
+    </section>
+
+    <!-- Volume Output Variable Dashboard (Invariant: Volume is an output) -->
+    <section class="volume-dashboard" *ngIf="program.volumeSummary">
+      <h3>Emergent Weekly Muscle Volume (Output Variable)</h3>
+      <p class="section-help">Sets per muscle group resulting directly from session construction and recovery tolerance bounds.</p>
+
+      <div class="muscle-volume-grid">
+        <div *ngFor="let mv of program.volumeSummary.muscleVolumes" class="volume-card">
+          <div class="vol-header">
+            <span class="muscle-name">{{ mv.muscleName }}</span>
+            <span class="priority-tag" [ngClass]="'prio-' + mv.priorityLevel">
+              {{ MusclePriorityLevelLabels[mv.priorityLevel] }}
+            </span>
+          </div>
+          <div class="vol-stats">
+            <div class="stat-item">
+              <span class="stat-val">{{ mv.directWeeklySets }}</span>
+              <span class="stat-lbl">Direct Sets</span>
+            </div>
+            <div class="stat-item" *ngIf="mv.indirectWeeklySets > 0">
+              <span class="stat-val">+{{ mv.indirectWeeklySets }}</span>
+              <span class="stat-lbl">Indirect</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">{{ mv.frequencyPerWeek }}x</span>
+              <span class="stat-lbl">Freq/Wk</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Training Weeks & Sessions Structure -->
+    <section class="structure-section" *ngIf="program.activeVersion">
+      <div class="week-tabs" *ngIf="program.activeVersion.weeks.length > 1">
+        <button 
+          *ngFor="let w of program.activeVersion.weeks" 
+          [class.active]="activeWeekTab === w.weekNumber"
+          (click)="activeWeekTab = w.weekNumber"
+          class="tab-btn">
+          Week {{ w.weekNumber }}
+        </button>
+      </div>
+
+      <div *ngFor="let w of program.activeVersion.weeks">
+        <div *ngIf="activeWeekTab === w.weekNumber" class="sessions-container">
+          <div *ngFor="let session of w.sessions" class="session-card">
+            <div class="session-header">
+              <div class="session-title-box">
+                <h4>Day {{ session.dayNumber }}: {{ session.name }}</h4>
+                <p class="session-intent">{{ session.sessionIntent }}</p>
+              </div>
+              <div class="session-badge-box">
+                <span class="duration-badge">⏱ ~{{ session.estimatedDurationMinutes }} min</span>
+              </div>
+            </div>
+
+            <!-- Slots Table -->
+            <div class="slots-table-wrapper">
+              <table class="slots-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Exercise</th>
+                    <th>Pattern</th>
+                    <th>Sets</th>
+                    <th>Target Reps</th>
+                    <th>Effort</th>
+                    <th>Rest</th>
+                    <th>Progression Rule</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let slot of session.slots">
+                    <td class="order-col">{{ slot.order }}</td>
+                    <td class="name-col">
+                      <strong>{{ slot.exerciseName }}</strong>
+                      <div class="rationale-note" *ngIf="slot.selectionRationale">
+                        💡 {{ slot.selectionRationale }}
+                      </div>
+                      <div class="coaching-tip" *ngIf="slot.coachingNote">
+                        📌 {{ slot.coachingNote }}
+                      </div>
+                    </td>
+                    <td><span class="pattern-pill">{{ slot.movementPatternName }}</span></td>
+                    <td class="sets-col"><strong>{{ slot.targetSets }}</strong></td>
+                    <td>{{ slot.targetRepRange }}</td>
+                    <td><span class="effort-badge">{{ slot.effortGuideline }}</span></td>
+                    <td>{{ slot.restSeconds }}s</td>
+                    <td class="rule-col">
+                      <div *ngIf="slot.progressionRule" class="prog-box">
+                        <span class="prog-type">{{ ProgressionRuleTypeLabels[slot.progressionRule.type] }}</span>
+                        <div class="prog-inc">{{ slot.progressionRule.incrementValue }}</div>
+                        <div class="prog-cond" *ngIf="slot.progressionRule.incrementCondition">
+                          {{ slot.progressionRule.incrementCondition }}
+                        </div>
+                      </div>
+                      <span *ngIf="!slot.progressionRule" class="text-muted">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

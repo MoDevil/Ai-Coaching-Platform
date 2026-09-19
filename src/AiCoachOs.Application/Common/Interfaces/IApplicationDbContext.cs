@@ -31,6 +31,13 @@ public interface IApplicationDbContext
     IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction> ExerciseJointActions { get; }
     IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration> BiomechanicalConsiderations { get; }
 
+    IQueryable<AiCoachOs.Domain.Programs.Program> Programs { get; }
+    IQueryable<AiCoachOs.Domain.Programs.ProgramVersion> ProgramVersions { get; }
+    IQueryable<AiCoachOs.Domain.Programs.TrainingWeek> TrainingWeeks { get; }
+    IQueryable<AiCoachOs.Domain.Programs.TrainingSession> TrainingSessions { get; }
+    IQueryable<AiCoachOs.Domain.Programs.ExerciseSlot> ExerciseSlots { get; }
+    IQueryable<AiCoachOs.Domain.Programs.ProgramMusclePriority> ProgramMusclePriorities { get; }
+
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
     Task AddConsentRecordAsync(ConsentRecord consentRecord, CancellationToken cancellationToken = default);
@@ -39,6 +46,7 @@ public interface IApplicationDbContext
     Task AddKnowledgeSourceAsync(KnowledgeSource source, CancellationToken cancellationToken = default);
     Task AddKnowledgeClaimAsync(KnowledgeClaim claim, CancellationToken cancellationToken = default);
     Task AddBiomechanicalConsiderationAsync(AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration consideration, CancellationToken cancellationToken = default);
+    Task AddProgramAsync(AiCoachOs.Domain.Programs.Program program, CancellationToken cancellationToken = default);
 
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
@@ -50,6 +58,7 @@ public interface IApplicationDbContext
     Task<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion?> FindAnatomicalRegionByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint?> FindJointByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction?> FindJointActionByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Programs.Program?> FindProgramByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

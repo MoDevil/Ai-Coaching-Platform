@@ -9,6 +9,7 @@ import { ClientEditComponent } from './components/client-edit/client-edit.compon
 import { ExerciseListComponent } from './components/exercise-list/exercise-list.component';
 import { ExerciseDetailComponent } from './components/exercise-detail/exercise-detail.component';
 import { ClientTrainingProfileComponent } from './components/client-training-profile/client-training-profile.component';
+import { ProgramDetailComponent } from './components/program-detail/program-detail.component';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
@@ -19,6 +20,8 @@ const routes: Routes = [
   { path: 'clients/:id', component: ClientDetailComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id/edit', component: ClientEditComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id/training-profile', component: ClientTrainingProfileComponent, canActivate: [AuthGuard] },
+  { path: 'programs/:id', component: ProgramDetailComponent, canActivate: [AuthGuard] },
+  { path: 'programs', component: ProgramDetailComponent, canActivate: [AuthGuard] },
   { path: 'exercises', component: ExerciseListComponent, canActivate: [AuthGuard] },
   { path: 'exercises/:id', component: ExerciseDetailComponent, canActivate: [AuthGuard] },
   { path: '', redirectTo: '/clients', pathMatch: 'full' },

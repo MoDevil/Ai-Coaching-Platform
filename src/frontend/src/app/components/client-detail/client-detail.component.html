@@ -28,7 +28,8 @@
       </div>
 
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <a [routerLink]="['/clients', client.id, 'training-profile']" class="btn btn-primary">Training Profile & Availability</a>
+        <a [routerLink]="['/programs']" [queryParams]="{ clientId: client.id }" class="btn btn-primary">Program Designer</a>
+        <a [routerLink]="['/clients', client.id, 'training-profile']" class="btn btn-secondary">Training Profile</a>
         <a [routerLink]="['/clients', client.id, 'edit']" class="btn btn-secondary">Edit Profile</a>
         <button
           *ngIf="client.status === ClientStatus.Active"
