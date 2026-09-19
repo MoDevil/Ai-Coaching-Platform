@@ -24,6 +24,13 @@ public interface IApplicationDbContext
     IQueryable<KnowledgeClaim> KnowledgeClaims { get; }
     IQueryable<KnowledgeClaimSource> KnowledgeClaimSources { get; }
 
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion> AnatomicalRegions { get; }
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint> Joints { get; }
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction> JointActions { get; }
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.MuscleJointAction> MuscleJointActions { get; }
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction> ExerciseJointActions { get; }
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration> BiomechanicalConsiderations { get; }
+
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
     Task AddConsentRecordAsync(ConsentRecord consentRecord, CancellationToken cancellationToken = default);
@@ -31,6 +38,7 @@ public interface IApplicationDbContext
     Task AddTrainingProfileAsync(ClientTrainingProfile profile, CancellationToken cancellationToken = default);
     Task AddKnowledgeSourceAsync(KnowledgeSource source, CancellationToken cancellationToken = default);
     Task AddKnowledgeClaimAsync(KnowledgeClaim claim, CancellationToken cancellationToken = default);
+    Task AddBiomechanicalConsiderationAsync(AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration consideration, CancellationToken cancellationToken = default);
 
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
@@ -39,6 +47,9 @@ public interface IApplicationDbContext
     Task<ClientTrainingProfile?> FindTrainingProfileByClientIdAsync(Guid clientId, CancellationToken cancellationToken = default);
     Task<KnowledgeSource?> FindKnowledgeSourceByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<KnowledgeClaim?> FindKnowledgeClaimByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion?> FindAnatomicalRegionByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint?> FindJointByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction?> FindJointActionByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

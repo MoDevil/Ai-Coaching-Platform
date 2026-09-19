@@ -49,6 +49,64 @@ public static class ExerciseLibrarySeeder
         public static readonly Guid RectusAbdominis = new("33333333-3333-3333-3333-333333333312");
     }
 
+    public static class Ex
+    {
+        public static readonly Guid Squat = new("44444444-4444-4444-4444-444444444401");
+        public static readonly Guid HackSquat = new("44444444-4444-4444-4444-444444444402");
+        public static readonly Guid Rdl = new("44444444-4444-4444-4444-444444444403");
+        public static readonly Guid DbRdl = new("44444444-4444-4444-4444-444444444404");
+        public static readonly Guid Bench = new("44444444-4444-4444-4444-444444444405");
+        public static readonly Guid DbBench = new("44444444-4444-4444-4444-444444444406");
+        public static readonly Guid CableRow = new("44444444-4444-4444-4444-444444444407");
+        public static readonly Guid TbarRow = new("44444444-4444-4444-4444-444444444408");
+        public static readonly Guid LatPulldown = new("44444444-4444-4444-4444-444444444409");
+        public static readonly Guid PullUp = new("44444444-4444-4444-4444-444444444410");
+        public static readonly Guid DbLatRaise = new("44444444-4444-4444-4444-444444444411");
+        public static readonly Guid CableLatRaise = new("44444444-4444-4444-4444-444444444412");
+        public static readonly Guid Pushdown = new("44444444-4444-4444-4444-444444444413");
+        public static readonly Guid OverheadTriceps = new("44444444-4444-4444-4444-444444444414");
+    }
+
+    public static class Regions
+    {
+        public static readonly Guid Shoulder = new("55555555-5555-5555-5555-555555555501");
+        public static readonly Guid Spine = new("55555555-5555-5555-5555-555555555502");
+        public static readonly Guid Hip = new("55555555-5555-5555-5555-555555555503");
+        public static readonly Guid Knee = new("55555555-5555-5555-5555-555555555504");
+        public static readonly Guid Ankle = new("55555555-5555-5555-5555-555555555505");
+        public static readonly Guid Elbow = new("55555555-5555-5555-5555-555555555506");
+        public static readonly Guid Wrist = new("55555555-5555-5555-5555-555555555507");
+        public static readonly Guid Trunk = new("55555555-5555-5555-5555-555555555508");
+    }
+
+    public static class Jnts
+    {
+        public static readonly Guid Glenohumeral = new("66666666-6666-6666-6666-666666666601");
+        public static readonly Guid Scapulothoracic = new("66666666-6666-6666-6666-666666666602");
+        public static readonly Guid HipJoint = new("66666666-6666-6666-6666-666666666603");
+        public static readonly Guid KneeJoint = new("66666666-6666-6666-6666-666666666604");
+        public static readonly Guid Talocrural = new("66666666-6666-6666-6666-666666666605");
+        public static readonly Guid Humeroulnar = new("66666666-6666-6666-6666-666666666606");
+        public static readonly Guid Radiocarpal = new("66666666-6666-6666-6666-666666666607");
+        public static readonly Guid LumbarSpine = new("66666666-6666-6666-6666-666666666608");
+    }
+
+    public static class Actions
+    {
+        public static readonly Guid GlenohumeralFlexion = new("77777777-7777-7777-7777-777777777701");
+        public static readonly Guid GlenohumeralExtension = new("77777777-7777-7777-7777-777777777702");
+        public static readonly Guid GlenohumeralAbduction = new("77777777-7777-7777-7777-777777777703");
+        public static readonly Guid GlenohumeralHorizontalAdduction = new("77777777-7777-7777-7777-777777777704");
+        public static readonly Guid KneeExtension = new("77777777-7777-7777-7777-777777777705");
+        public static readonly Guid KneeFlexion = new("77777777-7777-7777-7777-777777777706");
+        public static readonly Guid HipExtension = new("77777777-7777-7777-7777-777777777707");
+        public static readonly Guid HipFlexion = new("77777777-7777-7777-7777-777777777708");
+        public static readonly Guid ElbowExtension = new("77777777-7777-7777-7777-777777777709");
+        public static readonly Guid ElbowFlexion = new("77777777-7777-7777-7777-777777777710");
+        public static readonly Guid ScapularRetraction = new("77777777-7777-7777-7777-777777777711");
+        public static readonly Guid LumbarStabilization = new("77777777-7777-7777-7777-777777777712");
+    }
+
     private static readonly SemaphoreSlim _seedLock = new(1, 1);
 
     public static async Task SeedAsync(ApplicationDbContext context)
@@ -56,13 +114,13 @@ public static class ExerciseLibrarySeeder
         await _seedLock.WaitAsync();
         try
         {
-            if (await context.MovementPatternsDbSet.AnyAsync())
-                return;
-
-        // 1. Movement Patterns
-        var patterns = new List<MovementPattern>
-        {
-            new(Patterns.Squat, "Squat / Knee-Dominant", "Bilateral and unilateral knee and hip flexion movements"),
+            var hasExercises = await context.MovementPatternsDbSet.AnyAsync();
+            if (!hasExercises)
+            {
+                // 1. Movement Patterns
+                var patterns = new List<MovementPattern>
+                {
+                    new(Patterns.Squat, "Squat / Knee-Dominant", "Bilateral and unilateral knee and hip flexion movements"),
             new(Patterns.Hinge, "Hip Hinge", "Hip-dominant flexion and extension with minimal knee displacement"),
             new(Patterns.HorizontalPush, "Horizontal Push", "Pushing resistance forward perpendicular to torso"),
             new(Patterns.HorizontalPull, "Horizontal Pull", "Rowing resistance toward torso in horizontal plane"),
@@ -287,8 +345,128 @@ public static class ExerciseLibrarySeeder
             squat, hackSquat, rdl, dbRdl, bench, dbBench, cableRow,
             tbarRow, latPulldown, pullUp, dbLatRaise, cableLatRaise, pushdown, overheadTriceps
         });
+        await context.SaveChangesAsync();
+        }
+
+        var hasAnatomy = await context.AnatomicalRegionsDbSet.AnyAsync();
+        if (!hasAnatomy)
+        {
+            // 5. Anatomical Regions
+            var regions = new List<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion>
+            {
+                new(Regions.Shoulder, "Shoulder", "Glenohumeral and scapulothoracic complexes controlling upper extremity orientation"),
+                new(Regions.Spine, "Spine", "Cervical, thoracic, and lumbar vertebrae facilitating axial support and stabilization"),
+                new(Regions.Hip, "Hip", "Pelvic acetabulofemoral articulation transferring force between lower extremities and trunk"),
+                new(Regions.Knee, "Knee", "Tibiofemoral and patellofemoral hinge articulations responsible for lower body flexion and extension"),
+                new(Regions.Ankle, "Ankle", "Talocrural and subtalar joints governing foot ground-reaction dynamics and lower body dorsiflexion"),
+                new(Regions.Elbow, "Elbow", "Humeroulnar, humeroradial, and proximal radioulnar joints mediating forearm flexion and extension"),
+                new(Regions.Wrist, "Wrist", "Radiocarpal articulation and carpal complex providing hand stability during gripping and pressing"),
+                new(Regions.Trunk, "Trunk / Core", "Abdominal wall, anterior/posterior core musculature maintaining intra-abdominal pressure")
+            };
+            await context.AnatomicalRegionsDbSet.AddRangeAsync(regions);
+
+        // 6. Joints
+        var joints = new List<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint>
+        {
+            new(Jnts.Glenohumeral, Regions.Shoulder, "Glenohumeral Joint", "Shoulder Ball-and-Socket", "Multiaxial ball-and-socket joint"),
+            new(Jnts.Scapulothoracic, Regions.Shoulder, "Scapulothoracic Articulation", "Shoulder Blade Articulation", "Physiological articulation between scapula and thoracic wall"),
+            new(Jnts.HipJoint, Regions.Hip, "Acetabulofemoral Joint", "Hip Joint", "Triaxial ball-and-socket joint transferring ground reaction forces"),
+            new(Jnts.KneeJoint, Regions.Knee, "Tibiofemoral Joint", "Knee Joint", "Modified hinge joint with flexion, extension, and slight axial rotation"),
+            new(Jnts.Talocrural, Regions.Ankle, "Talocrural Joint", "Ankle Mortise", "Synovial hinge joint mediating dorsiflexion and plantarflexion"),
+            new(Jnts.Humeroulnar, Regions.Elbow, "Humeroulnar Joint", "Elbow Joint", "Uniaxial hinge joint governing elbow flexion and extension"),
+            new(Jnts.Radiocarpal, Regions.Wrist, "Radiocarpal Joint", "Wrist Joint", "Biaxial condyloid joint connecting radius to proximal carpals"),
+            new(Jnts.LumbarSpine, Regions.Spine, "Lumbar Vertebrae Complex", "Lower Back", "Five lumbar motion segments subject to compressive and shear loads")
+        };
+        await context.JointsDbSet.AddRangeAsync(joints);
+
+        // 7. Joint Actions
+        var jointActions = new List<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction>
+        {
+            new(Actions.GlenohumeralFlexion, Jnts.Glenohumeral, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Flexion, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Humeral elevation anteriorly in sagittal plane"),
+            new(Actions.GlenohumeralExtension, Jnts.Glenohumeral, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Extension, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Humeral return or backward movement in sagittal plane"),
+            new(Actions.GlenohumeralAbduction, Jnts.Glenohumeral, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Abduction, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Frontal, "Humeral elevation laterally in frontal or scapular plane"),
+            new(Actions.GlenohumeralHorizontalAdduction, Jnts.Glenohumeral, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.HorizontalAdduction, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Transverse, "Humeral movement across chest from 90° abducted position"),
+            new(Actions.KneeExtension, Jnts.KneeJoint, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Extension, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Straightening of the leg through quadriceps contraction"),
+            new(Actions.KneeFlexion, Jnts.KneeJoint, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Flexion, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Bending of the leg toward posterior thigh via hamstrings"),
+            new(Actions.HipExtension, Jnts.HipJoint, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Extension, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Posterior movement of the femur opening the hip angle"),
+            new(Actions.HipFlexion, Jnts.HipJoint, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Flexion, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Anterior movement of femur closing the hip angle"),
+            new(Actions.ElbowExtension, Jnts.Humeroulnar, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Extension, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Forearm extension increasing humeroulnar angle"),
+            new(Actions.ElbowFlexion, Jnts.Humeroulnar, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Flexion, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Forearm flexion decreasing humeroulnar angle"),
+            new(Actions.ScapularRetraction, Jnts.Scapulothoracic, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Retraction, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Transverse, "Posteromedial glide of scapulae toward thoracic spine"),
+            new(Actions.LumbarStabilization, Jnts.LumbarSpine, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionType.Extension, AiCoachOs.Domain.AnatomyAndBiomechanics.PlaneOfMotion.Sagittal, "Isometric maintenance of neutral spinal alignment under load")
+        };
+        await context.JointActionsDbSet.AddRangeAsync(jointActions);
+
+        // 8. Muscle Joint Actions (Canonical muscle -> functional action mapping)
+        var muscleActions = new List<AiCoachOs.Domain.AnatomyAndBiomechanics.MuscleJointAction>
+        {
+            new(Musc.Quadriceps, Actions.KneeExtension, true),
+            new(Musc.Hamstrings, Actions.KneeFlexion, true),
+            new(Musc.Hamstrings, Actions.HipExtension, true),
+            new(Musc.GluteusMaximus, Actions.HipExtension, true),
+            new(Musc.PectoralisMajor, Actions.GlenohumeralHorizontalAdduction, true),
+            new(Musc.LatissimusDorsi, Actions.GlenohumeralExtension, true),
+            new(Musc.MiddleTrapezius, Actions.ScapularRetraction, true),
+            new(Musc.AnteriorDeltoid, Actions.GlenohumeralFlexion, true),
+            new(Musc.LateralDeltoid, Actions.GlenohumeralAbduction, true),
+            new(Musc.BicepsBrachii, Actions.ElbowFlexion, true),
+            new(Musc.TricepsBrachii, Actions.ElbowExtension, true)
+        };
+        await context.MuscleJointActionsDbSet.AddRangeAsync(muscleActions);
+
+        // 9. Exercise Joint Actions
+        var exerciseActions = new List<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction>
+        {
+            // Squat
+            new(Ex.Squat, Actions.KneeExtension, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionRole.PrimaryMover),
+            new(Ex.Squat, Actions.HipExtension, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionRole.PrimaryMover),
+            new(Ex.Squat, Actions.LumbarStabilization, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionRole.Stabilizer),
+
+            // Bench Press
+            new(Ex.Bench, Actions.GlenohumeralHorizontalAdduction, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionRole.PrimaryMover),
+            new(Ex.Bench, Actions.ElbowExtension, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionRole.PrimaryMover),
+
+            // RDL
+            new(Ex.Rdl, Actions.HipExtension, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionRole.PrimaryMover),
+            new(Ex.Rdl, Actions.LumbarStabilization, AiCoachOs.Domain.AnatomyAndBiomechanics.JointActionRole.Stabilizer)
+        };
+        await context.ExerciseJointActionsDbSet.AddRangeAsync(exerciseActions);
+
+        // 10. Biomechanical Considerations (Established principles and contextual inferences)
+        var considerations = new List<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration>
+        {
+            new(
+                Guid.NewGuid(),
+                Ex.Squat,
+                AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalAspect.MomentArm,
+                AiCoachOs.Domain.AnatomyAndBiomechanics.CertaintyLevel.Established,
+                "Torso angle alters knee vs hip moment arm ratio",
+                "A more upright torso increases forward knee travel and knee extensor moment arm, whereas forward torso lean lengthens the hip moment arm and increases hip extensor demand.",
+                "Elevating heels or using Olympic weightlifting shoes reduces required ankle dorsiflexion, allowing a more upright torso and increased quad bias."
+            ),
+            new(
+                Guid.NewGuid(),
+                Ex.Bench,
+                AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalAspect.SetupVariable,
+                AiCoachOs.Domain.AnatomyAndBiomechanics.CertaintyLevel.Established,
+                "Grip width and elbow flare dictate clavicular vs sternal pectoralis leverage",
+                "A wider grip increases the horizontal adduction moment arm at the glenohumeral joint, placing greater passive and active tension on the sternal pectoralis fibers in deep stretch.",
+                "Tuck elbows slightly (45° to 70° from torso) to preserve subacromial space while maintaining sternal chest alignment."
+            ),
+            new(
+                Guid.NewGuid(),
+                Ex.Rdl,
+                AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalAspect.MuscleLength,
+                AiCoachOs.Domain.AnatomyAndBiomechanics.CertaintyLevel.Established,
+                "Fixed slight knee flexion maximizes hamstring lengthened mechanical tension",
+                "Maintaining slight, unchanging knee flexion anchors the distal hamstring insertion, directing almost all muscle lengthening and moment arm demand to the proximal hip joint.",
+                "Initiate by pushing the pelvis horizontally backward rather than bending down, stopping when pelvic rotation ceases."
+            )
+        };
+        await context.BiomechanicalConsiderationsDbSet.AddRangeAsync(considerations);
 
         await context.SaveChangesAsync();
+        }
         }
         finally
         {

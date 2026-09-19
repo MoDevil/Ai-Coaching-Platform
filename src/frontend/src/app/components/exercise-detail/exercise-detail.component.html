@@ -88,9 +88,60 @@
           </div>
         </div>
 
-        <!-- Joint Actions & Mechanical Context -->
-        <div class="card" *ngIf="exercise.jointActions">
-          <h3 class="section-title">Joint Actions & Biomechanical Context</h3>
+        <!-- Structured Joint Actions (M4 Anatomy) -->
+        <div class="card" *ngIf="biomechanics && biomechanics.jointActions.length > 0">
+          <h3 class="section-title">Anatomical Joint Actions (M4 Anatomy)</h3>
+          <p class="form-text" style="margin-bottom: 0.75rem;">
+            Physiological articulations and functional roles distinct from training movement patterns.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div *ngFor="let ja of biomechanics.jointActions" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8fafc; border-radius: 4px; border-left: 3px solid #6366f1;">
+              <div>
+                <strong>{{ ja.jointName }}</strong> — {{ ja.actionTypeName }}
+                <span class="text-muted" style="font-size: 0.75rem; margin-left: 0.5rem;">({{ ja.planeOfMotion === 1 ? 'Sagittal' : ja.planeOfMotion === 2 ? 'Frontal' : ja.planeOfMotion === 3 ? 'Transverse' : 'Multiplanar' }})</span>
+              </div>
+              <span class="badge" [ngClass]="ja.role === 1 ? 'badge-active' : 'badge-warning'">
+                {{ JointActionRoleLabels[ja.role] }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Biomechanical Considerations (M4 Biomechanics & Knowledge Link) -->
+        <div class="card" *ngIf="biomechanics && biomechanics.considerations.length > 0">
+          <h3 class="section-title">Biomechanical Principles &amp; Setup Variables (M4)</h3>
+          <p class="form-text" style="margin-bottom: 1rem;">
+            Contextual mechanical considerations distinguishing established principles from mechanical inference and hypothesis.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div *ngFor="let c of biomechanics.considerations" class="card" style="margin-bottom: 0; background-color: #f8fafc; border-left: 3px solid #0ea5e9;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div>
+                  <span class="badge badge-active" style="font-size: 0.6875rem; margin-right: 0.5rem;">
+                    {{ BiomechanicalAspectLabels[c.aspect] }}
+                  </span>
+                  <strong style="font-size: 0.875rem;">{{ c.summary }}</strong>
+                </div>
+                <span class="badge" [ngClass]="c.certainty === CertaintyLevel.Established ? 'badge-active' : c.certainty === CertaintyLevel.Inferred ? 'badge-warning' : 'rating-moderate'" style="font-size: 0.6875rem; white-space: nowrap;">
+                  {{ CertaintyLevelLabels[c.certainty] }}
+                </span>
+              </div>
+              <p style="font-size: 0.8125rem; color: var(--text-main); margin-bottom: 0.5rem;">
+                {{ c.explanation }}
+              </p>
+              <div *ngIf="c.practicalCues" style="font-size: 0.75rem; color: #475569; background: #e2e8f0; padding: 0.35rem 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
+                <strong>Execution Cue:</strong> {{ c.practicalCues }}
+              </div>
+              <div *ngIf="c.knowledgeClaimId" class="text-muted" style="font-size: 0.6875rem;">
+                <span>Traced M3 Claim: <strong>{{ c.knowledgeClaimTopic }}</strong> — {{ c.knowledgeClaimText }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legacy Joint Actions Notes if Present -->
+        <div class="card" *ngIf="exercise.jointActions && (!biomechanics || biomechanics.jointActions.length === 0)">
+          <h3 class="section-title">Joint Actions &amp; Biomechanical Context</h3>
           <p class="text-block">{{ exercise.jointActions }}</p>
         </div>
 

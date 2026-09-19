@@ -2,6 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ExerciseService } from '../../services/exercise.service';
 import { KnowledgeService } from '../../services/knowledge.service';
+import { AnatomyService } from '../../services/anatomy.service';
+import {
+  CertaintyLevel,
+  CertaintyLevelLabels,
+  ExerciseBiomechanics,
+  JointActionRoleLabels,
+  BiomechanicalAspectLabels
+} from '../../models/anatomy.models';
 import {
   ExerciseCategoryLabels,
   ExerciseDetail,
@@ -24,6 +32,7 @@ import {
 export class ExerciseDetailComponent implements OnInit {
   exerciseId = '';
   exercise: ExerciseDetail | null = null;
+  biomechanics: ExerciseBiomechanics | null = null;
   claims: KnowledgeClaimSummary[] = [];
   isLoading = true;
   errorMessage = '';
@@ -34,11 +43,16 @@ export class ExerciseDetailComponent implements OnInit {
   MetadataStatus = MetadataStatus;
   MetadataStatusLabels = MetadataStatusLabels;
   EvidenceLevelLabels = EvidenceLevelLabels;
+  CertaintyLevel = CertaintyLevel;
+  CertaintyLevelLabels = CertaintyLevelLabels;
+  JointActionRoleLabels = JointActionRoleLabels;
+  BiomechanicalAspectLabels = BiomechanicalAspectLabels;
 
   constructor(
     private route: ActivatedRoute,
     private exerciseService: ExerciseService,
-    private knowledgeService: KnowledgeService
+    private knowledgeService: KnowledgeService,
+    private anatomyService: AnatomyService
   ) {}
 
   ngOnInit(): void {
@@ -71,6 +85,15 @@ export class ExerciseDetailComponent implements OnInit {
       },
       error: () => {
         this.claims = [];
+      }
+    });
+
+    this.anatomyService.getExerciseBiomechanics(this.exerciseId).subscribe({
+      next: (bioData) => {
+        this.biomechanics = bioData;
+      },
+      error: () => {
+        this.biomechanics = null;
       }
     });
   }

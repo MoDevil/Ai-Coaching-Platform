@@ -26,6 +26,14 @@ public class ValidationException : Exception
         Errors = errors;
     }
 
+    public ValidationException(IEnumerable<FluentValidation.Results.ValidationFailure> failures)
+        : base("One or more validation failures have occurred.")
+    {
+        Errors = failures
+            .GroupBy(e => e.PropertyName, e => e.ErrorMessage)
+            .ToDictionary(failureGroup => failureGroup.Key, failureGroup => failureGroup.ToArray());
+    }
+
     public ValidationException(string propertyName, string error)
         : base("Validation failure.")
     {

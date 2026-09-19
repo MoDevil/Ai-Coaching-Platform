@@ -35,6 +35,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<KnowledgeClaim> KnowledgeClaimsDbSet => Set<KnowledgeClaim>();
     public DbSet<KnowledgeClaimSource> KnowledgeClaimSourcesDbSet => Set<KnowledgeClaimSource>();
 
+    public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion> AnatomicalRegionsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion>();
+    public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint> JointsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint>();
+    public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction> JointActionsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction>();
+    public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.MuscleJointAction> MuscleJointActionsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.MuscleJointAction>();
+    public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction> ExerciseJointActionsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction>();
+    public DbSet<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration> BiomechanicalConsiderationsDbSet => Set<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
@@ -51,6 +58,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<KnowledgeSource> IApplicationDbContext.KnowledgeSources => KnowledgeSourcesDbSet.AsNoTracking();
     IQueryable<KnowledgeClaim> IApplicationDbContext.KnowledgeClaims => KnowledgeClaimsDbSet.AsNoTracking();
     IQueryable<KnowledgeClaimSource> IApplicationDbContext.KnowledgeClaimSources => KnowledgeClaimSourcesDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion> IApplicationDbContext.AnatomicalRegions => AnatomicalRegionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint> IApplicationDbContext.Joints => JointsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction> IApplicationDbContext.JointActions => JointActionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.MuscleJointAction> IApplicationDbContext.MuscleJointActions => MuscleJointActionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.ExerciseJointAction> IApplicationDbContext.ExerciseJointActions => ExerciseJointActionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration> IApplicationDbContext.BiomechanicalConsiderations => BiomechanicalConsiderationsDbSet.AsNoTracking();
 
     public async Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default)
     {
@@ -85,6 +99,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task AddKnowledgeClaimAsync(KnowledgeClaim claim, CancellationToken cancellationToken = default)
     {
         await KnowledgeClaimsDbSet.AddAsync(claim, cancellationToken);
+    }
+
+    public async Task AddBiomechanicalConsiderationAsync(AiCoachOs.Domain.AnatomyAndBiomechanics.BiomechanicalConsideration consideration, CancellationToken cancellationToken = default)
+    {
+        await BiomechanicalConsiderationsDbSet.AddAsync(consideration, cancellationToken);
     }
 
     public async Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -136,6 +155,31 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
             .Include(kc => kc.Sources)
                 .ThenInclude(kcs => kcs.Source)
             .FirstOrDefaultAsync(kc => kc.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.AnatomyAndBiomechanics.AnatomicalRegion?> FindAnatomicalRegionByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await AnatomicalRegionsDbSet
+            .Include(ar => ar.Joints)
+            .FirstOrDefaultAsync(ar => ar.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.AnatomyAndBiomechanics.Joint?> FindJointByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await JointsDbSet
+            .Include(j => j.Region)
+            .Include(j => j.Actions)
+            .FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.AnatomyAndBiomechanics.JointAction?> FindJointActionByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await JointActionsDbSet
+            .Include(ja => ja.Joint)
+                .ThenInclude(j => j.Region)
+            .Include(ja => ja.Muscles)
+                .ThenInclude(mja => mja.Muscle)
+            .FirstOrDefaultAsync(ja => ja.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
