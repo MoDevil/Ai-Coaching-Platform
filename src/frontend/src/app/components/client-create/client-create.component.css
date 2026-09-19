@@ -1,0 +1,13 @@
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+}
+
+.form-actions {
+  display: flex;
+  margin-bottom: 3rem;
+}

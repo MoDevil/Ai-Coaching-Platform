@@ -1,0 +1,53 @@
+<div class="auth-container">
+  <div class="card auth-card">
+    <div class="auth-header">
+      <h2 class="auth-title">Coach Login</h2>
+      <p class="auth-subtitle">Sign in to your AI Coach OS workspace</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-danger">
+      {{ errorMessage }}
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label class="form-label" for="email">Coach Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="form-control"
+          placeholder="coach@gym.eg"
+          autocomplete="email"
+        />
+        <div *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.invalid" class="form-error">
+          A valid email is required.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          class="form-control"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        />
+        <div *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid" class="form-error">
+          Password must be at least 6 characters.
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" [disabled]="isLoading">
+        <span *ngIf="isLoading">Signing in...</span>
+        <span *ngIf="!isLoading">Sign In</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>New coach? <a routerLink="/register">Register your account</a></p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,68 @@
+<div class="auth-container">
+  <div class="card auth-card">
+    <div class="auth-header">
+      <h2 class="auth-title">Coach Registration</h2>
+      <p class="auth-subtitle">Create your account to start managing clients</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-danger">
+      {{ errorMessage }}
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label class="form-label" for="name">Full Name</label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          class="form-control"
+          placeholder="Captain Ahmed Hassan"
+          autocomplete="name"
+        />
+        <div *ngIf="registerForm.get('name')?.touched && registerForm.get('name')?.invalid" class="form-error">
+          Full name is required (max 100 characters).
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="form-control"
+          placeholder="ahmed@egyptgym.com"
+          autocomplete="email"
+        />
+        <div *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.invalid" class="form-error">
+          A valid email address is required.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          class="form-control"
+          placeholder="••••••••"
+          autocomplete="new-password"
+        />
+        <div *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.invalid" class="form-error">
+          Password must be at least 8 characters.
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" [disabled]="isLoading">
+        <span *ngIf="isLoading">Creating account...</span>
+        <span *ngIf="!isLoading">Register as Coach</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a routerLink="/login">Sign in</a></p>
+    </div>
+  </div>
+</div>

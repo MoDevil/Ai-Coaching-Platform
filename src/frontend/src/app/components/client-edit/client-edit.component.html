@@ -1,0 +1,158 @@
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Edit Client Profile</h1>
+      <p class="page-subtitle">Update contact details, intake notes, or coaching goals</p>
+    </div>
+    <div>
+      <a [routerLink]="['/clients', clientId]" class="btn btn-secondary">Cancel</a>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="card">
+    <p>Loading client data...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <form *ngIf="!isLoading" [formGroup]="clientForm" (ngSubmit)="onSubmit()">
+    <!-- Identity Section -->
+    <div class="card">
+      <h3 class="section-title">Client Identity (Required)</h3>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="firstName">First Name *</label>
+          <input
+            id="firstName"
+            type="text"
+            formControlName="firstName"
+            class="form-control"
+          />
+          <div *ngIf="clientForm.get('firstName')?.touched && clientForm.get('firstName')?.invalid" class="form-error">
+            First name is required.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="lastName">Last Name *</label>
+          <input
+            id="lastName"
+            type="text"
+            formControlName="lastName"
+            class="form-control"
+          />
+          <div *ngIf="clientForm.get('lastName')?.touched && clientForm.get('lastName')?.invalid" class="form-error">
+            Last name is required.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact & Demographics -->
+    <div class="card">
+      <h3 class="section-title">Demographics & Contact (Optional)</h3>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phone">Phone / WhatsApp</label>
+          <input
+            id="phone"
+            type="tel"
+            formControlName="phone"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dateOfBirth">Date of Birth</label>
+          <input
+            id="dateOfBirth"
+            type="date"
+            formControlName="dateOfBirth"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="gender">Gender</label>
+          <select id="gender" formControlName="gender" class="form-control">
+            <option [ngValue]="null">Not specified</option>
+            <option *ngFor="let g of genders" [value]="g.value">{{ g.label }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Primary Goal -->
+    <div class="card">
+      <h3 class="section-title">Primary Coaching Goal (Optional)</h3>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="primaryGoal">Goal Type</label>
+          <input
+            id="primaryGoal"
+            type="text"
+            formControlName="primaryGoal"
+            class="form-control"
+            placeholder="e.g. Strength, Hypertrophy, Recomposition"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="targetTimelineWeeks">Target Timeline (Weeks)</label>
+          <input
+            id="targetTimelineWeeks"
+            type="number"
+            min="1"
+            max="104"
+            formControlName="targetTimelineWeeks"
+            class="form-control"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="goalDescription">Goal Context & Priorities</label>
+        <textarea
+          id="goalDescription"
+          formControlName="goalDescription"
+          rows="3"
+          class="form-control"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Intake & Notes -->
+    <div class="card">
+      <h3 class="section-title">Intake & Lifestyle Notes (Optional)</h3>
+      <div class="form-group">
+        <label class="form-label" for="intakeNotes">Assessment & Tracking Notes</label>
+        <textarea
+          id="intakeNotes"
+          formControlName="intakeNotes"
+          rows="4"
+          class="form-control"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+        <span *ngIf="isSaving">Saving Changes...</span>
+        <span *ngIf="!isSaving">Save Changes</span>
+      </button>
+      <a [routerLink]="['/clients', clientId]" class="btn btn-secondary" style="margin-left: 0.75rem;">Cancel</a>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,175 @@
+<div class="container">
+  <div *ngIf="isLoading" class="loading-container card">
+    <p>Loading client details...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && client">
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h1 class="page-title">{{ client.firstName }} {{ client.lastName }}</h1>
+          <span class="badge" [ngClass]="getStatusBadgeClass(client.status)">
+            {{ ClientStatusLabels[client.status] }}
+          </span>
+        </div>
+        <p class="page-subtitle">
+          Onboarded on {{ client.createdAtUtc | date:'mediumDate' }}
+          <span *ngIf="client.updatedAtUtc"> • Last updated {{ client.updatedAtUtc | date:'mediumDate' }}</span>
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <a [routerLink]="['/clients', client.id, 'edit']" class="btn btn-secondary">Edit Profile</a>
+        <button
+          *ngIf="client.status === ClientStatus.Active"
+          type="button"
+          class="btn btn-danger"
+          (click)="onArchiveClient()"
+        >
+          Archive Client
+        </button>
+        <a routerLink="/clients" class="btn btn-secondary">Back to Roster</a>
+      </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="detail-grid">
+      <!-- Left Column: Details -->
+      <div class="detail-main">
+        <!-- Identity & Demographics -->
+        <div class="card">
+          <h3 class="section-title">Demographics & Contact</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Full Name</span>
+              <span class="info-val">{{ client.firstName }} {{ client.lastName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-val">{{ client.email || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Phone / WhatsApp</span>
+              <span class="info-val">{{ client.phone || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Date of Birth</span>
+              <span class="info-val">{{ client.dateOfBirth ? (client.dateOfBirth | date:'longDate') : '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Gender</span>
+              <span class="info-val">{{ client.gender ? GenderLabels[client.gender] : '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Goal -->
+        <div class="card">
+          <h3 class="section-title">Coaching Goal & Timeline</h3>
+          <div *ngIf="client.goal" class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Primary Goal</span>
+              <span class="info-val font-semibold">{{ client.goal.primaryGoal }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Target Timeline</span>
+              <span class="info-val">{{ client.goal.targetTimelineWeeks ? client.goal.targetTimelineWeeks + ' Weeks' : '—' }}</span>
+            </div>
+            <div class="info-item full-width" *ngIf="client.goal.description">
+              <span class="info-label">Goal Context & Priorities</span>
+              <p class="info-val text-block">{{ client.goal.description }}</p>
+            </div>
+          </div>
+          <p *ngIf="!client.goal" class="text-muted">No specific coaching goal established yet.</p>
+        </div>
+
+        <!-- Intake Notes -->
+        <div class="card">
+          <h3 class="section-title">Intake & Assessment Notes</h3>
+          <p *ngIf="client.intakeNotes" class="text-block">{{ client.intakeNotes }}</p>
+          <p *ngIf="!client.intakeNotes" class="text-muted">No intake notes recorded.</p>
+        </div>
+      </div>
+
+      <!-- Right Column: Consent & Safety Audit Trail -->
+      <div class="detail-sidebar">
+        <div class="card">
+          <h3 class="section-title">Consent Records</h3>
+          <p class="form-text" style="margin-bottom: 1rem;">
+            Evidence-based audit trail of client consent agreements.
+          </p>
+
+          <!-- Add Consent Form -->
+          <div class="consent-form">
+            <div class="form-group">
+              <label class="form-label" for="cType">Consent Type</label>
+              <input
+                id="cType"
+                type="text"
+                class="form-control"
+                [(ngModel)]="consentType"
+                placeholder="e.g. DataProcessing, PhysicalReadiness"
+              />
+            </div>
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;">
+                <input type="checkbox" [(ngModel)]="consentGranted" />
+                <span>Consent Granted</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cNotes">Notes</label>
+              <input
+                id="cNotes"
+                type="text"
+                class="form-control"
+                [(ngModel)]="consentNotes"
+                placeholder="Signed waiver, verbal agreement, etc."
+              />
+            </div>
+            <div *ngIf="consentError" class="form-error" style="margin-bottom: 0.5rem;">
+              {{ consentError }}
+            </div>
+            <button
+              type="button"
+              class="btn btn-secondary btn-block"
+              (click)="onAddConsent()"
+              [disabled]="isSubmittingConsent"
+            >
+              Record Consent
+            </button>
+          </div>
+
+          <!-- Consent List -->
+          <div class="consent-list" style="margin-top: 1.5rem;">
+            <div *ngIf="client.consentRecords.length === 0" class="text-muted" style="font-size: 0.875rem;">
+              No consent records on file.
+            </div>
+
+            <div *ngFor="let record of client.consentRecords" class="consent-item">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>{{ record.consentType }}</strong>
+                <span class="badge" [ngClass]="record.isGranted ? 'badge-active' : 'badge-archived'">
+                  {{ record.isGranted ? 'Granted' : 'Revoked' }}
+                </span>
+              </div>
+              <div class="form-text">Recorded: {{ record.grantedAtUtc | date:'short' }}</div>
+              <div *ngIf="record.notes" style="font-size: 0.8125rem; margin-top: 0.25rem;">
+                {{ record.notes }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

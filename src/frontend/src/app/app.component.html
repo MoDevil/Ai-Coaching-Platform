@@ -1,0 +1,37 @@
+<header class="app-nav">
+  <div class="nav-container">
+    <div class="nav-brand">
+      <a routerLink="/" class="brand-link">
+        <span class="brand-name">AI Coach OS</span>
+        <span class="brand-badge">Egypt</span>
+      </a>
+    </div>
+
+    <nav class="nav-links">
+      <ng-container *ngIf="authService.currentUser$ | async as user; else unauthenticatedNav">
+        <a routerLink="/clients" routerLinkActive="active" class="nav-item">Clients</a>
+        <a routerLink="/clients/new" routerLinkActive="active" class="nav-item">+ New Client</a>
+        
+        <div class="user-menu">
+          <span class="coach-name">{{ user.coachName }}</span>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="onLogout()">Logout</button>
+        </div>
+      </ng-container>
+
+      <ng-template #unauthenticatedNav>
+        <a routerLink="/login" routerLinkActive="active" class="nav-item">Login</a>
+        <a routerLink="/register" routerLinkActive="active" class="nav-item">Register</a>
+      </ng-template>
+    </nav>
+  </div>
+</header>
+
+<main class="app-main">
+  <router-outlet></router-outlet>
+</main>
+
+<footer class="app-footer">
+  <div class="container">
+    <p>AI Coach OS — Evidence-Based Coaching Operating System</p>
+  </div>
+</footer>

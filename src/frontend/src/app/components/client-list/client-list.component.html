@@ -1,0 +1,119 @@
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Client Roster</h1>
+      <p class="page-subtitle">Manage your coaching clients, intake records, and adaptations</p>
+    </div>
+    <div>
+      <a routerLink="/clients/new" class="btn btn-primary">+ Add New Client</a>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div class="card">
+    <div class="filter-bar">
+      <div class="search-box">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Search by name, email, or goal..."
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+        />
+      </div>
+      <div class="status-tabs">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="selectedStatusFilter === 'all'"
+          (click)="onFilterChange('all')"
+        >
+          All
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="selectedStatusFilter === 'active'"
+          (click)="onFilterChange('active')"
+        >
+          Active
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="selectedStatusFilter === 'archived'"
+          (click)="onFilterChange('archived')"
+        >
+          Archived
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="isLoading" class="loading-state">
+      <p>Loading clients...</p>
+    </div>
+
+    <div *ngIf="!isLoading && filteredClients.length === 0" class="empty-state">
+      <p class="empty-title">No clients found</p>
+      <p class="empty-desc" *ngIf="clients.length === 0">
+        You have not added any clients yet. Start by onboarding your first client.
+      </p>
+      <p class="empty-desc" *ngIf="clients.length > 0">
+        No clients match your filter criteria.
+      </p>
+      <a *ngIf="clients.length === 0" routerLink="/clients/new" class="btn btn-primary" style="margin-top: 1rem;">
+        Add First Client
+      </a>
+    </div>
+
+    <div *ngIf="!isLoading && filteredClients.length > 0" class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Contact</th>
+            <th>Primary Goal</th>
+            <th>Status</th>
+            <th>Added On</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let client of filteredClients">
+            <td>
+              <strong>{{ client.firstName }} {{ client.lastName }}</strong>
+            </td>
+            <td>
+              <div *ngIf="client.email">{{ client.email }}</div>
+              <div *ngIf="client.phone" class="text-muted" style="font-size: 0.8rem;">{{ client.phone }}</div>
+              <span *ngIf="!client.email && !client.phone" class="text-muted">—</span>
+            </td>
+            <td>
+              <span *ngIf="client.primaryGoal">{{ client.primaryGoal }}</span>
+              <span *ngIf="!client.primaryGoal" class="text-muted">—</span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="getStatusBadgeClass(client.status)">
+                {{ ClientStatusLabels[client.status] || 'Unknown' }}
+              </span>
+            </td>
+            <td>
+              {{ client.createdAtUtc | date:'mediumDate' }}
+            </td>
+            <td style="text-align: right;">
+              <a [routerLink]="['/clients', client.id]" class="btn btn-secondary btn-sm" style="margin-right: 0.5rem;">
+                View
+              </a>
+              <a [routerLink]="['/clients', client.id, 'edit']" class="btn btn-secondary btn-sm">
+                Edit
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

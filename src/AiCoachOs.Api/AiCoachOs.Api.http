@@ -1,0 +1,6 @@
+@AiCoachOs.Api_HostAddress = http://localhost:5076
+
+GET {{AiCoachOs.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
