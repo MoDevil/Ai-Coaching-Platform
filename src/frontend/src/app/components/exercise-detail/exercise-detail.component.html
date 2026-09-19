@@ -127,6 +127,41 @@
             </div>
           </div>
         </div>
+
+        <!-- Scientific Evidence Claims (M3 Traced Knowledge) -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h3 class="section-title" style="margin-bottom: 0;">Supporting Scientific Evidence (M3 Knowledge)</h3>
+            <span class="badge badge-active" *ngIf="claims.length > 0">{{ claims.length }} Traced Claims</span>
+          </div>
+          <p class="form-text" style="margin-bottom: 1rem;">
+            Source-backed scientific claims associated with this exercise. Maintained separately from physical exercise properties.
+          </p>
+
+          <div *ngIf="claims.length === 0" class="text-muted" style="font-size: 0.875rem;">
+            No scientific claims currently associated with this exercise.
+          </div>
+
+          <div *ngIf="claims.length > 0" class="claims-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div *ngFor="let claim of claims" class="card" style="margin-bottom: 0; background-color: #f8fafc; border-left: 3px solid var(--primary);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div>
+                  <span class="badge badge-active" style="font-size: 0.6875rem; margin-right: 0.5rem;">{{ claim.topic }}</span>
+                  <strong style="font-size: 0.875rem;">{{ claim.question }}</strong>
+                </div>
+                <span class="badge badge-active" style="font-size: 0.6875rem; white-space: nowrap;">
+                  {{ EvidenceLevelLabels[claim.evidenceLevel] }}
+                </span>
+              </div>
+              <p style="font-size: 0.8125rem; color: var(--text-main); margin-bottom: 0.5rem;">
+                {{ claim.claimText }}
+              </p>
+              <div class="text-muted" style="font-size: 0.6875rem;">
+                <span>Sources supporting: <strong>{{ claim.supportingSourceCount }}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Right Column: Muscles & Equipment -->

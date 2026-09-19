@@ -1,5 +1,7 @@
 using AiCoachOs.Application.Exercises.DTOs;
 using AiCoachOs.Application.Exercises.Services;
+using AiCoachOs.Application.Knowledge.DTOs;
+using AiCoachOs.Application.Knowledge.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +13,14 @@ namespace AiCoachOs.Api.Controllers;
 public class ExercisesController : ControllerBase
 {
     private readonly IExerciseService _exerciseService;
+    private readonly IKnowledgeService _knowledgeService;
 
-    public ExercisesController(IExerciseService exerciseService)
+    public ExercisesController(
+        IExerciseService exerciseService,
+        IKnowledgeService knowledgeService)
     {
         _exerciseService = exerciseService;
+        _knowledgeService = knowledgeService;
     }
 
     [HttpGet]
@@ -65,5 +71,14 @@ public class ExercisesController : ControllerBase
     {
         var equipment = await _exerciseService.GetEquipmentAsync(ct);
         return Ok(equipment);
+    }
+
+    [HttpGet("{id:guid}/claims")]
+    [ProducesResponseType(typeof(IReadOnlyList<KnowledgeClaimSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetExerciseClaims(Guid id, CancellationToken ct)
+    {
+        var claims = await _knowledgeService.GetClaimsByExerciseIdAsync(id, ct);
+        return Ok(claims);
     }
 }

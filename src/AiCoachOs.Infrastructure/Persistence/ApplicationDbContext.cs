@@ -2,6 +2,7 @@ using AiCoachOs.Application.Common.Interfaces;
 using AiCoachOs.Domain.Clients;
 using AiCoachOs.Domain.Coaches;
 using AiCoachOs.Domain.Exercises;
+using AiCoachOs.Domain.Knowledge;
 using AiCoachOs.Domain.TrainingProfiles;
 using AiCoachOs.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -30,6 +31,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<ClientTrainingProfile> ClientTrainingProfilesDbSet => Set<ClientTrainingProfile>();
     public DbSet<ClientTrainingPriority> ClientTrainingPrioritiesDbSet => Set<ClientTrainingPriority>();
 
+    public DbSet<KnowledgeSource> KnowledgeSourcesDbSet => Set<KnowledgeSource>();
+    public DbSet<KnowledgeClaim> KnowledgeClaimsDbSet => Set<KnowledgeClaim>();
+    public DbSet<KnowledgeClaimSource> KnowledgeClaimSourcesDbSet => Set<KnowledgeClaimSource>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
@@ -42,6 +47,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<ExerciseSubstitution> IApplicationDbContext.ExerciseSubstitutions => ExerciseSubstitutionsDbSet.AsNoTracking();
     IQueryable<ClientTrainingProfile> IApplicationDbContext.ClientTrainingProfiles => ClientTrainingProfilesDbSet.AsNoTracking();
     IQueryable<ClientTrainingPriority> IApplicationDbContext.ClientTrainingPriorities => ClientTrainingPrioritiesDbSet.AsNoTracking();
+
+    IQueryable<KnowledgeSource> IApplicationDbContext.KnowledgeSources => KnowledgeSourcesDbSet.AsNoTracking();
+    IQueryable<KnowledgeClaim> IApplicationDbContext.KnowledgeClaims => KnowledgeClaimsDbSet.AsNoTracking();
+    IQueryable<KnowledgeClaimSource> IApplicationDbContext.KnowledgeClaimSources => KnowledgeClaimSourcesDbSet.AsNoTracking();
 
     public async Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default)
     {
@@ -66,6 +75,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task AddTrainingProfileAsync(ClientTrainingProfile profile, CancellationToken cancellationToken = default)
     {
         await ClientTrainingProfilesDbSet.AddAsync(profile, cancellationToken);
+    }
+
+    public async Task AddKnowledgeSourceAsync(KnowledgeSource source, CancellationToken cancellationToken = default)
+    {
+        await KnowledgeSourcesDbSet.AddAsync(source, cancellationToken);
+    }
+
+    public async Task AddKnowledgeClaimAsync(KnowledgeClaim claim, CancellationToken cancellationToken = default)
+    {
+        await KnowledgeClaimsDbSet.AddAsync(claim, cancellationToken);
     }
 
     public async Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -102,6 +121,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         return await ClientTrainingProfilesDbSet
             .Include(p => p.Priorities)
             .FirstOrDefaultAsync(p => p.ClientId == clientId, cancellationToken);
+    }
+
+    public async Task<KnowledgeSource?> FindKnowledgeSourceByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await KnowledgeSourcesDbSet.FirstOrDefaultAsync(ks => ks.Id == id, cancellationToken);
+    }
+
+    public async Task<KnowledgeClaim?> FindKnowledgeClaimByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await KnowledgeClaimsDbSet
+            .Include(kc => kc.Exercise)
+            .Include(kc => kc.SupersededByClaim)
+            .Include(kc => kc.Sources)
+                .ThenInclude(kcs => kcs.Source)
+            .FirstOrDefaultAsync(kc => kc.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
