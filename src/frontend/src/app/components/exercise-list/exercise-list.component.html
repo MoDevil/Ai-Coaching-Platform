@@ -66,7 +66,12 @@
           <h3 class="exercise-name">{{ exercise.name }}</h3>
           <p class="pattern-name">{{ exercise.movementPatternName }}</p>
         </div>
-        <span class="profile-badge">{{ ResistanceProfileLabels[exercise.resistanceProfile] }}</span>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
+          <span class="profile-badge">{{ ResistanceProfileLabels[exercise.resistanceProfile] }}</span>
+          <span class="badge" [ngClass]="exercise.metadataStatus === MetadataStatus.Provisional ? 'badge-warning' : 'badge-active'" style="font-size: 0.625rem; padding: 0.15rem 0.35rem;">
+            {{ MetadataStatusLabels[exercise.metadataStatus] }}
+          </span>
+        </div>
       </div>
 
       <!-- Muscles & Equipment -->

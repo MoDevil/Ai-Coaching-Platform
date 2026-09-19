@@ -2,6 +2,22 @@ using AiCoachOs.Domain.Common;
 
 namespace AiCoachOs.Domain.Exercises;
 
+/// <summary>
+/// Core exercise domain entity capturing physical, biomechanical, and equipment characteristics.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Provisional Metadata:</b> Qualitative coaching estimates (stimulus potential, systemic fatigue cost,
+/// local fatigue cost, stability requirement, progression potential) are tracked with <see cref="MetadataStatus"/>
+/// and are provisional heuristics rather than universal scientific claims. Scientific validation and citations
+/// belong to the future Knowledge Engine (M3).
+/// </para>
+/// <para>
+/// <b>Safety &amp; Contraindications:</b> Clinical contraindications and medical red-flags are intentionally
+/// excluded from this domain model. Medical safety screening is handled exclusively by the future
+/// Safety &amp; Medical Awareness domain (M8).
+/// </para>
+/// </remarks>
 public class Exercise : Entity<Guid>
 {
     private readonly List<ExerciseMuscle> _muscles = new();
@@ -17,17 +33,28 @@ public class Exercise : Entity<Guid>
 
     public string? JointActions { get; private set; }
 
-    // Qualitative coaching metadata (no arbitrary fake numbers)
-    public QualitativeRating StabilityRequirement { get; private set; }
+    /// <summary>
+    /// Biomechanical coordination/learning demand of the movement pattern.
+    /// </summary>
     public QualitativeRating TechnicalDemand { get; private set; }
+
+    /// <summary>
+    /// Contextual coaching estimates (provisional heuristics; not universal scientific claims).
+    /// </summary>
+    public QualitativeRating StabilityRequirement { get; private set; }
     public QualitativeRating LocalFatigueCost { get; private set; }
     public QualitativeRating SystemicFatigueCost { get; private set; }
     public QualitativeRating StimulusPotential { get; private set; }
     public QualitativeRating ProgressionPotential { get; private set; }
     public ResistanceProfile ResistanceProfile { get; private set; }
 
-    public Guid? SubstitutionGroupId { get; private set; }
+    /// <summary>
+    /// Explicitly indicates whether qualitative coaching metadata represents provisional heuristics
+    /// or verified evidence-backed knowledge (handled in M3).
+    /// </summary>
+    public MetadataStatus MetadataStatus { get; private set; } = MetadataStatus.Provisional;
 
+    public Guid? SubstitutionGroupId { get; private set; }
 
     public IReadOnlyCollection<ExerciseMuscle> Muscles => _muscles;
     public IReadOnlyCollection<ExerciseEquipment> Equipment => _equipment;
@@ -49,7 +76,8 @@ public class Exercise : Entity<Guid>
         ResistanceProfile resistanceProfile,
         string? aliases = null,
         string? jointActions = null,
-        Guid? substitutionGroupId = null) : base(id)
+        Guid? substitutionGroupId = null,
+        MetadataStatus metadataStatus = MetadataStatus.Provisional) : base(id)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Exercise name cannot be empty.", nameof(name));
@@ -69,6 +97,13 @@ public class Exercise : Entity<Guid>
         Aliases = aliases?.Trim();
         JointActions = jointActions?.Trim();
         SubstitutionGroupId = substitutionGroupId;
+        MetadataStatus = metadataStatus;
+    }
+
+    public void UpdateMetadataStatus(MetadataStatus status)
+    {
+        MetadataStatus = status;
+        MarkUpdated();
     }
 
     public void AddMuscle(Guid muscleId, bool isPrimary)

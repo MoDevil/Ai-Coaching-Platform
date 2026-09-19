@@ -34,20 +34,21 @@ In accordance with the project philosophy:
 ### 2.1 Enums
 - `QualitativeRating`: `Low`, `Moderate`, `High`
 - `ResistanceProfile`: `Lengthened`, `MidRange`, `Shortened`, `Even`
-- `ExerciseCategory`: `PrimaryCompound`, `SecondaryCompound`, `Isolation`, `Machine`, `Cable`, `Bodyweight`, `Calisthenics`, `Cardio`
+- `ExerciseCategory`: `Compound`, `Isolation`, `Machine`, `Bodyweight`
 - `TrainingExperienceLevel`: `Beginner`, `Intermediate`, `Advanced`
+- `MetadataStatus`: `Provisional` (heuristic coaching estimates), `Verified` (evidence-backed knowledge in M3)
 
 ### 2.2 Core Entities & Value Objects
 - **`Muscle`**: Canonical muscle representation with anatomical group and function.
-- **`MovementPattern`**: Biomechanical movement classification (e.g. Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Push, Vertical Pull, Lunge, Carry, Isolation).
-- **`Equipment`**: Training equipment inventory with category and setup complexity.
-- **`Exercise`**: Core exercise entity with primary/secondary movement patterns, biomechanical plane, resistance profile, fatigue/stimulus ratings, technical complexity, axial loading status, bilateral/unilateral flag, setup instructions, execution cues, common mistakes, and contraindications.
+- **`MovementPattern`**: Biomechanical movement classification (e.g. Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Push, Vertical Pull).
+- **`Equipment`**: Training equipment inventory with category.
+- **`Exercise`**: Core exercise entity with movement pattern, resistance profile, technical demand, qualitative coaching estimates, and explicit `MetadataStatus` tracking. Medical contraindications are strictly excluded and deferred to M8 Safety & Medical Awareness.
 - **`ExerciseMuscle`**: Explicit join entity tracking target muscles with `IsPrimary` designation.
-- **`ExerciseEquipment`**: Explicit join entity linking exercises to required equipment with an optional `IsOptional` flag.
-- **`ExerciseSubstitution`**: Bidirectional or directional substitution relationships between exercises with reason, context, and similarity rating.
-- **`ClientTrainingProfile`**: Training profile for a specific client (`ClientId`), capturing experience level, preferred/available equipment IDs, exercise preferences/exclusions, and historical notes.
-- **`ClientTrainingPriority`**: Muscle-specific priority assignments (`PriorityLevel`: 1–5, focus notes) per profile.
-- **`TrainingAvailability`**: Value object encapsulating weekly frequency (days per week), specific available days (`DayOfWeek`), session duration (minutes), and schedule flexibility notes.
+- **`ExerciseEquipment`**: Explicit join entity linking exercises to required equipment with `IsRequired` flag.
+- **`ExerciseSubstitution`**: Relational substitutions between exercises preserving mechanical intent.
+- **`ClientTrainingProfile`**: Training profile for a specific client (`ClientId`), capturing experience level, equipment, preferences, constraints, and notes.
+- **`ClientTrainingPriority`**: Focus-area priority assignments per profile.
+- **`TrainingAvailability`**: Embedded value object encapsulating sessions per week, available days, and session duration bounds.
 
 ---
 
@@ -92,14 +93,15 @@ In accordance with the project philosophy:
 
 ## 5. Testing & Verification
 
-- **Unit Tests (`AiCoachOs.UnitTests`):** 60 passed, 0 failed.
-  - Exercise domain invariants, validation rules, rating validations, substitution creation.
+- **Unit Tests (`AiCoachOs.UnitTests`):** 62 passed, 0 failed.
+  - Exercise domain invariants, validation rules, rating validations, substitution creation, and `MetadataStatus` state transitions.
   - Client training profile domain invariants, duplicate priority checks, availability boundaries.
   - FluentValidation profile validator rules.
 - **Integration Tests (`AiCoachOs.IntegrationTests`):** 24 passed, 0 failed.
-  - Seeded exercise retrieval, filtering, and substitution verification against live PostgreSQL.
+  - Seeded exercise retrieval, filtering, substitution verification, and `MetadataStatus.Provisional` assertion against live PostgreSQL.
   - Training profile creation, update, schedule modification, and priority replacement.
   - Multi-tenant Coach isolation enforcement: returning `403 Forbidden` or `404 Not Found` when a coach accesses another coach's client training profile.
 - **Frontend Verification:**
-  - Angular build completed with zero errors and zero warnings (`Initial Total: 417.03 kB`).
+  - Angular build completed with zero errors and zero warnings (`Initial Total: 418.04 kB`).
   - UI routes: `/exercises`, `/exercises/:id`, and `/clients/:id/training-profile`.
+  - Displaying explicit `Provisional Estimates` badges and contextual disclaimers.

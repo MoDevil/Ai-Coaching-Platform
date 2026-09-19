@@ -67,6 +67,7 @@ public class ExerciseConfiguration : IEntityTypeConfiguration<Exercise>
         builder.Property(e => e.StimulusPotential).HasColumnName("stimulus_potential").HasConversion<int>().IsRequired();
         builder.Property(e => e.ProgressionPotential).HasColumnName("progression_potential").HasConversion<int>().IsRequired();
         builder.Property(e => e.ResistanceProfile).HasColumnName("resistance_profile").HasConversion<int>().IsRequired();
+        builder.Property(e => e.MetadataStatus).HasColumnName("metadata_status").HasConversion<int>().HasDefaultValue(MetadataStatus.Provisional).HasSentinel((MetadataStatus)0).IsRequired();
 
         builder.Property(e => e.SubstitutionGroupId).HasColumnName("substitution_group_id");
         builder.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();

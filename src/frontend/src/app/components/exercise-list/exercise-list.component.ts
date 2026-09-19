@@ -5,6 +5,8 @@ import {
   ExerciseCategory,
   ExerciseCategoryLabels,
   ExerciseSummary,
+  MetadataStatus,
+  MetadataStatusLabels,
   MovementPattern,
   QualitativeRating,
   QualitativeRatingLabels,
@@ -34,6 +36,8 @@ export class ExerciseListComponent implements OnInit {
   QualitativeRatingLabels = QualitativeRatingLabels;
   ResistanceProfile = ResistanceProfile;
   ResistanceProfileLabels = ResistanceProfileLabels;
+  MetadataStatus = MetadataStatus;
+  MetadataStatusLabels = MetadataStatusLabels;
 
   categories = [
     { value: ExerciseCategory.Compound, label: 'Compound' },

@@ -45,6 +45,7 @@ public class ExerciseIntegrationTests : IClassFixture<CustomWebApplicationFactor
         var exercises = await response.Content.ReadFromJsonAsync<IReadOnlyList<ExerciseSummaryDto>>();
         exercises.Should().NotBeNull();
         exercises!.Count.Should().BeGreaterThanOrEqualTo(10);
+        exercises.Should().OnlyContain(e => e.MetadataStatus == MetadataStatus.Provisional);
         exercises.Should().Contain(e => e.Name.Contains("Squat"));
         exercises.Should().Contain(e => e.Name.Contains("Bench"));
     }
@@ -104,6 +105,7 @@ public class ExerciseIntegrationTests : IClassFixture<CustomWebApplicationFactor
         var detail = await response.Content.ReadFromJsonAsync<ExerciseDetailDto>();
         detail.Should().NotBeNull();
         detail!.Id.Should().Be(firstId);
+        detail.MetadataStatus.Should().Be(MetadataStatus.Provisional);
         detail.Muscles.Should().NotBeEmpty();
         detail.Equipment.Should().NotBeEmpty();
     }

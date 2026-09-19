@@ -4,6 +4,8 @@ import { ExerciseService } from '../../services/exercise.service';
 import {
   ExerciseCategoryLabels,
   ExerciseDetail,
+  MetadataStatus,
+  MetadataStatusLabels,
   QualitativeRating,
   QualitativeRatingLabels,
   ResistanceProfileLabels
@@ -23,6 +25,8 @@ export class ExerciseDetailComponent implements OnInit {
   ExerciseCategoryLabels = ExerciseCategoryLabels;
   ResistanceProfileLabels = ResistanceProfileLabels;
   QualitativeRatingLabels = QualitativeRatingLabels;
+  MetadataStatus = MetadataStatus;
+  MetadataStatusLabels = MetadataStatusLabels;
 
   constructor(
     private route: ActivatedRoute,

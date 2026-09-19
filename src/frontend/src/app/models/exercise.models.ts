@@ -38,6 +38,16 @@ export const ExerciseCategoryLabels: Record<ExerciseCategory, string> = {
   [ExerciseCategory.Bodyweight]: 'Bodyweight'
 };
 
+export enum MetadataStatus {
+  Provisional = 1,
+  Verified = 2
+}
+
+export const MetadataStatusLabels: Record<MetadataStatus, string> = {
+  [MetadataStatus.Provisional]: 'Provisional',
+  [MetadataStatus.Verified]: 'Verified'
+};
+
 export interface MovementPattern {
   id: string;
   name: string;
@@ -71,6 +81,7 @@ export interface ExerciseSummary {
   stimulusPotential: QualitativeRating;
   progressionPotential: QualitativeRating;
   resistanceProfile: ResistanceProfile;
+  metadataStatus: MetadataStatus;
   primaryMuscles: string[];
   secondaryMuscles: string[];
   equipmentNames: string[];
@@ -117,6 +128,7 @@ export interface ExerciseDetail {
   stimulusPotential: QualitativeRating;
   progressionPotential: QualitativeRating;
   resistanceProfile: ResistanceProfile;
+  metadataStatus: MetadataStatus;
   substitutionGroupId?: string;
   muscles: ExerciseMuscle[];
   equipment: ExerciseEquipment[];

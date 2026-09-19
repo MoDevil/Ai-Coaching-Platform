@@ -32,9 +32,14 @@
       <div class="detail-main">
         <!-- Qualitative Coaching Metadata Card -->
         <div class="card">
-          <h3 class="section-title">Qualitative Biomechanics & Coaching Metadata</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h3 class="section-title" style="margin-bottom: 0;">Qualitative Biomechanics &amp; Coaching Estimates</h3>
+            <span class="badge" [ngClass]="exercise.metadataStatus === MetadataStatus.Provisional ? 'badge-warning' : 'badge-active'">
+              {{ MetadataStatusLabels[exercise.metadataStatus] }} Estimates
+            </span>
+          </div>
           <p class="form-text" style="margin-bottom: 1rem;">
-            Evidence-based relative classifications without arbitrary pseudo-scientific numeric scoring.
+            Contextual coaching heuristics and relative estimates. Not authoritative scientific claims (evaluated in future knowledge modules).
           </p>
 
           <div class="qualitative-table">

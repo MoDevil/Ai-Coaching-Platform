@@ -43,9 +43,59 @@ public class ExerciseTests
         exercise.ProgressionPotential.Should().Be(QualitativeRating.High);
         exercise.ResistanceProfile.Should().Be(ResistanceProfile.MidRange);
         exercise.Aliases.Should().Be("Back Squat");
+        exercise.MetadataStatus.Should().Be(MetadataStatus.Provisional);
         exercise.Muscles.Should().BeEmpty();
         exercise.Equipment.Should().BeEmpty();
         exercise.Substitutions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateExercise_WithExplicitMetadataStatus_ShouldPersistStatus()
+    {
+        // Act
+        var exercise = new Exercise(
+            id: Guid.NewGuid(),
+            name: "Verified Barbell Curl",
+            category: ExerciseCategory.Isolation,
+            movementPatternId: Guid.NewGuid(),
+            stabilityRequirement: QualitativeRating.Low,
+            technicalDemand: QualitativeRating.Low,
+            localFatigueCost: QualitativeRating.Moderate,
+            systemicFatigueCost: QualitativeRating.Low,
+            stimulusPotential: QualitativeRating.High,
+            progressionPotential: QualitativeRating.Moderate,
+            resistanceProfile: ResistanceProfile.MidRange,
+            metadataStatus: MetadataStatus.Verified
+        );
+
+        // Assert
+        exercise.MetadataStatus.Should().Be(MetadataStatus.Verified);
+    }
+
+    [Fact]
+    public void UpdateMetadataStatus_ShouldUpdateStatusAndMarkUpdated()
+    {
+        // Arrange
+        var exercise = new Exercise(
+            id: Guid.NewGuid(),
+            name: "Provisional Press",
+            category: ExerciseCategory.Compound,
+            movementPatternId: Guid.NewGuid(),
+            stabilityRequirement: QualitativeRating.Moderate,
+            technicalDemand: QualitativeRating.Moderate,
+            localFatigueCost: QualitativeRating.Moderate,
+            systemicFatigueCost: QualitativeRating.Moderate,
+            stimulusPotential: QualitativeRating.Moderate,
+            progressionPotential: QualitativeRating.Moderate,
+            resistanceProfile: ResistanceProfile.MidRange
+        );
+
+        // Act
+        exercise.UpdateMetadataStatus(MetadataStatus.Verified);
+
+        // Assert
+        exercise.MetadataStatus.Should().Be(MetadataStatus.Verified);
+        exercise.UpdatedAtUtc.Should().NotBeNull();
     }
 
     [Theory]
