@@ -6,6 +6,9 @@ import { ClientListComponent } from './components/client-list/client-list.compon
 import { ClientCreateComponent } from './components/client-create/client-create.component';
 import { ClientDetailComponent } from './components/client-detail/client-detail.component';
 import { ClientEditComponent } from './components/client-edit/client-edit.component';
+import { ExerciseListComponent } from './components/exercise-list/exercise-list.component';
+import { ExerciseDetailComponent } from './components/exercise-detail/exercise-detail.component';
+import { ClientTrainingProfileComponent } from './components/client-training-profile/client-training-profile.component';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
@@ -15,6 +18,9 @@ const routes: Routes = [
   { path: 'clients/new', component: ClientCreateComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id', component: ClientDetailComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id/edit', component: ClientEditComponent, canActivate: [AuthGuard] },
+  { path: 'clients/:id/training-profile', component: ClientTrainingProfileComponent, canActivate: [AuthGuard] },
+  { path: 'exercises', component: ExerciseListComponent, canActivate: [AuthGuard] },
+  { path: 'exercises/:id', component: ExerciseDetailComponent, canActivate: [AuthGuard] },
   { path: '', redirectTo: '/clients', pathMatch: 'full' },
   { path: '**', redirectTo: '/clients' }
 ];

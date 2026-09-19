@@ -1,0 +1,264 @@
+<div class="container">
+  <!-- Header -->
+  <div class="page-header" *ngIf="client">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <h1 class="page-title">{{ client.firstName }} {{ client.lastName }} — Training Profile</h1>
+      </div>
+      <p class="page-subtitle">
+        Configure training availability, session constraints, available equipment, and prioritized adaptations
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem;">
+      <a [routerLink]="['/clients', clientId]" class="btn btn-secondary">Client Overview</a>
+      <a routerLink="/clients" class="btn btn-secondary">Back to Roster</a>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="card">
+    <p>Loading training profile...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <form *ngIf="!isLoading && profile" (ngSubmit)="onSubmit()">
+    <!-- 1. Experience & Duration Constraints -->
+    <div class="card">
+      <h3 class="section-title">Training Experience & Session Duration Constraints</h3>
+      
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="expLevel">Training Experience Level</label>
+          <select id="expLevel" class="form-control" [(ngModel)]="experienceLevel" name="expLevel">
+            <option *ngFor="let lvl of experienceLevels" [value]="lvl.value">{{ lvl.label }}</option>
+          </select>
+        </div>
+
+        <div class="duration-grid">
+          <div class="form-group">
+            <label class="form-label" for="minDur">Min (mins)</label>
+            <input
+              id="minDur"
+              type="number"
+              min="15"
+              max="240"
+              class="form-control"
+              [(ngModel)]="minDuration"
+              name="minDur"
+              placeholder="45"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="targetDur">Target (mins)</label>
+            <input
+              id="targetDur"
+              type="number"
+              min="15"
+              max="240"
+              class="form-control"
+              [(ngModel)]="targetDuration"
+              name="targetDur"
+              placeholder="60"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="maxDur">Max (mins)</label>
+            <input
+              id="maxDur"
+              type="number"
+              min="15"
+              max="240"
+              class="form-control"
+              [(ngModel)]="maxDuration"
+              name="maxDur"
+              placeholder="75"
+            />
+          </div>
+        </div>
+      </div>
+      <span class="form-text">Session duration limits guard against systemic fatigue accumulation during workout structuring.</span>
+    </div>
+
+    <!-- 2. Weekly Availability & Schedule -->
+    <div class="card">
+      <h3 class="section-title">Weekly Schedule & Training Availability</h3>
+
+      <div class="form-group" style="max-width: 250px;">
+        <label class="form-label" for="sessionsPerWeek">Target Sessions Per Week</label>
+        <input
+          id="sessionsPerWeek"
+          type="number"
+          min="1"
+          max="7"
+          class="form-control"
+          [(ngModel)]="sessionsPerWeek"
+          name="sessionsPerWeek"
+        />
+      </div>
+
+      <div class="grid-2" style="margin-top: 1rem;">
+        <div>
+          <label class="form-label">Available Training Days</label>
+          <div class="days-checkbox-list">
+            <label *ngFor="let d of daysOfWeek" class="checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="availableDays.includes(d.day)"
+                (change)="toggleAvailableDay(d.day)"
+              />
+              <span>{{ d.label }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Preferred Training Days</label>
+          <div class="days-checkbox-list">
+            <label *ngFor="let d of daysOfWeek" class="checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="preferredDays.includes(d.day)"
+                (change)="togglePreferredDay(d.day)"
+              />
+              <span>{{ d.label }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Available Gym Equipment -->
+    <div class="card">
+      <h3 class="section-title">Client Equipment Access</h3>
+      <p class="form-text" style="margin-bottom: 1rem;">
+        Check all equipment available at the client's gym in Egypt. Future selection engines filter by equipment access.
+      </p>
+
+      <div class="equipment-checkbox-grid">
+        <label *ngFor="let eq of equipmentList" class="checkbox-label">
+          <input
+            type="checkbox"
+            [checked]="selectedEquipmentIds.includes(eq.id)"
+            (change)="toggleEquipment(eq.id)"
+          />
+          <span>{{ eq.name }}</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 4. Client Training Priorities -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3 class="section-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+          Client Training Priorities (Ordered)
+        </h3>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="addPriority()">+ Add Priority</button>
+      </div>
+      <p class="form-text" style="margin-bottom: 1rem;">
+        Priorities define coaching constraints for adaptation focus (e.g. Quad Hypertrophy, Squat Technique).
+      </p>
+
+      <div *ngIf="priorities.length === 0" class="text-muted" style="padding: 1rem 0; font-size: 0.875rem;">
+        No specific priorities established. Click "+ Add Priority" to order training priorities.
+      </div>
+
+      <div class="priority-list">
+        <div *ngFor="let prio of priorities; let i = index" class="priority-item">
+          <div class="priority-order-badge">#{{ prio.order }}</div>
+          
+          <div class="priority-inputs">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Focus Area (e.g. Chest Hypertrophy, Posterior Chain, Ankle Mobility)"
+              [(ngModel)]="prio.focusArea"
+              [name]="'focus_' + i"
+            />
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Coaching notes & rationale..."
+              [(ngModel)]="prio.notes"
+              [name]="'notes_' + i"
+              style="margin-top: 0.375rem;"
+            />
+          </div>
+
+          <div class="priority-actions">
+            <button
+              type="button"
+              class="btn-icon"
+              (click)="movePriorityUp(i)"
+              [disabled]="i === 0"
+              title="Move Up"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              class="btn-icon"
+              (click)="movePriorityDown(i)"
+              [disabled]="i === priorities.length - 1"
+              title="Move Down"
+            >
+              ▼
+            </button>
+            <button
+              type="button"
+              class="btn-icon btn-icon-danger"
+              (click)="removePriority(i)"
+              title="Remove"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Exercise Preferences & Constraints -->
+    <div class="card">
+      <h3 class="section-title">Exercise Preferences & Physical Constraints</h3>
+      
+      <div class="form-group">
+        <label class="form-label" for="exPref">Exercise Preferences</label>
+        <textarea
+          id="exPref"
+          rows="3"
+          class="form-control"
+          [(ngModel)]="exercisePreferences"
+          name="exPref"
+          placeholder="Exercises the client enjoys or responds well to (e.g. Incline dumbbell presses, Hack squats)..."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="exConst">Exercise Constraints & Limitations</label>
+        <textarea
+          id="exConst"
+          rows="3"
+          class="form-control"
+          [(ngModel)]="exerciseConstraints"
+          name="exConst"
+          placeholder="Movements to avoid or modify (e.g. Lower back discomfort on barbell rows, avoid behind-the-neck presses)..."
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+        <span *ngIf="isSaving">Saving Training Profile...</span>
+        <span *ngIf="!isSaving">Save Training Profile</span>
+      </button>
+      <a [routerLink]="['/clients', clientId]" class="btn btn-secondary" style="margin-left: 0.75rem;">Cancel</a>
+    </div>
+  </form>
+</div>

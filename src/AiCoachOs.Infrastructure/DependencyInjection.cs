@@ -78,6 +78,8 @@ public static class DependencyInjection
         services.AddScoped<ICurrentCoachService, CurrentCoachService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IClientService, ClientService>();
+        services.AddScoped<AiCoachOs.Application.Exercises.Services.IExerciseService, ExerciseService>();
+        services.AddScoped<AiCoachOs.Application.TrainingProfiles.Services.ITrainingProfileService, TrainingProfileService>();
 
         return services;
     }

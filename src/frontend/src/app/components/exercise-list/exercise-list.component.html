@@ -1,0 +1,113 @@
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Exercise Library & Taxonomy</h1>
+      <p class="page-subtitle">Evidence-based library with biomechanical intent, qualitative fatigue, and substitution links</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card filter-card">
+    <div class="filter-grid">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="search">Search Exercise</label>
+        <input
+          id="search"
+          type="text"
+          class="form-control"
+          placeholder="Search by name or alias (e.g. Squat, Bench, RDL)..."
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onFilterChange()"
+        />
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="pattern">Movement Pattern</label>
+        <select id="pattern" class="form-control" [(ngModel)]="selectedPatternId" (change)="onFilterChange()">
+          <option value="">All Movement Patterns</option>
+          <option *ngFor="let p of patterns" [value]="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="category">Category</label>
+        <select id="category" class="form-control" [(ngModel)]="selectedCategoryId" (change)="onFilterChange()">
+          <option [ngValue]="null">All Categories</option>
+          <option *ngFor="let c of categories" [ngValue]="c.value">{{ c.label }}</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: flex-end; gap: 0.5rem;">
+        <button type="button" class="btn btn-primary" (click)="onFilterChange()">Filter</button>
+        <button type="button" class="btn btn-secondary" (click)="onResetFilters()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state card">
+    <p>Loading exercise library...</p>
+  </div>
+
+  <!-- Exercise Grid/Cards -->
+  <div *ngIf="!isLoading && exercises.length === 0" class="empty-state card">
+    <p class="empty-title">No exercises found</p>
+    <p class="empty-desc">Try clearing or adjusting your search filters.</p>
+  </div>
+
+  <div *ngIf="!isLoading && exercises.length > 0" class="exercise-grid">
+    <div *ngFor="let exercise of exercises" class="exercise-card card">
+      <div class="card-header-bar">
+        <div>
+          <span class="category-tag">{{ ExerciseCategoryLabels[exercise.category] }}</span>
+          <h3 class="exercise-name">{{ exercise.name }}</h3>
+          <p class="pattern-name">{{ exercise.movementPatternName }}</p>
+        </div>
+        <span class="profile-badge">{{ ResistanceProfileLabels[exercise.resistanceProfile] }}</span>
+      </div>
+
+      <!-- Muscles & Equipment -->
+      <div class="tag-section">
+        <div class="tag-row">
+          <span class="tag-label">Target:</span>
+          <span *ngFor="let m of exercise.primaryMuscles" class="muscle-pill">{{ m }}</span>
+        </div>
+        <div class="tag-row" *ngIf="exercise.equipmentNames.length > 0">
+          <span class="tag-label">Equip:</span>
+          <span class="text-muted" style="font-size: 0.8125rem;">{{ exercise.equipmentNames.join(', ') }}</span>
+        </div>
+      </div>
+
+      <!-- Qualitative Ratings -->
+      <div class="ratings-bar">
+        <div class="rating-item">
+          <span class="rating-lbl">Stability</span>
+          <span class="badge" [ngClass]="getRatingBadgeClass(exercise.stabilityRequirement)">
+            {{ QualitativeRatingLabels[exercise.stabilityRequirement] }}
+          </span>
+        </div>
+        <div class="rating-item">
+          <span class="rating-lbl">Stimulus</span>
+          <span class="badge" [ngClass]="getRatingBadgeClass(exercise.stimulusPotential)">
+            {{ QualitativeRatingLabels[exercise.stimulusPotential] }}
+          </span>
+        </div>
+        <div class="rating-item">
+          <span class="rating-lbl">Systemic Cost</span>
+          <span class="badge" [ngClass]="getRatingBadgeClass(exercise.systemicFatigueCost)">
+            {{ QualitativeRatingLabels[exercise.systemicFatigueCost] }}
+          </span>
+        </div>
+      </div>
+
+      <div class="card-action-bar">
+        <a [routerLink]="['/exercises', exercise.id]" class="btn btn-secondary btn-sm btn-block">
+          View Biomechanics & Substitutions
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

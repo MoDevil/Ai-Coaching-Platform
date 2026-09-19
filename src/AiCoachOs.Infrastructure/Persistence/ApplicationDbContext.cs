@@ -1,6 +1,8 @@
 using AiCoachOs.Application.Common.Interfaces;
 using AiCoachOs.Domain.Clients;
 using AiCoachOs.Domain.Coaches;
+using AiCoachOs.Domain.Exercises;
+using AiCoachOs.Domain.TrainingProfiles;
 using AiCoachOs.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +19,29 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<Client> ClientsDbSet => Set<Client>();
     public DbSet<ConsentRecord> ConsentRecordsDbSet => Set<ConsentRecord>();
 
+    public DbSet<Exercise> ExercisesDbSet => Set<Exercise>();
+    public DbSet<Muscle> MusclesDbSet => Set<Muscle>();
+    public DbSet<MovementPattern> MovementPatternsDbSet => Set<MovementPattern>();
+    public DbSet<Equipment> EquipmentDbSet => Set<Equipment>();
+    public DbSet<ExerciseMuscle> ExerciseMusclesDbSet => Set<ExerciseMuscle>();
+    public DbSet<ExerciseEquipment> ExerciseEquipmentDbSet => Set<ExerciseEquipment>();
+    public DbSet<ExerciseSubstitution> ExerciseSubstitutionsDbSet => Set<ExerciseSubstitution>();
+
+    public DbSet<ClientTrainingProfile> ClientTrainingProfilesDbSet => Set<ClientTrainingProfile>();
+    public DbSet<ClientTrainingPriority> ClientTrainingPrioritiesDbSet => Set<ClientTrainingPriority>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
     IQueryable<ConsentRecord> IApplicationDbContext.ConsentRecords => ConsentRecordsDbSet.AsNoTracking();
+
+    IQueryable<Exercise> IApplicationDbContext.Exercises => ExercisesDbSet.AsNoTracking();
+    IQueryable<Muscle> IApplicationDbContext.Muscles => MusclesDbSet.AsNoTracking();
+    IQueryable<MovementPattern> IApplicationDbContext.MovementPatterns => MovementPatternsDbSet.AsNoTracking();
+    IQueryable<Equipment> IApplicationDbContext.Equipment => EquipmentDbSet.AsNoTracking();
+    IQueryable<ExerciseSubstitution> IApplicationDbContext.ExerciseSubstitutions => ExerciseSubstitutionsDbSet.AsNoTracking();
+    IQueryable<ClientTrainingProfile> IApplicationDbContext.ClientTrainingProfiles => ClientTrainingProfilesDbSet.AsNoTracking();
+    IQueryable<ClientTrainingPriority> IApplicationDbContext.ClientTrainingPriorities => ClientTrainingPrioritiesDbSet.AsNoTracking();
 
     public async Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default)
     {
@@ -37,6 +58,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         await ConsentRecordsDbSet.AddAsync(consentRecord, cancellationToken);
     }
 
+    public async Task AddExerciseAsync(Exercise exercise, CancellationToken cancellationToken = default)
+    {
+        await ExercisesDbSet.AddAsync(exercise, cancellationToken);
+    }
+
+    public async Task AddTrainingProfileAsync(ClientTrainingProfile profile, CancellationToken cancellationToken = default)
+    {
+        await ClientTrainingProfilesDbSet.AddAsync(profile, cancellationToken);
+    }
+
     public async Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await CoachesDbSet.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -50,6 +81,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task<Client?> FindClientByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await ClientsDbSet.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+    }
+
+    public async Task<Exercise?> FindExerciseByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ExercisesDbSet
+            .Include(e => e.MovementPattern)
+            .Include(e => e.Muscles)
+                .ThenInclude(em => em.Muscle)
+            .Include(e => e.Equipment)
+                .ThenInclude(ee => ee.Equipment)
+            .Include(e => e.Substitutions)
+                .ThenInclude(es => es.SubstituteExercise)
+                    .ThenInclude(se => se.MovementPattern)
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+    }
+
+    public async Task<ClientTrainingProfile?> FindTrainingProfileByClientIdAsync(Guid clientId, CancellationToken cancellationToken = default)
+    {
+        return await ClientTrainingProfilesDbSet
+            .Include(p => p.Priorities)
+            .FirstOrDefaultAsync(p => p.ClientId == clientId, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

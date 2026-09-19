@@ -83,6 +83,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Seed baseline exercise library if needed
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AiCoachOs.Infrastructure.Persistence.ApplicationDbContext>();
+    await AiCoachOs.Infrastructure.Persistence.ExerciseLibrarySeeder.SeedAsync(dbContext);
+}
+
 app.Run();
 
 // Make Program class accessible to WebApplicationFactory in integration tests

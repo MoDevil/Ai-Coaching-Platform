@@ -1,0 +1,170 @@
+<div class="container">
+  <div *ngIf="isLoading" class="card">
+    <p>Loading exercise biomechanics...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && exercise">
+    <div class="page-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <h1 class="page-title">{{ exercise.name }}</h1>
+          <span class="badge badge-active">{{ ExerciseCategoryLabels[exercise.category] }}</span>
+          <span class="profile-badge">{{ ResistanceProfileLabels[exercise.resistanceProfile] }}</span>
+        </div>
+        <p class="page-subtitle">
+          Movement Pattern: <strong>{{ exercise.movementPatternName }}</strong>
+          <span *ngIf="exercise.aliases"> • Aliases: {{ exercise.aliases }}</span>
+        </p>
+      </div>
+
+      <div>
+        <a routerLink="/exercises" class="btn btn-secondary">Back to Exercise Library</a>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="detail-grid">
+      <!-- Left Column: Biomechanics & Qualitative Fatigue Profile -->
+      <div class="detail-main">
+        <!-- Qualitative Coaching Metadata Card -->
+        <div class="card">
+          <h3 class="section-title">Qualitative Biomechanics & Coaching Metadata</h3>
+          <p class="form-text" style="margin-bottom: 1rem;">
+            Evidence-based relative classifications without arbitrary pseudo-scientific numeric scoring.
+          </p>
+
+          <div class="qualitative-table">
+            <div class="qual-row">
+              <span class="qual-label">Stability Requirement</span>
+              <span class="badge" [ngClass]="getRatingBadgeClass(exercise.stabilityRequirement)">
+                {{ QualitativeRatingLabels[exercise.stabilityRequirement] }}
+              </span>
+            </div>
+            <div class="qual-row">
+              <span class="qual-label">Technical Demand</span>
+              <span class="badge" [ngClass]="getRatingBadgeClass(exercise.technicalDemand)">
+                {{ QualitativeRatingLabels[exercise.technicalDemand] }}
+              </span>
+            </div>
+            <div class="qual-row">
+              <span class="qual-label">Local Muscle Fatigue Cost</span>
+              <span class="badge" [ngClass]="getRatingBadgeClass(exercise.localFatigueCost)">
+                {{ QualitativeRatingLabels[exercise.localFatigueCost] }}
+              </span>
+            </div>
+            <div class="qual-row">
+              <span class="qual-label">Systemic Axial Fatigue Cost</span>
+              <span class="badge" [ngClass]="getRatingBadgeClass(exercise.systemicFatigueCost)">
+                {{ QualitativeRatingLabels[exercise.systemicFatigueCost] }}
+              </span>
+            </div>
+            <div class="qual-row">
+              <span class="qual-label">Hypertrophic Stimulus Potential</span>
+              <span class="badge" [ngClass]="getRatingBadgeClass(exercise.stimulusPotential)">
+                {{ QualitativeRatingLabels[exercise.stimulusPotential] }}
+              </span>
+            </div>
+            <div class="qual-row">
+              <span class="qual-label">Progression / Overload Potential</span>
+              <span class="badge" [ngClass]="getRatingBadgeClass(exercise.progressionPotential)">
+                {{ QualitativeRatingLabels[exercise.progressionPotential] }}
+              </span>
+            </div>
+            <div class="qual-row">
+              <span class="qual-label">Peak Resistance Profile</span>
+              <span class="profile-badge">
+                {{ ResistanceProfileLabels[exercise.resistanceProfile] }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Joint Actions & Mechanical Context -->
+        <div class="card" *ngIf="exercise.jointActions">
+          <h3 class="section-title">Joint Actions & Biomechanical Context</h3>
+          <p class="text-block">{{ exercise.jointActions }}</p>
+        </div>
+
+        <!-- Substitutions & Intent Preservation -->
+        <div class="card">
+          <h3 class="section-title">Exercise Substitutions (Intent-Preserving)</h3>
+          <p class="form-text" style="margin-bottom: 1rem;">
+            Substitutes matched for movement pattern, resistance profile, and anatomical intent.
+          </p>
+
+          <div *ngIf="exercise.substitutions.length === 0" class="text-muted" style="font-size: 0.875rem;">
+            No direct substitute relationships established yet.
+          </div>
+
+          <div *ngIf="exercise.substitutions.length > 0" class="substitutions-list">
+            <div *ngFor="let sub of exercise.substitutions" class="sub-item">
+              <div class="sub-header">
+                <div>
+                  <a [routerLink]="['/exercises', sub.substituteExerciseId]" class="sub-name">
+                    {{ sub.substituteExerciseName }}
+                  </a>
+                  <span class="sub-pattern">({{ sub.movementPatternName }})</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <span class="profile-badge">{{ ResistanceProfileLabels[sub.resistanceProfile] }}</span>
+                  <span class="badge" [ngClass]="getRatingBadgeClass(sub.stabilityRequirement)">
+                    {{ QualitativeRatingLabels[sub.stabilityRequirement] }} Stability
+                  </span>
+                </div>
+              </div>
+              <p class="sub-notes" *ngIf="sub.intentPreservationNotes">
+                <strong>Intent Rationale:</strong> {{ sub.intentPreservationNotes }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Muscles & Equipment -->
+      <div class="detail-sidebar">
+        <!-- Target Muscles -->
+        <div class="card">
+          <h3 class="section-title">Target Muscles</h3>
+          <div class="muscle-group-title">Primary Drivers</div>
+          <div class="muscle-list">
+            <div *ngFor="let m of exercise.muscles" class="muscle-item">
+              <div *ngIf="m.isPrimary">
+                <strong>{{ m.commonName || m.name }}</strong>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ m.bodyPart }} • {{ m.name }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="muscle-group-title" style="margin-top: 1rem;">Secondary / Synergists</div>
+          <div class="muscle-list">
+            <div *ngFor="let m of exercise.muscles" class="muscle-item">
+              <div *ngIf="!m.isPrimary">
+                <strong>{{ m.commonName || m.name }}</strong>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ m.bodyPart }}</div>
+              </div>
+            </div>
+            <div *ngIf="!hasSecondaryMuscles()" class="text-muted" style="font-size: 0.8125rem;">
+              None specified
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipment Requirements -->
+        <div class="card">
+          <h3 class="section-title">Equipment Requirements</h3>
+          <div class="equipment-list">
+            <div *ngFor="let eq of exercise.equipment" class="eq-item">
+              <span>{{ eq.name }}</span>
+              <span class="badge badge-active" *ngIf="eq.isRequired">Required</span>
+              <span class="badge" *ngIf="!eq.isRequired">Optional</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
