@@ -86,6 +86,117 @@
       </div>
     </section>
 
+    <!-- M7 Adaptive Coaching Assessment Panel -->
+    <section class="adaptation-dashboard">
+      <div class="adaptation-header">
+        <div>
+          <h3>M7 Adaptive Coaching Engine</h3>
+          <p class="section-help">
+            Deterministic evaluation of multiple exposures. Default: <strong>No Change</strong> unless solid evidence exists. Coach retains complete control.
+          </p>
+        </div>
+        <button 
+          (click)="runAssessment()" 
+          [disabled]="isAssessing" 
+          class="btn btn-primary evaluate-btn">
+          <span *ngIf="!isAssessing">Evaluate Exposures</span>
+          <span *ngIf="isAssessing">Evaluating...</span>
+        </button>
+      </div>
+
+      <div *ngIf="adaptationFeedback" class="feedback-banner">
+        {{ adaptationFeedback }}
+      </div>
+
+      <!-- Latest Assessment Details -->
+      <div *ngIf="latestAssessment" class="assessment-card">
+        <div class="assessment-meta">
+          <div class="meta-row">
+            <span class="status-badge" [ngClass]="'overall-' + latestAssessment.overallStatus">
+              {{ AdaptationOverallStatusLabels[latestAssessment.overallStatus] }}
+            </span>
+            <span class="meta-date">Evaluated {{ latestAssessment.assessedAtUtc | date:'medium' }}</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <span class="metric-val">{{ latestAssessment.completedExposures }}/{{ latestAssessment.totalExposures }}</span>
+              <span class="metric-lbl">Completed Exposures</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-val">{{ latestAssessment.adherenceRate }}%</span>
+              <span class="metric-lbl">Adherence Rate</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="narrative-summary">{{ latestAssessment.narrativeSummary }}</p>
+
+        <!-- Exercise Trends -->
+        <div *ngIf="latestAssessment.exerciseRecords.length > 0" class="exercise-records-section">
+          <h4>Exercise Performance & Effort Alignment</h4>
+          <div class="records-grid">
+            <div *ngFor="let rec of latestAssessment.exerciseRecords" class="record-card">
+              <div class="rec-title">
+                <strong>{{ rec.exerciseName }}</strong>
+                <span class="trend-pill" [ngClass]="'trend-' + rec.trend">
+                  {{ PerformanceTrendLabels[rec.trend] }}
+                </span>
+              </div>
+              <div class="rec-sub">
+                <span>{{ EffortAlignmentStatusLabels[rec.effortAlignment] }}</span>
+                <span>Met: {{ rec.progressionMetCount }} / Not Met: {{ rec.progressionNotMetCount }}</span>
+              </div>
+              <p class="rec-rationale">{{ rec.summaryRationale }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coach Recommendations -->
+        <div class="recommendations-section">
+          <h4>Coach Recommendations</h4>
+          <div *ngIf="latestAssessment.recommendations.length === 0" class="empty-recs">
+            No recommendations generated. Program performance is progressing as intended.
+          </div>
+
+          <div *ngFor="let r of latestAssessment.recommendations" class="rec-card" [ngClass]="'action-' + r.actionType">
+            <div class="rec-card-header">
+              <div>
+                <span class="action-tag">{{ AdaptationActionTypeLabels[r.actionType] }}</span>
+                <span *ngIf="r.exerciseName" class="ex-name">— {{ r.exerciseName }}</span>
+              </div>
+              <div class="rec-status-tag" [ngClass]="'status-' + r.status">
+                {{ RecommendationStatusLabels[r.status] }}
+              </div>
+            </div>
+
+            <p class="rec-card-rationale"><strong>Rationale:</strong> {{ r.rationale }}</p>
+
+            <div *ngIf="r.suggestedChangeDetail" class="change-detail">
+              <strong>Detail:</strong> {{ r.suggestedChangeDetail }}
+            </div>
+
+            <div class="rec-footer">
+              <span class="confidence-pill">Confidence: {{ RecommendationConfidenceLabels[r.confidence] }}</span>
+
+              <div *ngIf="r.status === RecommendationStatus.PendingReview" class="decision-actions">
+                <input 
+                  type="text" 
+                  placeholder="Optional coach note..." 
+                  [(ngModel)]="decisionNotes[r.id]"
+                  class="decision-input" />
+                <button (click)="decideRecommendation(r, true)" class="btn btn-success btn-sm">Approve</button>
+                <button (click)="decideRecommendation(r, false)" class="btn btn-danger btn-sm">Reject</button>
+              </div>
+
+              <div *ngIf="r.status !== RecommendationStatus.PendingReview && r.coachDecisionNote" class="decision-note-display">
+                Decision: <em>"{{ r.coachDecisionNote }}"</em>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Training Weeks & Sessions Structure -->
     <section class="structure-section" *ngIf="program.activeVersion">
       <div class="week-tabs" *ngIf="program.activeVersion.weeks.length > 1">

@@ -97,6 +97,10 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Workouts.Engine.IProgressionEvaluator, AiCoachOs.Application.Workouts.Engine.ProgressionEvaluator>();
         services.AddScoped<AiCoachOs.Application.Workouts.Services.IWorkoutService, WorkoutService>();
 
+        // M7 Adaptive Coaching Services
+        services.AddScoped<AiCoachOs.Application.Adaptations.Engine.IAdaptationAnalyzer, AiCoachOs.Application.Adaptations.Engine.AdaptationAnalyzer>();
+        services.AddScoped<AiCoachOs.Application.Adaptations.Services.IAdaptationService, AdaptationService>();
+
         return services;
     }
 }
