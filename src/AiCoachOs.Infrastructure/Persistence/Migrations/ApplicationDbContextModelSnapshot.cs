@@ -827,6 +827,52 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
                     b.ToTable("muscles", (string)null);
                 });
 
+            modelBuilder.Entity("AiCoachOs.Domain.Gyms.GymProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CoachId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExplicitEquipmentIds")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExplicitEquipmentIdsJson");
+
+                    b.Property<bool>("IsInventoryAuthoritative")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Tier")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CoachId");
+
+                    b.HasIndex("Tier");
+
+                    b.ToTable("GymProfiles", (string)null);
+                });
+
             modelBuilder.Entity("AiCoachOs.Domain.Knowledge.KnowledgeClaim", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1005,6 +1051,196 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
                     b.HasIndex("SourceType");
 
                     b.ToTable("knowledge_sources", (string)null);
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Nutrition.ClientNutritionProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BudgetTier")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CurrentCalorieTarget")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CurrentProteinTargetGrams")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DietaryPreferences")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("DietaryPreferencesJson");
+
+                    b.Property<string>("FoodExclusions")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("FoodExclusionsJson");
+
+                    b.Property<int?>("MealsPerDay")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("TargetSetAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TargetSetMethod")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId")
+                        .IsUnique();
+
+                    b.ToTable("ClientNutritionProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Nutrition.EgyptianFood", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CaloriesPer100g")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<decimal>("CarbsPer100g")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DataConfidence")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DataSource")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("FatPer100g")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<decimal?>("FiberPer100g")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<int>("FoodCategory")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsAffordableLow")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsAffordableMid")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("ProteinPer100g")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<string>("ServingDescription")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("ServingGrams")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VariabilityNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodCategory");
+
+                    b.HasIndex("IsAffordableLow");
+
+                    b.HasIndex("IsAffordableMid");
+
+                    b.ToTable("EgyptianFoods", (string)null);
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("AdjustmentKcal")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AdjustmentRecommendation")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ClientNutritionProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CoachDecision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CoachNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("EstimatedTDEE")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("RecordedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WeeklyWeightAverages")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("WeeklyWeightAveragesJson");
+
+                    b.Property<int>("WeeksObserved")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("WeightKg")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientNutritionProfileId");
+
+                    b.HasIndex("RecordedAtUtc");
+
+                    b.ToTable("NutritionCalibrationRecords", (string)null);
                 });
 
             modelBuilder.Entity("AiCoachOs.Domain.Programs.ExerciseSlot", b =>
@@ -1295,6 +1531,265 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
                     b.ToTable("training_weeks", (string)null);
                 });
 
+            modelBuilder.Entity("AiCoachOs.Domain.Rehab.RehabAwarenessConsideration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CoachDecisionAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CoachDecisionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ConsiderationText")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("ConsiderationType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Disclaimer")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("EvidenceBasis")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ExerciseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("GeneratedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("KnowledgeClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TrainingLimitationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("GeneratedAtUtc");
+
+                    b.HasIndex("KnowledgeClaimId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TrainingLimitationId");
+
+                    b.ToTable("RehabAwarenessConsiderations", (string)null);
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Rehab.TrainingLimitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AffectedBodyRegion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CoachActivatedM9AtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CoachActivationNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("LimitationSource")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ReportedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SafetyScreeningId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("ReportedAtUtc");
+
+                    b.HasIndex("SafetyScreeningId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("TrainingLimitations", (string)null);
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Safety.RedFlagRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("EvidenceBasis")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("KnowledgeClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("LastReviewedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("RecommendedAction")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RequiresClinicalReview")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SafetyCategoryTriggered")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SignalPattern")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("KnowledgeClaimId");
+
+                    b.HasIndex("SignalPattern");
+
+                    b.ToTable("RedFlagRules", (string)null);
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Safety.SafetyScreening", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CoachAcknowledgedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CoachNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Disclaimer")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("GeneratedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecommendedAction")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RedFlagsMatched")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("RedFlagsMatchedJson");
+
+                    b.Property<string>("ReportedSignals")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ReportedSignalsJson");
+
+                    b.Property<bool>("RequiresCoachAcknowledgment")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ScreeningResult")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SummaryRationale")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("TriggeredByEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TriggeredByType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("GeneratedAtUtc");
+
+                    b.ToTable("SafetyScreenings", (string)null);
+                });
+
             modelBuilder.Entity("AiCoachOs.Domain.TrainingProfiles.ClientTrainingPriority", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1365,6 +1860,10 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("experience_level");
 
+                    b.Property<Guid?>("GymProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gym_profile_id");
+
                     b.Property<int?>("SessionDurationMaxMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("session_duration_max_minutes");
@@ -1390,6 +1889,8 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ClientId")
                         .IsUnique();
+
+                    b.HasIndex("GymProfileId");
 
                     b.ToTable("client_training_profiles", (string)null);
                 });
@@ -2033,6 +2534,28 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
                     b.Navigation("Source");
                 });
 
+            modelBuilder.Entity("AiCoachOs.Domain.Nutrition.ClientNutritionProfile", b =>
+                {
+                    b.HasOne("AiCoachOs.Domain.Clients.Client", "Client")
+                        .WithOne()
+                        .HasForeignKey("AiCoachOs.Domain.Nutrition.ClientNutritionProfile", "ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord", b =>
+                {
+                    b.HasOne("AiCoachOs.Domain.Nutrition.ClientNutritionProfile", "ClientNutritionProfile")
+                        .WithMany("CalibrationRecords")
+                        .HasForeignKey("ClientNutritionProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClientNutritionProfile");
+                });
+
             modelBuilder.Entity("AiCoachOs.Domain.Programs.ExerciseSlot", b =>
                 {
                     b.HasOne("AiCoachOs.Domain.Exercises.Exercise", "Exercise")
@@ -2190,6 +2713,70 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("ProgramVersion");
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Rehab.RehabAwarenessConsideration", b =>
+                {
+                    b.HasOne("AiCoachOs.Domain.Exercises.Exercise", "Exercise")
+                        .WithMany()
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AiCoachOs.Domain.Knowledge.KnowledgeClaim", "KnowledgeClaim")
+                        .WithMany()
+                        .HasForeignKey("KnowledgeClaimId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AiCoachOs.Domain.Rehab.TrainingLimitation", "TrainingLimitation")
+                        .WithMany("Considerations")
+                        .HasForeignKey("TrainingLimitationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+
+                    b.Navigation("KnowledgeClaim");
+
+                    b.Navigation("TrainingLimitation");
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Rehab.TrainingLimitation", b =>
+                {
+                    b.HasOne("AiCoachOs.Domain.Clients.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AiCoachOs.Domain.Safety.SafetyScreening", "SafetyScreening")
+                        .WithMany()
+                        .HasForeignKey("SafetyScreeningId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Client");
+
+                    b.Navigation("SafetyScreening");
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Safety.RedFlagRule", b =>
+                {
+                    b.HasOne("AiCoachOs.Domain.Knowledge.KnowledgeClaim", "KnowledgeClaim")
+                        .WithMany()
+                        .HasForeignKey("KnowledgeClaimId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("KnowledgeClaim");
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Safety.SafetyScreening", b =>
+                {
+                    b.HasOne("AiCoachOs.Domain.Clients.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
                 });
 
             modelBuilder.Entity("AiCoachOs.Domain.TrainingProfiles.ClientTrainingPriority", b =>
@@ -2398,6 +2985,11 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
                     b.Navigation("ClaimSources");
                 });
 
+            modelBuilder.Entity("AiCoachOs.Domain.Nutrition.ClientNutritionProfile", b =>
+                {
+                    b.Navigation("CalibrationRecords");
+                });
+
             modelBuilder.Entity("AiCoachOs.Domain.Programs.Program", b =>
                 {
                     b.Navigation("Versions");
@@ -2418,6 +3010,11 @@ namespace AiCoachOs.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("AiCoachOs.Domain.Programs.TrainingWeek", b =>
                 {
                     b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("AiCoachOs.Domain.Rehab.TrainingLimitation", b =>
+                {
+                    b.Navigation("Considerations");
                 });
 
             modelBuilder.Entity("AiCoachOs.Domain.TrainingProfiles.ClientTrainingProfile", b =>

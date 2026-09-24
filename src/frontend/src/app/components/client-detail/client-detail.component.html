@@ -74,6 +74,60 @@
           </div>
         </div>
 
+        <!-- M11 Gym Profile & Equipment Tier Assignment -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h3 class="section-title" style="margin-bottom: 0;">Gym Profile & Equipment Tier</h3>
+            <span class="badge" style="background: var(--bg-tertiary); color: var(--text-muted); font-size: 0.75rem;">M11 Localization</span>
+          </div>
+
+          <div style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Assign client to a gym profile. If explicit inventory is set on the gym, it overrides tier defaults.
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 1rem;">
+            <div style="flex: 1;">
+              <label class="form-label" style="font-size: 0.75rem;">Assigned Gym</label>
+              <select class="form-control form-control-sm" [(ngModel)]="selectedGymId">
+                <option [ngValue]="null">No Gym (Use Training Profile Direct Equipment)</option>
+                <option *ngFor="let g of gyms" [ngValue]="g.id">
+                  {{ g.name }} — {{ g.tier === EquipmentTier.Minimal ? 'Minimal' : g.tier === EquipmentTier.Basic ? 'Basic' : g.tier === EquipmentTier.Commercial ? 'Commercial' : 'Premium' }}{{ g.location ? ' (' + g.location + ')' : '' }}
+                </option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" (click)="onAssignGym()" [disabled]="isAssigningGym">
+              Save Assignment
+            </button>
+          </div>
+
+          <!-- Quick Add Gym Profile Form -->
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem;">
+            <div style="font-weight: 600; font-size: 0.8125rem; margin-bottom: 0.5rem;">+ Create New Gym Profile</div>
+            <div style="display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Gym Name *</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="newGymName" placeholder="e.g. Golds Gym Cairo, Home Gym" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Location (optional)</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="newGymLocation" placeholder="e.g. Nasr City, Maadi" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Tier</label>
+                <select class="form-control form-control-sm" [(ngModel)]="newGymTier">
+                  <option [ngValue]="EquipmentTier.Minimal">Minimal</option>
+                  <option [ngValue]="EquipmentTier.Basic">Basic</option>
+                  <option [ngValue]="EquipmentTier.Commercial">Commercial</option>
+                  <option [ngValue]="EquipmentTier.Premium">Premium</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="onCreateGym()" [disabled]="isCreatingGym">
+              Create Gym Profile
+            </button>
+          </div>
+        </div>
+
         <!-- Primary Goal -->
         <div class="card">
           <h3 class="section-title">Coaching Goal & Timeline</h3>
@@ -92,6 +146,480 @@
             </div>
           </div>
           <p *ngIf="!client.goal" class="text-muted">No specific coaching goal established yet.</p>
+        </div>
+
+        <!-- M8 Medical Awareness + Safety Screenings Card -->
+        <div class="card" style="border-left: 4px solid var(--primary);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 class="section-title" style="margin-bottom: 0;">Medical Awareness & Safety Screenings</h3>
+            <span *ngIf="screenings.length > 0" class="badge badge-info">{{ screenings.length }} Screenings</span>
+          </div>
+
+          <div *ngIf="isLoadingSafety" class="text-muted" style="font-size: 0.875rem;">
+            Loading safety screenings...
+          </div>
+
+          <div *ngIf="!isLoadingSafety && screenings.length === 0" class="text-muted" style="font-size: 0.875rem;">
+            No safety concerns or symptom reports logged for this client. Training unblocked.
+          </div>
+
+          <div *ngIf="!isLoadingSafety && screenings.length > 0" class="safety-screenings-list">
+            <div *ngFor="let s of screenings" class="safety-card" style="padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; background: #fafafa;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                <div>
+                  <span *ngIf="s.screeningResult === SafetyCategory.UrgentMedicalAttention" class="badge" style="background: #dc2626; color: #fff;">URGENT MEDICAL ATTENTION</span>
+                  <span *ngIf="s.screeningResult === SafetyCategory.ReferToHealthcareProfessional" class="badge" style="background: #ea580c; color: #fff;">REFER TO HEALTHCARE PROFESSIONAL</span>
+                  <span *ngIf="s.screeningResult === SafetyCategory.CautionCoachReview" class="badge" style="background: #ca8a04; color: #fff;">CAUTION: COACH REVIEW</span>
+                  <span *ngIf="s.screeningResult === SafetyCategory.NoSafetyConcern" class="badge badge-success">NO SAFETY CONCERN</span>
+                </div>
+                <small class="text-muted">{{ s.generatedAtUtc | date:'short' }}</small>
+              </div>
+
+              <!-- Reported Signals -->
+              <div *ngIf="s.reportedSignals.length > 0" style="margin: 0.5rem 0; font-size: 0.875rem;">
+                <strong>Reported Signals:</strong>
+                <ul style="margin: 0.25rem 0 0.5rem 1.25rem; padding: 0;">
+                  <li *ngFor="let sig of s.reportedSignals">
+                    {{ sig.bodyRegion }} — {{ sig.signalType === 1 ? 'Pain' : sig.signalType === 2 ? 'Discomfort' : sig.signalType === 3 ? 'Numbness' : sig.signalType === 4 ? 'Swelling' : sig.signalType === 5 ? 'Weakness' : 'Other' }}
+                    <span *ngIf="sig.freeText"> (Client description: "{{ sig.freeText }}")</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Matched Red Flags -->
+              <div *ngIf="s.redFlagsMatched.length > 0" style="margin-bottom: 0.5rem; font-size: 0.875rem; color: #991b1b;">
+                <strong>Red Flag Signals Matched:</strong> {{ s.redFlagsMatched.join(', ') }}
+              </div>
+
+              <!-- Rationale -->
+              <div style="font-size: 0.875rem; line-height: 1.5; margin-bottom: 0.5rem;">
+                <strong>Recommended Action:</strong> {{ s.summaryRationale }}
+              </div>
+
+              <!-- Fixed Disclaimer -->
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic; border-top: 1px dashed var(--border); padding-top: 0.5rem; margin-top: 0.5rem;">
+                {{ s.disclaimer }}
+              </div>
+
+              <!-- Acknowledgment Section -->
+              <div *ngIf="s.requiresCoachAcknowledgment" style="margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border);">
+                <div *ngIf="acknowledgingScreeningId !== s.id">
+                  <button type="button" class="btn btn-primary btn-sm" (click)="acknowledgingScreeningId = s.id">
+                    Acknowledge Safety Alert
+                  </button>
+                </div>
+                <div *ngIf="acknowledgingScreeningId === s.id" style="display: flex; gap: 0.5rem; flex-direction: column;">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="coachAckNote" placeholder="Coach acknowledgment note (optional)..." />
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn btn-primary btn-sm" (click)="onAcknowledgeScreening(s.id)">Confirm Acknowledgment</button>
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="acknowledgingScreeningId = null">Cancel</button>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="!s.requiresCoachAcknowledgment && s.coachAcknowledgedAtUtc" style="font-size: 0.75rem; color: var(--success); margin-top: 0.5rem;">
+                ✓ Acknowledged by coach on {{ s.coachAcknowledgedAtUtc | date:'short' }}
+                <span *ngIf="s.coachNote"> (Note: "{{ s.coachNote }}")</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- M9 Rehab Awareness & Training Limitations -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h3 class="section-title" style="margin-bottom: 0;">Rehab Awareness & Limitations</h3>
+            <span class="badge" style="background: var(--bg-tertiary); color: var(--text-muted); font-size: 0.75rem;">M9 Conservative Layer</span>
+          </div>
+
+          <div style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Deterministic, non-diagnostic training considerations for coach review. All changes require explicit coach approval.
+          </div>
+
+          <!-- Add Limitation Form -->
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">Record Training Limitation</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Body Region *</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="newLimitationRegion" placeholder="e.g. Left Knee, Right Shoulder" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Source</label>
+                <select class="form-control form-control-sm" [(ngModel)]="newLimitationSource">
+                  <option [ngValue]="LimitationSource.ReportedByClient">Reported By Client</option>
+                  <option [ngValue]="LimitationSource.CoachObserved">Coach Observed</option>
+                  <option [ngValue]="LimitationSource.PostReferral">Post Referral</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom: 0.5rem;">
+              <label class="form-label" style="font-size: 0.75rem;">Notes / Context</label>
+              <input type="text" class="form-control form-control-sm" [(ngModel)]="newLimitationDescription" placeholder="Optional context or restriction notes..." />
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" (click)="onCreateLimitation()" [disabled]="isCreatingLimitation">
+              Record Limitation
+            </button>
+          </div>
+
+          <!-- Limitations List -->
+          <div *ngIf="limitations.length === 0" class="text-muted" style="font-size: 0.875rem;">
+            No training limitations recorded for this client.
+          </div>
+
+          <div *ngFor="let lim of limitations" style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 0.75rem; background: var(--bg-card);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div>
+                <strong style="font-size: 0.9375rem;">{{ lim.affectedBodyRegion }}</strong>
+                <span class="badge" [ngClass]="lim.status === LimitationStatus.Active ? 'badge-active' : 'badge-archived'" style="margin-left: 0.5rem;">
+                  {{ lim.status === LimitationStatus.Active ? 'Active' : lim.status === LimitationStatus.Resolved ? 'Resolved' : 'On Hold' }}
+                </span>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                  Reported: {{ lim.reportedAtUtc | date:'short' }} | Source: {{ lim.limitationSource === LimitationSource.ReportedByClient ? 'Client' : lim.limitationSource === LimitationSource.CoachObserved ? 'Coach' : 'Post-Referral' }}
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.25rem;">
+                <button *ngIf="lim.status === LimitationStatus.Active" type="button" class="btn btn-secondary btn-sm" (click)="onGenerateConsiderations(lim.id)">
+                  Generate Considerations
+                </button>
+                <button *ngIf="lim.status === LimitationStatus.Active" type="button" class="btn btn-secondary btn-sm" (click)="onUpdateLimitationStatus(lim.id, LimitationStatus.Resolved)">
+                  Resolve
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="lim.description" style="font-size: 0.8125rem; margin-bottom: 0.5rem;">
+              {{ lim.description }}
+            </div>
+
+            <!-- Post-referral coach activation if needed -->
+            <div *ngIf="lim.limitationSource === LimitationSource.PostReferral && !lim.coachActivatedM9AtUtc" style="background: rgba(234, 179, 8, 0.1); border: 1px solid var(--warning); border-radius: var(--radius-sm); padding: 0.5rem; margin-bottom: 0.5rem;">
+              <div style="font-size: 0.8125rem; font-weight: 600; color: var(--warning); margin-bottom: 0.25rem;">Requires Explicit Coach Activation</div>
+              <div *ngIf="activatingLimitationId !== lim.id">
+                <button type="button" class="btn btn-secondary btn-sm" (click)="activatingLimitationId = lim.id">Activate Limitation</button>
+              </div>
+              <div *ngIf="activatingLimitationId === lim.id" style="display: flex; gap: 0.5rem; flex-direction: column; margin-top: 0.25rem;">
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="coachActivationNote" placeholder="Coach activation note & clearance confirmation..." />
+                <div style="display: flex; gap: 0.5rem;">
+                  <button type="button" class="btn btn-primary btn-sm" (click)="onActivateLimitation(lim.id)">Confirm Activation</button>
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="activatingLimitationId = null">Cancel</button>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="lim.coachActivatedM9AtUtc" style="font-size: 0.75rem; color: var(--success); margin-bottom: 0.5rem;">
+              ✓ Activated by coach on {{ lim.coachActivatedM9AtUtc | date:'short' }} (Note: "{{ lim.coachActivationNote }}")
+            </div>
+
+            <!-- Considerations List -->
+            <div *ngIf="lim.considerations.length > 0" style="margin-top: 0.5rem; border-top: 1px dashed var(--border); padding-top: 0.5rem;">
+              <div style="font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.25rem;">Considerations:</div>
+              <div *ngFor="let c of lim.considerations" style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 0.5rem; margin-bottom: 0.5rem;">
+                <div style="font-size: 0.8125rem;">{{ c.considerationText }}</div>
+                <div *ngIf="c.evidenceBasis" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                  Evidence: {{ c.evidenceBasis }}
+                </div>
+                <div style="font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.25rem; font-style: italic;">
+                  {{ c.disclaimer }}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                  <span class="badge" [ngClass]="c.status === ConsiderationStatus.Pending ? 'badge-archived' : c.status === ConsiderationStatus.ApprovedByCoach ? 'badge-active' : 'badge-danger'">
+                    {{ c.status === ConsiderationStatus.Pending ? 'Pending Review' : c.status === ConsiderationStatus.ApprovedByCoach ? 'Approved' : c.status === ConsiderationStatus.RejectedByCoach ? 'Rejected' : 'Applied' }}
+                  </span>
+                  <div *ngIf="c.status === ConsiderationStatus.Pending" style="display: flex; gap: 0.25rem;">
+                    <button type="button" class="btn btn-primary btn-sm" (click)="onRecordDecision(c.id, ConsiderationStatus.ApprovedByCoach)">Approve</button>
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="onRecordDecision(c.id, ConsiderationStatus.RejectedByCoach)">Reject</button>
+                  </div>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <!-- M10 Nutrition Foundation Card -->
+        <div class="card" style="border-left: 4px solid var(--accent, #10b981);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h3 class="section-title" style="margin-bottom: 0;">Nutrition Foundation & Calibration</h3>
+            <span class="badge" style="background: var(--bg-tertiary); color: var(--text-muted); font-size: 0.75rem;">M10 Evidence & Targets</span>
+          </div>
+
+          <div style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Deterministic Mifflin-St Jeor energy estimation, evidence-based protein targets, budget-tier culturally relevant food suggestions, and weekly weight calibration. All targets are hypotheses requiring coach review.
+          </div>
+
+          <!-- Active Nutrition Targets Overview -->
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">Current Nutrition Targets</div>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Daily Calorie Target</span>
+                <span class="info-val font-semibold">{{ nutritionProfile?.currentCalorieTarget ? (nutritionProfile?.currentCalorieTarget + ' kcal') : 'Not Set' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Daily Protein Target</span>
+                <span class="info-val font-semibold">{{ nutritionProfile?.currentProteinTargetGrams ? (nutritionProfile?.currentProteinTargetGrams + ' g') : 'Not Set' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Budget Tier</span>
+                <span class="info-val">{{ nutritionProfile?.budgetTier === BudgetTier.Constrained ? 'Constrained' : nutritionProfile?.budgetTier === BudgetTier.Moderate ? 'Moderate' : 'Flexible' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Meals / Day</span>
+                <span class="info-val">{{ nutritionProfile?.mealsPerDay || '—' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 1: Deterministic Target Calculator -->
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 1rem; background: var(--bg-card);">
+            <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">Energy & Protein Target Calculator</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Weight (kg)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="calcWeightKg" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Height (cm)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="calcHeightCm" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Age (years)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="calcAgeYears" />
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Biological Sex</label>
+                <select class="form-control form-control-sm" [(ngModel)]="calcIsMale">
+                  <option [ngValue]="true">Male</option>
+                  <option [ngValue]="false">Female</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Activity Level</label>
+                <select class="form-control form-control-sm" [(ngModel)]="calcActivityLevel">
+                  <option [ngValue]="ActivityLevel.Sedentary">Sedentary (1.2)</option>
+                  <option [ngValue]="ActivityLevel.LightlyActive">Lightly Active (1.375)</option>
+                  <option [ngValue]="ActivityLevel.ModeratelyActive">Moderately Active (1.55)</option>
+                  <option [ngValue]="ActivityLevel.VeryActive">Very Active (1.725)</option>
+                  <option [ngValue]="ActivityLevel.ExtremelyActive">Extremely Active (1.9)</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Nutrition Goal</label>
+                <select class="form-control form-control-sm" [(ngModel)]="calcGoalType">
+                  <option [ngValue]="NutritionGoalType.Maintenance">Maintenance</option>
+                  <option [ngValue]="NutritionGoalType.FatLoss">Fat Loss (-300 to -500 kcal)</option>
+                  <option [ngValue]="NutritionGoalType.MuscleGain">Muscle Gain (+200 to +300 kcal)</option>
+                  <option [ngValue]="NutritionGoalType.Strength">Strength (+100 to +200 kcal)</option>
+                  <option [ngValue]="NutritionGoalType.Recomposition">Recomposition (0 kcal)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <button type="button" class="btn btn-primary btn-sm" (click)="onCalculateTargets()" [disabled]="isCalculating">
+                Calculate Targets
+              </button>
+            </div>
+
+            <!-- Calculation Output Display -->
+            <div *ngIf="calculationResult" style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 0.75rem; margin-top: 0.5rem;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div>
+                  <span class="info-label" style="font-size: 0.75rem;">Calculated BMR</span>
+                  <div style="font-weight: 600;">{{ calculationResult.bmr }} kcal</div>
+                </div>
+                <div>
+                  <span class="info-label" style="font-size: 0.75rem;">Estimated TDEE</span>
+                  <div style="font-weight: 600;">{{ calculationResult.tdee }} kcal</div>
+                </div>
+                <div>
+                  <span class="info-label" style="font-size: 0.75rem;">Target Calories</span>
+                  <div style="font-weight: 700; color: var(--accent, #10b981);">{{ calculationResult.recommendedCalories }} kcal</div>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div>
+                  <span class="info-label" style="font-size: 0.75rem;">Target Protein</span>
+                  <div style="font-weight: 700;">{{ calculationResult.proteinGrams }} g ({{ calculationResult.proteinGramsPerKg }} g/kg)</div>
+                </div>
+                <div>
+                  <span class="info-label" style="font-size: 0.75rem;">Formula & Uncertainty</span>
+                  <div style="font-size: 0.75rem;">{{ calculationResult.formulaUsed }} • <span class="badge badge-archived">Hypothesis</span></div>
+                </div>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                {{ calculationResult.uncertaintyAcknowledgment }}
+              </div>
+              <div *ngIf="calculationResult.hasDeficitWarning" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: var(--radius-sm); padding: 0.5rem; margin-bottom: 0.5rem; color: var(--danger); font-size: 0.8125rem;">
+                ⚠ {{ calculationResult.warningMessage }}
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="onApplyCalculatedTargets()">
+                Apply to Profile Draft
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 2: Profile Settings Draft & Save -->
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 1rem; background: var(--bg-card);">
+            <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">Edit Nutrition Profile</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Calorie Target (kcal)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="profileCalorieTarget" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Protein Target (g)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="profileProteinTarget" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Budget Tier</label>
+                <select class="form-control form-control-sm" [(ngModel)]="profileBudgetTier" (change)="loadEgyptianFoods()">
+                  <option [ngValue]="BudgetTier.Constrained">Constrained (Low Cost)</option>
+                  <option [ngValue]="BudgetTier.Moderate">Moderate (Mid Cost)</option>
+                  <option [ngValue]="BudgetTier.Flexible">Flexible (All Options)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Meals / Day</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="profileMealsPerDay" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Preferences (comma-separated)</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="profileDietaryPreferences" placeholder="e.g. High Protein, Mediterranean" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Exclusions (comma-separated)</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="profileFoodExclusions" placeholder="e.g. Dairy, Peanuts" />
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" (click)="onSaveNutritionProfile()" [disabled]="isSavingNutrition">
+              Save Nutrition Profile
+            </button>
+          </div>
+
+          <!-- Section 3: Weight Calibration Log -->
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 1rem; background: var(--bg-card);">
+            <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">Weight Calibration & Adjustment</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+              Requires >= 2 weekly averages to recommend calorie adjustments (±100-150 kcal).
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 2fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Current Wt (kg)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="calibWeightKg" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Goal</label>
+                <select class="form-control form-control-sm" [(ngModel)]="calibGoalType">
+                  <option [ngValue]="NutritionGoalType.Maintenance">Maintenance</option>
+                  <option [ngValue]="NutritionGoalType.FatLoss">Fat Loss</option>
+                  <option [ngValue]="NutritionGoalType.MuscleGain">Muscle Gain</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Intake (kcal)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="calibCalorieIntake" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Weekly Wt Averages (csv)</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="calibWeeklyWeights" placeholder="e.g. 76.0, 75.8, 75.5" />
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="onAddCalibration()" [disabled]="isAddingCalibration" style="margin-bottom: 0.75rem;">
+              Record Calibration Evaluation
+            </button>
+
+            <!-- Calibration Records Table -->
+            <div *ngIf="nutritionProfile?.calibrationRecords && nutritionProfile!.calibrationRecords.length > 0">
+              <div *ngFor="let rec of nutritionProfile!.calibrationRecords" style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.8125rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong>{{ rec.recordedAtUtc | date:'mediumDate' }}</strong> • {{ rec.weightKg }} kg ({{ rec.weeksObserved }} wks observed)
+                  </div>
+                  <span class="badge" [ngClass]="rec.coachDecision === CalibrationDecision.Applied ? 'badge-active' : rec.coachDecision === CalibrationDecision.Rejected ? 'badge-danger' : 'badge-archived'">
+                    {{ rec.coachDecision === CalibrationDecision.Applied ? 'Applied' : rec.coachDecision === CalibrationDecision.Rejected ? 'Rejected' : 'Pending' }}
+                  </span>
+                </div>
+                <div style="margin-top: 0.25rem;">
+                  Recommendation: <strong>{{ rec.adjustmentRecommendation === AdjustmentRecommendation.IncreaseCalories ? 'Increase Calories (+100-150 kcal)' : rec.adjustmentRecommendation === AdjustmentRecommendation.DecreaseCalories ? 'Decrease Calories (-100-150 kcal)' : rec.adjustmentRecommendation === AdjustmentRecommendation.Maintain ? 'Maintain Current Intake' : 'Insufficient Data' }}</strong>
+                  <span *ngIf="rec.adjustmentKcal"> ({{ rec.adjustmentKcal > 0 ? '+' : '' }}{{ rec.adjustmentKcal }} kcal)</span>
+                </div>
+                <div *ngIf="rec.coachDecision === CalibrationDecision.Pending" style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="calibDecisionNotes[rec.id]" placeholder="Coach decision note..." style="max-width: 250px;" />
+                  <button type="button" class="btn btn-primary btn-sm" (click)="onApplyCalibrationDecision(rec.id, CalibrationDecision.Applied, true)">Apply Adjustment</button>
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="onApplyCalibrationDecision(rec.id, CalibrationDecision.Rejected, false)">Reject</button>
+                </div>
+                <div *ngIf="rec.coachNote" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                  Coach Note: "{{ rec.coachNote }}"
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Egyptian Food Suggestions & Cultural Reference -->
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.75rem; background: var(--bg-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <div style="font-weight: 600; font-size: 0.875rem;">Egyptian Food Suggestions & Practical Pairs</div>
+              <span class="badge badge-archived" style="font-size: 0.7rem;">Tier: {{ profileBudgetTier === BudgetTier.Constrained ? 'Constrained' : profileBudgetTier === BudgetTier.Moderate ? 'Moderate' : 'Flexible' }}</span>
+            </div>
+
+            <!-- Scientific Framing Callout -->
+            <div *ngIf="foodSuggestions?.scientificFramingNote" style="background: rgba(59, 130, 246, 0.08); border-left: 3px solid var(--primary); padding: 0.5rem; font-size: 0.75rem; margin-bottom: 0.75rem; border-radius: var(--radius-sm); color: var(--text-muted);">
+              <strong>Scientific Framing:</strong> {{ foodSuggestions!.scientificFramingNote }}
+            </div>
+
+            <!-- Status Notice -->
+            <div *ngIf="isLoadingSuggestions" class="text-muted" style="font-size: 0.8125rem;">Loading food suggestions...</div>
+            <div *ngIf="!isLoadingSuggestions && foodSuggestions && foodSuggestions.status === FoodSuggestionStatus.NoDataAvailable" class="text-muted" style="font-size: 0.8125rem; background: var(--bg-secondary); padding: 0.5rem; border-radius: var(--radius-sm);">
+              ℹ {{ foodSuggestions.contextNote }}
+            </div>
+            <div *ngIf="!isLoadingSuggestions && foodSuggestions && foodSuggestions.status === FoodSuggestionStatus.InsufficientData" class="text-muted" style="font-size: 0.8125rem; background: var(--bg-secondary); padding: 0.5rem; border-radius: var(--radius-sm);">
+              ⚠ {{ foodSuggestions.contextNote }}
+            </div>
+
+            <!-- Direct Protein-Dense Options -->
+            <div *ngIf="!isLoadingSuggestions && foodSuggestions && foodSuggestions.directProteinOptions.length > 0" style="margin-bottom: 1rem;">
+              <div style="font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.5rem;">Direct Protein-Dense Options</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <div *ngFor="let food of foodSuggestions.directProteinOptions" style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 0.5rem; font-size: 0.8125rem;">
+                  <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                    <span>{{ food.nameEn }} ({{ food.nameAr }})</span>
+                    <span class="badge" [ngClass]="food.dataConfidence === DataConfidence.High ? 'badge-active' : 'badge-archived'" style="font-size: 0.65rem;">
+                      {{ food.proteinPer100g }}g P/100g
+                    </span>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    {{ food.servingDescription }} ({{ food.servingGrams }}g) • {{ food.caloriesPer100g }} kcal/100g
+                  </div>
+                  <div style="font-size: 0.75rem; margin-top: 0.25rem;">
+                    P: {{ food.proteinPer100g }}g | C: {{ food.carbsPer100g }}g | F: {{ food.fatPer100g }}g
+                  </div>
+                  <div style="font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.25rem; font-style: italic;">
+                    Source: {{ food.dataSource }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Complementary Plant-Based Combinations -->
+            <div *ngIf="!isLoadingSuggestions && foodSuggestions && foodSuggestions.complementaryCombinations.length > 0">
+              <div style="font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.5rem;">Complementary Plant-Based Combinations (Legume + Grain)</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <div *ngFor="let combo of foodSuggestions.complementaryCombinations" style="background: var(--bg-secondary); border-left: 3px solid #10b981; border-radius: var(--radius-sm); padding: 0.5rem; font-size: 0.8125rem;">
+                  <div style="font-weight: 600;">{{ combo.combinationTitle }}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    • Legume: {{ combo.legumeSource.nameEn }} ({{ combo.legumeSource.proteinPer100g }}g P/100g)<br/>
+                    • Grain: {{ combo.grainSource.nameEn }} ({{ combo.grainSource.proteinPer100g }}g P/100g)
+                  </div>
+                  <div style="font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.25rem; font-style: italic;">
+                    {{ combo.guidanceNote }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Intake Notes -->

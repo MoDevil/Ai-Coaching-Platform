@@ -252,3 +252,276 @@ a:hover {
 .data-table tbody tr:hover {
   background-color: #f8fafc;
 }
+
+/* Common Status & Priority Badges */
+.status-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-1 { background: #fef3c7; color: #92400e; }
+.status-2 { background: #dcfce7; color: #166534; }
+.status-3 { background: #e0e7ff; color: #3730a3; }
+.status-4 { background: #f1f5f9; color: #475569; }
+
+.overall-1 { background: #dcfce7; color: #166534; }
+.overall-2 { background: #fef3c7; color: #92400e; }
+.overall-3 { background: #fee2e2; color: #991b1b; }
+
+.trend-1 { color: #166534; font-weight: 600; font-size: 0.8rem; }
+.trend-2 { color: #b45309; font-weight: 600; font-size: 0.8rem; }
+.trend-3 { color: #b91c1c; font-weight: 600; font-size: 0.8rem; }
+.trend-4 { color: #64748b; font-weight: 500; font-size: 0.8rem; }
+
+.prio-1 { background: #fee2e2; color: #991b1b; }
+.prio-2 { background: #f1f5f9; color: #475569; }
+
+.btn-success {
+  background-color: #16a34a;
+  color: white;
+}
+.btn-success:hover {
+  background-color: #15803d;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+}
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+/* Adaptive Coaching & Card Styles */
+.adaptation-dashboard {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.adaptation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.adaptation-header h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.feedback-banner {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.assessment-card {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 1.25rem;
+}
+
+.assessment-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.meta-date {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.metrics-grid {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.metric-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.metric-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.metric-lbl {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.narrative-summary {
+  background: #f8fafc;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 0.925rem;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+  border-left: 3px solid #3b82f6;
+}
+
+.exercise-records-section {
+  margin-bottom: 1.5rem;
+}
+
+.exercise-records-section h4,
+.recommendations-section h4 {
+  font-size: 1.05rem;
+  color: #1e293b;
+  margin: 0 0 0.75rem 0;
+}
+
+.records-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.record-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem;
+  background: #fafafa;
+}
+
+.rec-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.rec-sub {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.rec-rationale {
+  font-size: 0.8rem;
+  color: #475569;
+  margin: 0;
+}
+
+.recommendations-section {
+  margin-top: 1rem;
+}
+
+.empty-recs {
+  color: #64748b;
+  font-style: italic;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.rec-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 0.85rem;
+  background: white;
+}
+
+.rec-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.action-tag {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ex-name {
+  color: #475569;
+  font-weight: 500;
+}
+
+.rec-status-tag {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rec-card-rationale {
+  font-size: 0.875rem;
+  color: #334155;
+  margin: 0 0 0.5rem 0;
+}
+
+.change-detail {
+  background: #f1f5f9;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+}
+
+.rec-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.confidence-pill {
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+.decision-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.decision-input {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.825rem;
+  min-width: 180px;
+}
+
+.btn-sm {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.decision-note-display {
+  font-size: 0.825rem;
+  color: #475569;
+}
+
+

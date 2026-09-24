@@ -16,7 +16,8 @@ public interface IProgramBuilder
         IReadOnlyList<Muscle> allMuscles,
         string? customProgramName,
         string? coachNotes,
-        int numberOfWeeks);
+        int numberOfWeeks,
+        AiCoachOs.Domain.Gyms.GymProfile? gym = null);
 
     VolumeSummaryDto CalculateVolumeSummary(
         ProgramVersion version,
@@ -54,14 +55,15 @@ public class ProgramBuilder : IProgramBuilder
         IReadOnlyList<Muscle> allMuscles,
         string? customProgramName,
         string? coachNotes,
-        int numberOfWeeks)
+        int numberOfWeeks,
+        AiCoachOs.Domain.Gyms.GymProfile? gym = null)
     {
         // 1. Goal Analysis
         var goalSnapshot = _goalAnalyzer.ParseGoal(client.Goal?.PrimaryGoal, client.Goal?.TargetTimelineWeeks, coachNotes);
         var trainingParams = _goalAnalyzer.DeriveParameters(goalSnapshot);
 
         // 2. Constraints Analysis
-        var constraints = _constraintAnalyzer.Analyze(profile);
+        var constraints = _constraintAnalyzer.Analyze(profile, gym);
 
         // 3. Recovery Evaluation
         var recoveryCapacity = _recoveryModel.EvaluateRecoveryCapacity(client, profile);

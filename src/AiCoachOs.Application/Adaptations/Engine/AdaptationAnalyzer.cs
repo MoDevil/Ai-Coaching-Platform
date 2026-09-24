@@ -120,6 +120,31 @@ public class AdaptationAnalyzer : IAdaptationAnalyzer
                 overallStatus: AdaptationOverallStatus.ReviewRecommended,
                 coachNotes: "Overall adherence is below 60%. Performance data is insufficient to justify physiological program adaptations.");
 
+            var exercisesBySlotTemp = sortedWorkouts
+                .SelectMany(w => w.Exercises)
+                .Where(e => e.ExerciseSlotId.HasValue)
+                .GroupBy(e => e.ExerciseSlotId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var slot in plannedSlots)
+            {
+                exercisesBySlotTemp.TryGetValue(slot.Id, out var loggedExList);
+                int expCount = loggedExList?.Count ?? 0;
+                decimal exAdh = totalExposures > 0 ? Math.Round((decimal)expCount / totalExposures * 100m, 1) : 0m;
+                var rec = new ExerciseAdaptationRecord(
+                    id: Guid.NewGuid(),
+                    adaptationAssessmentId: assessmentId,
+                    exerciseSlotId: slot.Id,
+                    exerciseId: slot.ExerciseId,
+                    exposureCount: expCount,
+                    progressionMetCount: 0,
+                    effortAlignmentStatus: EffortAlignmentStatus.InsufficientEvidence,
+                    performanceTrend: PerformanceTrend.Insufficient,
+                    plateauConfirmed: false,
+                    adherenceToExercise: exAdh);
+                adherenceAssessment.AddExerciseRecord(rec);
+            }
+
             if (!painMentioned)
             {
                 adherenceAssessment.AddRecommendation(new AdaptationRecommendation(
@@ -207,8 +232,9 @@ public class AdaptationAnalyzer : IAdaptationAnalyzer
                 overallEffort = validEfforts.GroupBy(e => e).OrderByDescending(g => g.Count()).First().Key;
             }
 
-            // Performance Trend across exposures (Section 10)
-            PerformanceTrend trend = DeterminePerformanceTrend(loggedExList, exposures);
+            // Performance Trend across exposures (Section 10: requires >= 4 completed exposures)
+            int slotCompletedExposures = loggedExList.Count(e => e.Sets.Any(s => s.IsCompleted));
+            PerformanceTrend trend = DeterminePerformanceTrend(loggedExList, slotCompletedExposures);
 
             // Plateau evaluation (Section 8)
             // Requirements:
@@ -223,7 +249,7 @@ public class AdaptationAnalyzer : IAdaptationAnalyzer
             bool plateauConfirmed = false;
             bool effortIssue = false;
 
-            if (exposures >= 4 && exerciseAdherence >= 75m)
+            if (slotCompletedExposures >= 4 && exerciseAdherence >= 75m)
             {
                 int notMetCount = progressionResults.Count(p => p == ProgressionEvaluationStatus.NotMet || p == ProgressionEvaluationStatus.Incomplete);
                 int effortConfirmedCount = avgRirDiffs.Count(d => d <= 1.0m);
@@ -339,23 +365,37 @@ public class AdaptationAnalyzer : IAdaptationAnalyzer
                     targetSlotId: slot.Id,
                     suggestedChangeDetail: $"TargetSets:{newSets}"));
             }
-            // Case B — Demonstrated Capacity: completed all sets, improving trend, session room
-            else if (exposures >= 4 && setCompletionCounts.All(c => c >= slot.TargetSets) &&
+            // Case B — Demonstrated Capacity: completed all sets, improving trend, session room constraint
+            else if (slotCompletedExposures >= 4 && setCompletionCounts.All(c => c >= slot.TargetSets) &&
                      trend == PerformanceTrend.Improving &&
                      slotsWithVolumeReduced + slotsWithVolumeIncreased < 2 &&
                      slot.TargetSets < 5)
             {
-                slotsWithVolumeIncreased++;
-                int newSets = slot.TargetSets + 1;
-                recommendations.Add(new AdaptationRecommendation(
-                    id: Guid.NewGuid(),
-                    adaptationAssessmentId: assessmentId,
-                    actionType: AdaptationActionType.ModifySets,
-                    rationale: $"Observed performance and execution suggest the current prescription ({slot.TargetSets} sets) for '{exerciseName}' is tolerated with positive adaptation. An additional set ({newSets} sets total) may be considered. Requires coach approval.",
-                    confidence: exposures >= 6 ? RecommendationConfidence.High : RecommendationConfidence.Moderate,
-                    exerciseAdaptationRecordId: recordId,
-                    targetSlotId: slot.Id,
-                    suggestedChangeDetail: $"TargetSets:{newSets}"));
+                // Check session duration capacity: additional set work (~45s) + rest interval
+                int addedTimeMinutes = Math.Max(1, (45 + slot.RestSeconds) / 60);
+                int currentSessionDuration = slot.TrainingSession != null && slot.TrainingSession.EstimatedDurationMinutes > 0
+                    ? slot.TrainingSession.EstimatedDurationMinutes
+                    : 60;
+                int durationCap = profile?.SessionDurationMaxMinutes
+                    ?? profile?.SessionDurationTargetMinutes
+                    ?? currentSessionDuration;
+
+                bool hasRoom = (currentSessionDuration + addedTimeMinutes) <= durationCap;
+
+                if (hasRoom)
+                {
+                    slotsWithVolumeIncreased++;
+                    int newSets = slot.TargetSets + 1;
+                    recommendations.Add(new AdaptationRecommendation(
+                        id: Guid.NewGuid(),
+                        adaptationAssessmentId: assessmentId,
+                        actionType: AdaptationActionType.ModifySets,
+                        rationale: $"Observed performance and execution suggest the current prescription ({slot.TargetSets} sets) for '{exerciseName}' is tolerated with positive adaptation. An additional set ({newSets} sets total) may be considered. Requires coach approval.",
+                        confidence: slotCompletedExposures >= 6 ? RecommendationConfidence.High : RecommendationConfidence.Moderate,
+                        exerciseAdaptationRecordId: recordId,
+                        targetSlotId: slot.Id,
+                        suggestedChangeDetail: $"TargetSets:{newSets}"));
+                }
             }
         }
 
@@ -440,9 +480,9 @@ public class AdaptationAnalyzer : IAdaptationAnalyzer
         return PainKeywords.Any(k => lower.Contains(k));
     }
 
-    private static PerformanceTrend DeterminePerformanceTrend(IReadOnlyList<WorkoutExercise> exercises, int exposureCount)
+    private static PerformanceTrend DeterminePerformanceTrend(IReadOnlyList<WorkoutExercise> exercises, int completedExposureCount)
     {
-        if (exposureCount < 3)
+        if (completedExposureCount < 4)
             return PerformanceTrend.Insufficient;
 
         // Calculate average estimated volume or top load per exposure
@@ -454,7 +494,7 @@ public class AdaptationAnalyzer : IAdaptationAnalyzer
                 topLoads.Add(validSets.Max(s => s.LoadKg));
         }
 
-        if (topLoads.Count < 3)
+        if (topLoads.Count < 4)
             return PerformanceTrend.Insufficient;
 
         int increases = 0;

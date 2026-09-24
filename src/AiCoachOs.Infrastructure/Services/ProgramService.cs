@@ -50,6 +50,12 @@ public class ProgramService : IProgramService
         var patterns = await _context.MovementPatterns.ToListAsync(cancellationToken);
         var muscles = await _context.Muscles.ToListAsync(cancellationToken);
 
+        AiCoachOs.Domain.Gyms.GymProfile? gym = null;
+        if (profile.GymProfileId.HasValue)
+        {
+            gym = await _context.FindGymProfileByIdAsync(profile.GymProfileId.Value, cancellationToken);
+        }
+
         var (program, version, volumeSummary) = _programBuilder.BuildProgram(
             client: client,
             profile: profile,
@@ -58,7 +64,8 @@ public class ProgramService : IProgramService
             allMuscles: muscles,
             customProgramName: request.ProgramName,
             coachNotes: request.CoachNotes,
-            numberOfWeeks: request.NumberOfWeeks);
+            numberOfWeeks: request.NumberOfWeeks,
+            gym: gym);
 
         await _context.AddProgramAsync(program, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);

@@ -137,6 +137,16 @@ public class WorkoutsIntegrationTests : IClassFixture<CustomWebApplicationFactor
         startResp.EnsureSuccessStatusCode();
         var workout = await startResp.Content.ReadFromJsonAsync<WorkoutSessionDto>();
 
+        var maxReps = 12;
+        if (plannedSlot.TargetRepRange.Contains("-"))
+        {
+            var parts = plannedSlot.TargetRepRange.Split("-");
+            if (int.TryParse(parts[1].Trim(), out var parsed))
+            {
+                maxReps = parsed;
+            }
+        }
+
         var workoutEx = workout!.Exercises.First(e => e.ExerciseSlotId == plannedSlot.Id);
 
         // Act: Log planned number of sets hitting upper rep targets
@@ -144,7 +154,7 @@ public class WorkoutsIntegrationTests : IClassFixture<CustomWebApplicationFactor
         {
             var setReq = new RecordWorkoutSetRequestDto(
                 SetNumber: i,
-                Repetitions: 12,
+                Repetitions: maxReps,
                 LoadKg: 80m,
                 Rir: 2m,
                 IsCompleted: true,

@@ -178,15 +178,19 @@ public class AdaptationService : IAdaptationService
                         justification: mp.Justification));
                 }
 
-                // Parse suggested change if any
+                // Parse suggested change (or coach customized change detail) if any
                 Guid? substituteExerciseId = null;
                 int? adjustedTargetSets = null;
 
-                if (!string.IsNullOrWhiteSpace(recommendation.SuggestedChangeDetail))
+                string? changeDetailToApply = !string.IsNullOrWhiteSpace(decision.CustomChangeDetail)
+                    ? decision.CustomChangeDetail
+                    : recommendation.SuggestedChangeDetail;
+
+                if (!string.IsNullOrWhiteSpace(changeDetailToApply))
                 {
-                    if (recommendation.SuggestedChangeDetail.Contains("SubstituteExerciseId:"))
+                    if (changeDetailToApply.Contains("SubstituteExerciseId:"))
                     {
-                        var parts = recommendation.SuggestedChangeDetail.Split(';');
+                        var parts = changeDetailToApply.Split(';');
                         foreach (var part in parts)
                         {
                             if (part.StartsWith("SubstituteExerciseId:") &&
@@ -196,8 +200,8 @@ public class AdaptationService : IAdaptationService
                             }
                         }
                     }
-                    else if (recommendation.SuggestedChangeDetail.StartsWith("TargetSets:") &&
-                             int.TryParse(recommendation.SuggestedChangeDetail.Substring("TargetSets:".Length), out var setsVal))
+                    else if (changeDetailToApply.StartsWith("TargetSets:") &&
+                             int.TryParse(changeDetailToApply.Substring("TargetSets:".Length), out var setsVal))
                     {
                         adjustedTargetSets = setsVal;
                     }

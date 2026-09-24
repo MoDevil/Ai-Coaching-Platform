@@ -11,5 +11,6 @@ public enum EvidenceLevel
     Mechanistic = 2,
     ExpertConsensus = 3,
     RandomizedControlledTrial = 4,
-    MetaAnalysis = 5
+    MetaAnalysis = 5,
+    ClinicalGuideline = 6
 }

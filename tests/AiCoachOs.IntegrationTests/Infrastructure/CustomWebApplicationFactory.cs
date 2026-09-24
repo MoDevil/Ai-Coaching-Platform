@@ -16,6 +16,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         _connectionString = "Host=localhost;Port=5432;Database=aicoachos;Username=postgres;Password=;";
     }
 
+    private static readonly object _migrationLock = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((context, config) =>
@@ -34,11 +36,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Ensure database is migrated
-            var sp = services.BuildServiceProvider();
-            using var scope = sp.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.Database.Migrate();
+            // Ensure database is migrated safely across parallel test fixture instantiations
+            lock (_migrationLock)
+            {
+                var sp = services.BuildServiceProvider();
+                using var scope = sp.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.Migrate();
+            }
         });
 
         builder.UseEnvironment("Development");

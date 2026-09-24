@@ -134,9 +134,9 @@ public class AdaptationAnalyzerTests
         var record = assessment.ExerciseRecords.First();
         record.ExposureCount.Should().Be(3);
         record.PlateauConfirmed.Should().BeFalse();
-        record.PerformanceTrend.Should().Be(PerformanceTrend.Stable);
+        record.PerformanceTrend.Should().Be(PerformanceTrend.Insufficient);
 
-        // Under 4 exposures with stable trend defaults to NoChange / ProgramWorking
+        // Under 4 exposures with insufficient trend defaults to NoChange / ProgramWorking
         assessment.OverallStatus.Should().Be(AdaptationOverallStatus.ProgramWorking);
         assessment.Recommendations.Should().Contain(r => r.ActionType == AdaptationActionType.NoChange);
     }
@@ -261,6 +261,9 @@ public class AdaptationAnalyzerTests
 
         assessment.AdherenceRate.Should().BeLessThan(60m);
         assessment.OverallStatus.Should().Be(AdaptationOverallStatus.ReviewRecommended);
+        assessment.ExerciseRecords.Should().HaveCount(1);
+        assessment.ExerciseRecords.First().PerformanceTrend.Should().Be(PerformanceTrend.Insufficient);
+        assessment.ExerciseRecords.First().PlateauConfirmed.Should().BeFalse();
         assessment.Recommendations.Should().NotContain(r => r.ActionType == AdaptationActionType.ChangeExercise);
         assessment.Recommendations.Should().NotContain(r => r.ActionType == AdaptationActionType.ModifySets);
         assessment.Recommendations.Should().Contain(r => r.ActionType == AdaptationActionType.CoachReview);
@@ -318,5 +321,72 @@ public class AdaptationAnalyzerTests
         assessment1.Recommendations.Count.Should().Be(assessment2.Recommendations.Count);
         assessment1.Recommendations.First().ActionType.Should().Be(assessment2.Recommendations.First().ActionType);
         assessment1.Recommendations.First().Rationale.Should().Be(assessment2.Recommendations.First().Rationale);
+    }
+
+    [Fact]
+    public void Analyze_VolumeIncrease_WhenSessionHasNoDurationRoom_IsBlocked()
+    {
+        var analyzer = new AdaptationAnalyzer(_progressionEvaluator);
+        var (version, slot, exercise) = CreateTestSetup(targetSets: 3, effort: "2 RIR");
+
+        // Set up profile with strict session duration cap equal to current duration (60 min)
+        var availability = new TrainingAvailability(4, new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Thursday, DayOfWeek.Friday });
+        var profile = new ClientTrainingProfile(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            TrainingExperienceLevel.Intermediate,
+            availability,
+            sessionDurationMinMinutes: 45,
+            sessionDurationTargetMinutes: 60,
+            sessionDurationMaxMinutes: 60);
+
+        // 4 sessions: all sets completed, improving load (70 -> 72.5 -> 75 -> 77.5)
+        var workouts = new List<WorkoutSession>
+        {
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-14), 3, 12, 70m, 2m),
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-10), 3, 12, 72.5m, 2m),
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-7), 3, 12, 75m, 2m),
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-3), 3, 12, 77.5m, 2m)
+        };
+
+        var assessment = analyzer.Analyze(version, workouts, new[] { exercise }, profile, _exerciseSelector, _constraintAnalyzer);
+
+        var record = assessment.ExerciseRecords.First();
+        record.PerformanceTrend.Should().Be(PerformanceTrend.Improving);
+        // Because session duration cap is 60 min and current estimated duration is 60 min, +1 set exceeds room
+        assessment.Recommendations.Should().NotContain(r => r.ActionType == AdaptationActionType.ModifySets && r.SuggestedChangeDetail != null && r.SuggestedChangeDetail.Contains("TargetSets:4"));
+    }
+
+    [Fact]
+    public void Analyze_VolumeIncrease_WhenSessionHasRoom_RecommendsPlusOneSet()
+    {
+        var analyzer = new AdaptationAnalyzer(_progressionEvaluator);
+        var (version, slot, exercise) = CreateTestSetup(targetSets: 3, effort: "2 RIR");
+
+        // Profile with generous duration limit (75 min)
+        var availability = new TrainingAvailability(4, new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Thursday, DayOfWeek.Friday });
+        var profile = new ClientTrainingProfile(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            TrainingExperienceLevel.Intermediate,
+            availability,
+            sessionDurationMinMinutes: 45,
+            sessionDurationTargetMinutes: 60,
+            sessionDurationMaxMinutes: 75);
+
+        // 4 sessions: all sets completed, improving load (70 -> 72.5 -> 75 -> 77.5)
+        var workouts = new List<WorkoutSession>
+        {
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-14), 3, 12, 70m, 2m),
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-10), 3, 12, 72.5m, 2m),
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-7), 3, 12, 75m, 2m),
+            CreateWorkout(slot, version.Id, DateTime.UtcNow.AddDays(-3), 3, 12, 77.5m, 2m)
+        };
+
+        var assessment = analyzer.Analyze(version, workouts, new[] { exercise }, profile, _exerciseSelector, _constraintAnalyzer);
+
+        var record = assessment.ExerciseRecords.First();
+        record.PerformanceTrend.Should().Be(PerformanceTrend.Improving);
+        assessment.Recommendations.Should().Contain(r => r.ActionType == AdaptationActionType.ModifySets && r.SuggestedChangeDetail == "TargetSets:4");
     }
 }

@@ -17,6 +17,9 @@ public class ClientTrainingProfileConfiguration : IEntityTypeConfiguration<Clien
         builder.Property(p => p.ClientId).HasColumnName("client_id").IsRequired();
         builder.HasIndex(p => p.ClientId).IsUnique();
 
+        builder.Property(p => p.GymProfileId).HasColumnName("gym_profile_id");
+        builder.HasIndex(p => p.GymProfileId);
+
         builder.Property(p => p.ExperienceLevel).HasColumnName("experience_level").HasConversion<int>().IsRequired();
         builder.Property(p => p.SessionDurationMinMinutes).HasColumnName("session_duration_min_minutes");
         builder.Property(p => p.SessionDurationTargetMinutes).HasColumnName("session_duration_target_minutes");

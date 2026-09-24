@@ -44,6 +44,7 @@ public class ExceptionHandlingMiddleware
             NotFoundException => HttpStatusCode.NotFound,
             ConflictException => HttpStatusCode.Conflict,
             ArgumentException => HttpStatusCode.BadRequest,
+            InvalidOperationException => HttpStatusCode.BadRequest,
             _ => HttpStatusCode.InternalServerError
         };
 

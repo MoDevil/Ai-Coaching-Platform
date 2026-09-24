@@ -1,4 +1,6 @@
+using AiCoachOs.Application.Gyms.Engine;
 using AiCoachOs.Domain.Exercises;
+using AiCoachOs.Domain.Gyms;
 using AiCoachOs.Domain.TrainingProfiles;
 
 namespace AiCoachOs.Application.Programs.Engine;
@@ -15,13 +17,20 @@ public record ConstraintAnalysisResult(
 
 public interface IConstraintAnalyzer
 {
-    ConstraintAnalysisResult Analyze(ClientTrainingProfile profile);
+    ConstraintAnalysisResult Analyze(ClientTrainingProfile profile, GymProfile? gym = null);
     bool CanPerformExercise(Exercise exercise, IReadOnlySet<Guid> availableEquipmentIds, IReadOnlyList<string> excludedKeywords);
 }
 
 public class ConstraintAnalyzer : IConstraintAnalyzer
 {
-    public ConstraintAnalysisResult Analyze(ClientTrainingProfile profile)
+    private readonly IGymEquipmentResolver _equipmentResolver;
+
+    public ConstraintAnalyzer(IGymEquipmentResolver? equipmentResolver = null)
+    {
+        _equipmentResolver = equipmentResolver ?? new GymEquipmentResolver();
+    }
+
+    public ConstraintAnalysisResult Analyze(ClientTrainingProfile profile, GymProfile? gym = null)
     {
         var availability = profile.WeeklyAvailability;
         int sessionsPerWeek = availability.SessionsPerWeek;
@@ -55,7 +64,7 @@ public class ConstraintAnalyzer : IConstraintAnalyzer
         int minDuration = profile.SessionDurationMinMinutes ?? Math.Max(30, targetDuration - 15);
         int maxDuration = profile.SessionDurationMaxMinutes ?? (targetDuration + 15);
 
-        var availableEquipment = profile.AvailableEquipmentIds.ToHashSet();
+        var availableEquipment = _equipmentResolver.ResolveAvailableEquipment(gym, profile.AvailableEquipmentIds);
 
         var excluded = (profile.ExerciseConstraints ?? string.Empty)
             .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)

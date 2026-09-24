@@ -187,6 +187,71 @@ public class AdaptationsIntegrationTests : IClassFixture<CustomWebApplicationFac
     }
 
     [Fact]
+    public async Task Coach_CanApproveWithCustomChangeDetail_OverridingSuggestedChange()
+    {
+        // Arrange
+        var (clientId, program, token) = await SetupClientWithProgramAsync("coach_custom_change");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var versionId = program.ActiveVersion!.Id;
+
+        var firstSession = program.ActiveVersion.Weeks.First().Sessions.First();
+        var firstSlot = firstSession.Slots.First();
+
+        // 4 completed workouts to trigger assessment
+        for (int i = 4; i >= 1; i--)
+        {
+            var workoutReq = new StartWorkoutRequestDto(
+                ClientId: clientId,
+                TrainingSessionId: firstSession.Id,
+                Notes: $"Workout exposure {i}");
+
+            var startResp = await _client.PostAsJsonAsync("/api/workouts/start", workoutReq);
+            startResp.EnsureSuccessStatusCode();
+            var workout = await startResp.Content.ReadFromJsonAsync<WorkoutSessionDto>();
+            workout.Should().NotBeNull();
+
+            var loggedEx = workout!.Exercises.First(e => e.ExerciseSlotId == firstSlot.Id);
+            for (int s = 1; s <= 3; s++)
+            {
+                var setReq = new RecordWorkoutSetRequestDto(
+                    SetNumber: s,
+                    Repetitions: 8,
+                    LoadKg: 80m,
+                    Rir: 2m,
+                    IsCompleted: true);
+                var setResp = await _client.PostAsJsonAsync($"/api/workouts/{workout.Id}/exercises/{loggedEx.Id}/sets", setReq);
+                setResp.EnsureSuccessStatusCode();
+            }
+
+            var completeResp = await _client.PostAsJsonAsync($"/api/workouts/{workout.Id}/complete", new CompleteWorkoutRequestDto());
+            completeResp.EnsureSuccessStatusCode();
+        }
+
+        var assessResp = await _client.PostAsync($"/api/adaptations/assess/{versionId}", null);
+        assessResp.StatusCode.Should().Be(HttpStatusCode.Created);
+        var assessment = await assessResp.Content.ReadFromJsonAsync<AdaptationAssessmentDto>();
+        assessment.Should().NotBeNull();
+        var rec = assessment!.Recommendations.First(r => r.ActionType != AdaptationActionType.NoChange);
+
+        // Act: Coach customizes the target sets to 5 instead of the suggested change
+        var decisionReq = new CoachRecommendationDecisionDto(
+            Approve: true,
+            CustomChangeDetail: "TargetSets:5",
+            CoachDecisionNote: "Coach adjusted volume manually to 5 sets.");
+
+        var decisionResp = await _client.PostAsJsonAsync($"/api/adaptations/recommendations/{rec.Id}/decision", decisionReq);
+        decisionResp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Assert: New program version v2 has target sets = 5 on the adapted slot
+        var progResp = await _client.GetAsync($"/api/programs/{program.Id}");
+        progResp.EnsureSuccessStatusCode();
+        var updatedProgram = await progResp.Content.ReadFromJsonAsync<ProgramDto>();
+        updatedProgram.Should().NotBeNull();
+        var v2Slot = updatedProgram!.ActiveVersion!.Weeks.First().Sessions.First().Slots.First(s => s.ExerciseId == firstSlot.ExerciseId);
+        v2Slot.TargetSets.Should().Be(5);
+    }
+
+    [Fact]
     public async Task Coach_CannotAssessAnotherCoachesProgram()
     {
         // Arrange

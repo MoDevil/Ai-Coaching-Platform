@@ -101,6 +101,23 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Adaptations.Engine.IAdaptationAnalyzer, AiCoachOs.Application.Adaptations.Engine.AdaptationAnalyzer>();
         services.AddScoped<AiCoachOs.Application.Adaptations.Services.IAdaptationService, AdaptationService>();
 
+        // M8 Medical Awareness + Safety Services
+        services.AddScoped<AiCoachOs.Application.Safety.Engine.ISafetyScreener, AiCoachOs.Application.Safety.Engine.SafetyScreener>();
+        services.AddScoped<AiCoachOs.Application.Safety.Interfaces.ISafetyService, SafetyService>();
+
+        // M9 Rehab Awareness Services
+        services.AddScoped<AiCoachOs.Application.Rehab.Engine.IRehabAwarenessEngine, AiCoachOs.Application.Rehab.Engine.RehabAwarenessEngine>();
+        services.AddScoped<AiCoachOs.Application.Rehab.Interfaces.IRehabService, RehabService>();
+
+        // M10 Nutrition Foundation Services
+        services.AddScoped<AiCoachOs.Application.Nutrition.Engine.INutritionCalculator, AiCoachOs.Application.Nutrition.Engine.NutritionCalculator>();
+        services.AddScoped<AiCoachOs.Application.Nutrition.Interfaces.INutritionService, NutritionService>();
+
+        // M11 Egypt Localization Services
+        services.AddScoped<AiCoachOs.Application.Gyms.Engine.IGymEquipmentResolver, AiCoachOs.Application.Gyms.Engine.GymEquipmentResolver>();
+        services.AddScoped<AiCoachOs.Application.Gyms.Interfaces.IGymService, GymService>();
+        services.AddScoped<AiCoachOs.Application.Nutrition.Engine.IFoodSuggestionEngine, AiCoachOs.Application.Nutrition.Engine.FoodSuggestionEngine>();
+
         return services;
     }
 }

@@ -465,6 +465,13 @@ public static class ExerciseLibrarySeeder
         };
         await context.BiomechanicalConsiderationsDbSet.AddRangeAsync(considerations);
 
+        // 11. Red Flag Rules (M8 Medical Awareness + Safety initial seed requiring clinical review)
+        if (!await context.RedFlagRulesDbSet.AnyAsync())
+        {
+            var seedRules = AiCoachOs.Domain.Safety.RedFlagSeedData.GetInitialSeedRules();
+            await context.RedFlagRulesDbSet.AddRangeAsync(seedRules);
+        }
+
         await context.SaveChangesAsync();
         }
         }

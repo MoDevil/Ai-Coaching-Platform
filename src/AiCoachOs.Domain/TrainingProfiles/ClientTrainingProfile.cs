@@ -8,6 +8,7 @@ public class ClientTrainingProfile : Entity<Guid>
     private readonly List<Guid> _availableEquipmentIds = new();
 
     public Guid ClientId { get; private set; }
+    public Guid? GymProfileId { get; private set; }
     public TrainingExperienceLevel ExperienceLevel { get; private set; }
 
     public int? SessionDurationMinMinutes { get; private set; }
@@ -34,7 +35,8 @@ public class ClientTrainingProfile : Entity<Guid>
         int? sessionDurationMaxMinutes = null,
         IEnumerable<Guid>? availableEquipmentIds = null,
         string? exercisePreferences = null,
-        string? exerciseConstraints = null) : base(id)
+        string? exerciseConstraints = null,
+        Guid? gymProfileId = null) : base(id)
     {
         if (clientId == Guid.Empty)
             throw new ArgumentException("ClientId cannot be empty.", nameof(clientId));
@@ -42,6 +44,7 @@ public class ClientTrainingProfile : Entity<Guid>
         ValidateSessionDurations(sessionDurationMinMinutes, sessionDurationTargetMinutes, sessionDurationMaxMinutes);
 
         ClientId = clientId;
+        GymProfileId = gymProfileId;
         ExperienceLevel = experienceLevel;
         WeeklyAvailability = weeklyAvailability ?? throw new ArgumentNullException(nameof(weeklyAvailability));
         SessionDurationMinMinutes = sessionDurationMinMinutes;
@@ -54,6 +57,12 @@ public class ClientTrainingProfile : Entity<Guid>
         {
             _availableEquipmentIds.AddRange(availableEquipmentIds.Distinct());
         }
+    }
+
+    public void SetGymProfile(Guid? gymProfileId)
+    {
+        GymProfileId = gymProfileId;
+        MarkUpdated();
     }
 
     public void UpdateProfile(

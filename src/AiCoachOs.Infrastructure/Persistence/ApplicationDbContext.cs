@@ -57,6 +57,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<AiCoachOs.Domain.Adaptations.ExerciseAdaptationRecord> ExerciseAdaptationRecordsDbSet => Set<AiCoachOs.Domain.Adaptations.ExerciseAdaptationRecord>();
     public DbSet<AiCoachOs.Domain.Adaptations.AdaptationRecommendation> AdaptationRecommendationsDbSet => Set<AiCoachOs.Domain.Adaptations.AdaptationRecommendation>();
 
+    public DbSet<AiCoachOs.Domain.Safety.SafetyScreening> SafetyScreeningsDbSet => Set<AiCoachOs.Domain.Safety.SafetyScreening>();
+    public DbSet<AiCoachOs.Domain.Safety.RedFlagRule> RedFlagRulesDbSet => Set<AiCoachOs.Domain.Safety.RedFlagRule>();
+
+    public DbSet<AiCoachOs.Domain.Rehab.TrainingLimitation> TrainingLimitationsDbSet => Set<AiCoachOs.Domain.Rehab.TrainingLimitation>();
+    public DbSet<AiCoachOs.Domain.Rehab.RehabAwarenessConsideration> RehabAwarenessConsiderationsDbSet => Set<AiCoachOs.Domain.Rehab.RehabAwarenessConsideration>();
+
+    public DbSet<AiCoachOs.Domain.Nutrition.ClientNutritionProfile> ClientNutritionProfilesDbSet => Set<AiCoachOs.Domain.Nutrition.ClientNutritionProfile>();
+    public DbSet<AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord> NutritionCalibrationRecordsDbSet => Set<AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord>();
+    public DbSet<AiCoachOs.Domain.Nutrition.EgyptianFood> EgyptianFoodsDbSet => Set<AiCoachOs.Domain.Nutrition.EgyptianFood>();
+
+    public DbSet<AiCoachOs.Domain.Gyms.GymProfile> GymProfilesDbSet => Set<AiCoachOs.Domain.Gyms.GymProfile>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
@@ -95,6 +107,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<AiCoachOs.Domain.Adaptations.AdaptationAssessment> IApplicationDbContext.AdaptationAssessments => AdaptationAssessmentsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.Adaptations.ExerciseAdaptationRecord> IApplicationDbContext.ExerciseAdaptationRecords => ExerciseAdaptationRecordsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.Adaptations.AdaptationRecommendation> IApplicationDbContext.AdaptationRecommendations => AdaptationRecommendationsDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Safety.SafetyScreening> IApplicationDbContext.SafetyScreenings => SafetyScreeningsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Safety.RedFlagRule> IApplicationDbContext.RedFlagRules => RedFlagRulesDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Rehab.TrainingLimitation> IApplicationDbContext.TrainingLimitations => TrainingLimitationsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Rehab.RehabAwarenessConsideration> IApplicationDbContext.RehabAwarenessConsiderations => RehabAwarenessConsiderationsDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Nutrition.ClientNutritionProfile> IApplicationDbContext.ClientNutritionProfiles => ClientNutritionProfilesDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord> IApplicationDbContext.NutritionCalibrationRecords => NutritionCalibrationRecordsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Nutrition.EgyptianFood> IApplicationDbContext.EgyptianFoods => EgyptianFoodsDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Gyms.GymProfile> IApplicationDbContext.GymProfiles => GymProfilesDbSet.AsNoTracking();
 
     public async Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default)
     {
@@ -164,6 +188,41 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task AddAdaptationAssessmentAsync(AiCoachOs.Domain.Adaptations.AdaptationAssessment assessment, CancellationToken cancellationToken = default)
     {
         await AdaptationAssessmentsDbSet.AddAsync(assessment, cancellationToken);
+    }
+
+    public async Task AddSafetyScreeningAsync(AiCoachOs.Domain.Safety.SafetyScreening screening, CancellationToken cancellationToken = default)
+    {
+        await SafetyScreeningsDbSet.AddAsync(screening, cancellationToken);
+    }
+
+    public async Task AddRedFlagRuleAsync(AiCoachOs.Domain.Safety.RedFlagRule rule, CancellationToken cancellationToken = default)
+    {
+        await RedFlagRulesDbSet.AddAsync(rule, cancellationToken);
+    }
+
+    public async Task AddTrainingLimitationAsync(AiCoachOs.Domain.Rehab.TrainingLimitation limitation, CancellationToken cancellationToken = default)
+    {
+        await TrainingLimitationsDbSet.AddAsync(limitation, cancellationToken);
+    }
+
+    public async Task AddRehabAwarenessConsiderationAsync(AiCoachOs.Domain.Rehab.RehabAwarenessConsideration consideration, CancellationToken cancellationToken = default)
+    {
+        await RehabAwarenessConsiderationsDbSet.AddAsync(consideration, cancellationToken);
+    }
+
+    public async Task AddClientNutritionProfileAsync(AiCoachOs.Domain.Nutrition.ClientNutritionProfile profile, CancellationToken cancellationToken = default)
+    {
+        await ClientNutritionProfilesDbSet.AddAsync(profile, cancellationToken);
+    }
+
+    public async Task AddNutritionCalibrationRecordAsync(AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord record, CancellationToken cancellationToken = default)
+    {
+        await NutritionCalibrationRecordsDbSet.AddAsync(record, cancellationToken);
+    }
+
+    public async Task AddEgyptianFoodAsync(AiCoachOs.Domain.Nutrition.EgyptianFood food, CancellationToken cancellationToken = default)
+    {
+        await EgyptianFoodsDbSet.AddAsync(food, cancellationToken);
     }
 
     public async Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -296,6 +355,78 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
                 .ThenInclude(rec => rec.ExerciseAdaptationRecord)
                     .ThenInclude(r => r!.Exercise)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Safety.SafetyScreening?> FindSafetyScreeningByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await SafetyScreeningsDbSet
+            .Include(s => s.Client)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Safety.RedFlagRule?> FindRedFlagRuleByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await RedFlagRulesDbSet
+            .Include(r => r.KnowledgeClaim)
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Rehab.TrainingLimitation?> FindTrainingLimitationByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await TrainingLimitationsDbSet
+            .Include(t => t.Client)
+            .Include(t => t.SafetyScreening)
+            .Include(t => t.Considerations)
+                .ThenInclude(c => c.Exercise)
+            .Include(t => t.Considerations)
+                .ThenInclude(c => c.KnowledgeClaim)
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Rehab.RehabAwarenessConsideration?> FindRehabAwarenessConsiderationByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await RehabAwarenessConsiderationsDbSet
+            .Include(c => c.TrainingLimitation)
+                .ThenInclude(t => t.Client)
+            .Include(c => c.Exercise)
+            .Include(c => c.KnowledgeClaim)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Nutrition.ClientNutritionProfile?> FindNutritionProfileByClientIdAsync(Guid clientId, CancellationToken cancellationToken = default)
+    {
+        return await ClientNutritionProfilesDbSet
+            .Include(p => p.Client)
+            .Include(p => p.CalibrationRecords)
+            .FirstOrDefaultAsync(p => p.ClientId == clientId, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord?> FindNutritionCalibrationRecordByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await NutritionCalibrationRecordsDbSet
+            .Include(r => r.ClientNutritionProfile)
+                .ThenInclude(p => p.Client)
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Nutrition.EgyptianFood?> FindEgyptianFoodByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await EgyptianFoodsDbSet.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+    }
+
+    public async Task AddGymProfileAsync(AiCoachOs.Domain.Gyms.GymProfile gym, CancellationToken cancellationToken = default)
+    {
+        await GymProfilesDbSet.AddAsync(gym, cancellationToken);
+    }
+
+    public void RemoveGymProfile(AiCoachOs.Domain.Gyms.GymProfile gym)
+    {
+        GymProfilesDbSet.Remove(gym);
+    }
+
+    public async Task<AiCoachOs.Domain.Gyms.GymProfile?> FindGymProfileByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await GymProfilesDbSet.FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
