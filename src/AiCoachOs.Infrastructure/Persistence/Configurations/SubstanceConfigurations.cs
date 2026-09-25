@@ -14,7 +14,7 @@ public class SubstanceRecordConfiguration : IEntityTypeConfiguration<SubstanceRe
 
         builder.HasKey(s => s.Id);
 
-        builder.HasDiscriminator<SubstanceCategory>("Category")
+        builder.HasDiscriminator<SubstanceCategory>("SubstanceCategory")
             .HasValue<SupplementKnowledge>(SubstanceCategory.Supplement)
             .HasValue<HormoneKnowledge>(SubstanceCategory.Hormone)
             .HasValue<PEDSafetyRecord>(SubstanceCategory.PED);
@@ -27,8 +27,13 @@ public class SubstanceRecordConfiguration : IEntityTypeConfiguration<SubstanceRe
             .HasMaxLength(2000)
             .IsRequired();
 
-        builder.Property(s => s.EvidenceSummary)
-            .HasMaxLength(4000)
+        builder.Property(s => s.IsProvisional)
+            .IsRequired();
+
+        builder.Property(s => s.RequiresClinicalReview)
+            .IsRequired();
+
+        builder.Property(s => s.ClaimStatus)
             .IsRequired();
 
         builder.Property(s => s.ReviewedBy)
@@ -37,10 +42,28 @@ public class SubstanceRecordConfiguration : IEntityTypeConfiguration<SubstanceRe
         builder.Property(s => s.IsActive)
             .IsRequired();
 
+        builder.Property(s => s.LastReviewedAtUtc);
+        builder.Property(s => s.ReviewDueAtUtc);
+
         builder.HasOne(s => s.PrimaryKnowledgeClaim)
             .WithMany()
             .HasForeignKey(s => s.PrimaryKnowledgeClaimId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        var stringsComparer = new ValueComparer<IReadOnlyCollection<string>>(
+            (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList().AsReadOnly());
+
+        builder.Property(s => s.CommonAliases)
+            .HasConversion(
+                aliases => JsonSerializer.Serialize(aliases, (JsonSerializerOptions?)null),
+                json => string.IsNullOrEmpty(json)
+                    ? (IReadOnlyCollection<string>)new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null) ?? new List<string>())
+            .HasColumnName("CommonAliasesJson")
+            .HasColumnType("text")
+            .Metadata.SetValueComparer(stringsComparer);
 
         var flagsComparer = new ValueComparer<IReadOnlyCollection<SubstanceSafetyFlag>>(
             (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
@@ -58,7 +81,7 @@ public class SubstanceRecordConfiguration : IEntityTypeConfiguration<SubstanceRe
             .Metadata.SetValueComparer(flagsComparer);
 
         builder.HasIndex(s => s.Name);
-        builder.HasIndex(s => s.Category);
+        builder.HasIndex(s => s.SubstanceCategory);
         builder.HasIndex(s => s.IsActive);
     }
 }
@@ -67,23 +90,39 @@ public class SupplementKnowledgeConfiguration : IEntityTypeConfiguration<Supplem
 {
     public void Configure(EntityTypeBuilder<SupplementKnowledge> builder)
     {
-        builder.Property(s => s.SupplementCategory)
+        builder.Property(s => s.PrimaryClaimedBenefit)
+            .HasMaxLength(500)
             .IsRequired();
 
-        builder.Property(s => s.EvidenceLevel)
+        builder.Property(s => s.EfficacyClaim)
+            .HasMaxLength(2000);
+
+        builder.Property(s => s.EvidenceStatus)
             .IsRequired();
+
+        builder.Property(s => s.EffectMagnitude)
+            .IsRequired();
+
+        builder.Property(s => s.PopulationNote)
+            .HasMaxLength(1000);
 
         builder.Property(s => s.UncertaintyStatement)
             .HasMaxLength(2000)
             .IsRequired();
 
+        builder.Property(s => s.TypicalDoseRangeMin)
+            .HasColumnType("decimal(18,2)");
+
+        builder.Property(s => s.TypicalDoseRangeMax)
+            .HasColumnType("decimal(18,2)");
+
+        builder.Property(s => s.DoseUnit)
+            .HasMaxLength(50);
+
+        builder.Property(s => s.TimingNote)
+            .HasMaxLength(500);
+
         builder.Property(s => s.CommonForms)
-            .HasMaxLength(500);
-
-        builder.Property(s => s.TypicalDoseRange)
-            .HasMaxLength(500);
-
-        builder.Property(s => s.TimingRecommendation)
             .HasMaxLength(500);
 
         builder.Property(s => s.InteractionsAndNotes)
@@ -98,14 +137,14 @@ public class HormoneKnowledgeConfiguration : IEntityTypeConfiguration<HormoneKno
 {
     public void Configure(EntityTypeBuilder<HormoneKnowledge> builder)
     {
-        builder.Property(h => h.HormoneAxis)
+        builder.Property(h => h.HormoneCategory)
             .IsRequired();
 
         builder.Property(h => h.PhysiologicalRole)
             .HasMaxLength(2000)
             .IsRequired();
 
-        builder.Property(h => h.TrainingImpactSummary)
+        builder.Property(h => h.TrainingRelevance)
             .HasMaxLength(2000)
             .IsRequired();
 
@@ -115,6 +154,36 @@ public class HormoneKnowledgeConfiguration : IEntityTypeConfiguration<HormoneKno
 
         builder.Property(h => h.BiomarkerReferenceNotes)
             .HasMaxLength(1000);
+
+        var guidsComparer = new ValueComparer<IReadOnlyCollection<Guid>>(
+            (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList().AsReadOnly());
+
+        builder.Property(h => h.EvidenceClaimIds)
+            .HasConversion(
+                ids => JsonSerializer.Serialize(ids, (JsonSerializerOptions?)null),
+                json => string.IsNullOrEmpty(json)
+                    ? (IReadOnlyCollection<Guid>)new List<Guid>()
+                    : JsonSerializer.Deserialize<List<Guid>>(json, (JsonSerializerOptions?)null) ?? new List<Guid>())
+            .HasColumnName("EvidenceClaimIdsJson")
+            .HasColumnType("text")
+            .Metadata.SetValueComparer(guidsComparer);
+
+        var stringsComparer = new ValueComparer<IReadOnlyCollection<string>>(
+            (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList().AsReadOnly());
+
+        builder.Property(h => h.MedicalEvaluationTriggers)
+            .HasConversion(
+                triggers => JsonSerializer.Serialize(triggers, (JsonSerializerOptions?)null),
+                json => string.IsNullOrEmpty(json)
+                    ? (IReadOnlyCollection<string>)new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null) ?? new List<string>())
+            .HasColumnName("MedicalEvaluationTriggersJson")
+            .HasColumnType("text")
+            .Metadata.SetValueComparer(stringsComparer);
     }
 }
 
@@ -129,15 +198,26 @@ public class PEDSafetyRecordConfiguration : IEntityTypeConfiguration<PEDSafetyRe
             .HasMaxLength(2000)
             .IsRequired();
 
-        builder.Property(p => p.HealthRisksSummary)
-            .HasMaxLength(4000)
-            .IsRequired();
-
         builder.Property(p => p.SafetyDisclaimer)
             .HasMaxLength(1000)
             .IsRequired();
 
-        builder.HasMany(p => p.Risks)
+        var stringsComparer = new ValueComparer<IReadOnlyCollection<string>>(
+            (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList().AsReadOnly());
+
+        builder.Property(p => p.MonitoringConcepts)
+            .HasConversion(
+                concepts => JsonSerializer.Serialize(concepts, (JsonSerializerOptions?)null),
+                json => string.IsNullOrEmpty(json)
+                    ? (IReadOnlyCollection<string>)new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null) ?? new List<string>())
+            .HasColumnName("MonitoringConceptsJson")
+            .HasColumnType("text")
+            .Metadata.SetValueComparer(stringsComparer);
+
+        builder.HasMany(p => p.DocumentedRisks)
             .WithOne(r => r.PEDSafetyRecord)
             .HasForeignKey(r => r.PEDSafetyRecordId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -152,26 +232,29 @@ public class PEDRiskRecordConfiguration : IEntityTypeConfiguration<PEDRiskRecord
 
         builder.HasKey(r => r.Id);
 
-        builder.Property(r => r.OrganSystem)
+        builder.Property(r => r.RiskCategory)
             .IsRequired();
 
         builder.Property(r => r.Severity)
             .IsRequired();
 
-        builder.Property(r => r.RiskDescription)
+        builder.Property(r => r.Description)
             .HasMaxLength(2000)
+            .IsRequired();
+
+        builder.Property(r => r.EvidenceLevel)
             .IsRequired();
 
         builder.Property(r => r.ReversibilityNotes)
             .HasMaxLength(1000);
 
-        builder.HasOne(r => r.KnowledgeClaim)
+        builder.HasOne(r => r.EvidenceClaim)
             .WithMany()
-            .HasForeignKey(r => r.KnowledgeClaimId)
+            .HasForeignKey(r => r.EvidenceClaimId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(r => r.PEDSafetyRecordId);
-        builder.HasIndex(r => r.OrganSystem);
+        builder.HasIndex(r => r.RiskCategory);
     }
 }
 
@@ -198,6 +281,9 @@ public class PEDRedFlagRuleConfiguration : IEntityTypeConfiguration<PEDRedFlagRu
         builder.Property(r => r.EscalationLevel)
             .IsRequired();
 
+        builder.Property(r => r.RequiresClinicalReview)
+            .IsRequired();
+
         builder.Property(r => r.RecommendedAction)
             .HasMaxLength(1000)
             .IsRequired();
@@ -212,9 +298,9 @@ public class PEDRedFlagRuleConfiguration : IEntityTypeConfiguration<PEDRedFlagRu
         builder.Property(r => r.ReviewedBy)
             .HasMaxLength(200);
 
-        builder.HasOne(r => r.KnowledgeClaim)
+        builder.HasOne(r => r.SourceClaim)
             .WithMany()
-            .HasForeignKey(r => r.KnowledgeClaimId)
+            .HasForeignKey(r => r.SourceClaimId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(r => r.SignalPattern);
@@ -235,6 +321,9 @@ public class SubstanceEscalationRecordConfiguration : IEntityTypeConfiguration<S
 
         builder.Property(e => e.EscalationLevel)
             .IsRequired();
+
+        builder.Property(e => e.CoachNote)
+            .HasMaxLength(2000);
 
         builder.Property(e => e.SummaryRationale)
             .HasMaxLength(4000)
@@ -276,17 +365,16 @@ public class SubstanceEscalationRecordConfiguration : IEntityTypeConfiguration<S
             .HasColumnType("text")
             .Metadata.SetValueComparer(stringsComparer);
 
-        builder.Property(e => e.MatchedRedFlags)
+        builder.Property(e => e.TriggeredFlagIds)
             .HasConversion(
                 flags => JsonSerializer.Serialize(flags, (JsonSerializerOptions?)null),
                 json => string.IsNullOrEmpty(json)
                     ? (IReadOnlyCollection<string>)new List<string>()
                     : JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null) ?? new List<string>())
-            .HasColumnName("MatchedRedFlagsJson")
+            .HasColumnName("TriggeredFlagIdsJson")
             .HasColumnType("text")
             .Metadata.SetValueComparer(stringsComparer);
 
-        // Index on CoachId + CreatedAtUtc as required
         builder.HasIndex(e => new { e.CoachId, e.CreatedAtUtc });
     }
 }

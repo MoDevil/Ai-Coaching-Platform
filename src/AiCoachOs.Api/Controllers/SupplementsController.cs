@@ -1,5 +1,6 @@
 using AiCoachOs.Application.Substances.Dtos;
 using AiCoachOs.Application.Substances.Interfaces;
+using AiCoachOs.Domain.Substances;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,10 +21,12 @@ public class SupplementsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<SupplementKnowledgeSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<SupplementKnowledgeSummaryDto>>> GetSupplements(
+        [FromQuery] string? name = null,
+        [FromQuery] SupplementEvidenceStatus? evidenceStatus = null,
         [FromQuery] bool includeProvisional = false,
         CancellationToken cancellationToken = default)
     {
-        var supplements = await _substanceService.GetSupplementsAsync(includeProvisional, cancellationToken);
+        var supplements = await _substanceService.GetSupplementsAsync(name, evidenceStatus, includeProvisional, cancellationToken);
         return Ok(supplements);
     }
 

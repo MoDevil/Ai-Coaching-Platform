@@ -1,10 +1,13 @@
 using AiCoachOs.Application.Substances.Dtos;
+using AiCoachOs.Domain.Substances;
 
 namespace AiCoachOs.Application.Substances.Interfaces;
 
 public interface ISubstanceService
 {
     Task<IReadOnlyList<SupplementKnowledgeSummaryDto>> GetSupplementsAsync(
+        string? name = null,
+        SupplementEvidenceStatus? evidenceStatus = null,
         bool includeProvisional = false,
         CancellationToken cancellationToken = default);
 
@@ -13,6 +16,8 @@ public interface ISubstanceService
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<HormoneKnowledgeSummaryDto>> GetHormonesAsync(
+        HormoneCategory? category = null,
+        string? name = null,
         CancellationToken cancellationToken = default);
 
     Task<HormoneKnowledgeDto?> GetHormoneByIdAsync(
@@ -20,6 +25,7 @@ public interface ISubstanceService
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<PEDSafetyRecordSummaryDto>> GetPEDSafetyRecordsAsync(
+        PEDCategory? category = null,
         CancellationToken cancellationToken = default);
 
     Task<PEDSafetyRecordDto?> GetPEDSafetyRecordByIdAsync(

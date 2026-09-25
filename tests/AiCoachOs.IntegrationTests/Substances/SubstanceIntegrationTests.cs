@@ -4,10 +4,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AiCoachOs.Application.Auth.DTOs;
 using AiCoachOs.Application.Substances.Dtos;
+using AiCoachOs.Domain.Knowledge;
 using AiCoachOs.Domain.Substances;
 using AiCoachOs.Infrastructure.Persistence;
 using AiCoachOs.IntegrationTests.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -16,10 +18,79 @@ namespace AiCoachOs.IntegrationTests.Substances;
 public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly CustomWebApplicationFactory _factory;
+    private static readonly object _fixtureLock = new();
+    private static bool _fixturesSeeded = false;
 
     public SubstanceIntegrationTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
+        EnsureSyntheticFixtures();
+    }
+
+    private void EnsureSyntheticFixtures()
+    {
+        lock (_fixtureLock)
+        {
+            if (_fixturesSeeded) return;
+
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Clean old substance records in test db directly in SQL
+            context.Database.ExecuteSqlRaw("DELETE FROM \"SubstanceEscalationRecords\"; DELETE FROM \"PEDRiskRecords\"; DELETE FROM \"PEDRedFlagRules\"; DELETE FROM \"Substances\";");
+
+            // 1. Synthetic Sources
+            foreach (var s in SubstanceSeedData.GetKnowledgeSources())
+            {
+                if (!context.KnowledgeSourcesDbSet.Any(x => x.Id == s.Id))
+                    context.KnowledgeSourcesDbSet.Add(s);
+            }
+            context.SaveChanges();
+
+            // 2. Synthetic Claims
+            foreach (var c in SubstanceSeedData.GetKnowledgeClaims())
+            {
+                if (!context.KnowledgeClaimsDbSet.Any(x => x.Id == c.Id))
+                    context.KnowledgeClaimsDbSet.Add(c);
+            }
+            context.SaveChanges();
+
+            // 3. Synthetic Supplements
+            foreach (var sup in SubstanceSeedData.GetSupplements())
+            {
+                if (!context.SubstancesDbSet.Any(x => x.Id == sup.Id))
+                    context.SubstancesDbSet.Add(sup);
+            }
+            context.SaveChanges();
+
+            // 4. Synthetic Hormones
+            foreach (var h in SubstanceSeedData.GetHormones())
+            {
+                if (!context.SubstancesDbSet.Any(x => x.Id == h.Id))
+                    context.SubstancesDbSet.Add(h);
+            }
+            context.SaveChanges();
+
+            // 5. Synthetic PEDs
+            foreach (var ped in SubstanceSeedData.GetPEDSafetyRecords())
+            {
+                if (!context.SubstancesDbSet.Any(x => x.Id == ped.Id))
+                    context.SubstancesDbSet.Add(ped);
+            }
+            context.SaveChanges();
+
+            // 6. Synthetic Rules
+            foreach (var r in SubstanceSeedData.GetPEDRedFlagRules())
+            {
+                if (!context.PEDRedFlagRulesDbSet.Any(x => x.Id == r.Id))
+                    context.PEDRedFlagRulesDbSet.Add(r);
+            }
+            context.SaveChanges();
+
+            _fixturesSeeded = true;
+        }
     }
 
     private async Task<string> RegisterAndLoginCoachAsync(string prefix = "coach_substance")
@@ -50,6 +121,20 @@ public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFacto
     }
 
     [Fact]
+    public async Task GetSupplements_WithFiltering_ReturnsFilteredResults()
+    {
+        var token = await RegisterAndLoginCoachAsync("supp_filter");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.GetAsync("/api/supplements?name=creatine");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var list = await response.Content.ReadFromJsonAsync<List<SupplementKnowledgeSummaryDto>>();
+        list.Should().NotBeNull();
+        list!.Should().ContainSingle(s => s.Name == "Creatine Monohydrate");
+    }
+
+    [Fact]
     public async Task GetSupplementById_Returns200WithUncertaintyAndEvidenceDetails()
     {
         var token = await RegisterAndLoginCoachAsync("supp_detail");
@@ -62,8 +147,9 @@ public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFacto
         detail.Should().NotBeNull();
         detail!.Name.Should().Be("Creatine Monohydrate");
         detail.UncertaintyStatement.Should().NotBeNullOrWhiteSpace();
-        detail.EvidenceSummary.Should().NotBeNullOrWhiteSpace();
-        detail.TypicalDoseRange.Should().NotBeNullOrWhiteSpace();
+        detail.PrimaryClaimedBenefit.Should().NotBeNullOrWhiteSpace();
+        detail.TypicalDoseRangeMin.Should().Be(3m);
+        detail.TypicalDoseRangeMax.Should().Be(5m);
         detail.EvidenceClaim.Should().NotBeNull();
         detail.EvidenceClaim!.SourceCitations.Should().NotBeEmpty();
     }
@@ -96,7 +182,7 @@ public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFacto
         var detail = await response.Content.ReadFromJsonAsync<HormoneKnowledgeDto>();
         detail.Should().NotBeNull();
         detail!.PhysiologicalRole.Should().NotBeNullOrWhiteSpace();
-        detail.TrainingImpactSummary.Should().NotBeNullOrWhiteSpace();
+        detail.TrainingRelevance.Should().NotBeNullOrWhiteSpace();
         detail.UncertaintyStatement.Should().NotBeNullOrWhiteSpace();
         detail.BiomarkerReferenceNotes.Should().NotBeNullOrWhiteSpace();
     }
@@ -136,11 +222,11 @@ public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFacto
         detail.Should().NotBeNull();
         detail!.SafetyDisclaimer.Should().Contain("HARM REDUCTION ONLY");
         detail.Risks.Should().NotBeEmpty();
-        detail.Risks.Should().Contain(r => r.OrganSystem == OrganSystem.Cardiovascular);
+        detail.Risks.Should().Contain(r => r.RiskCategory == RiskCategory.Cardiovascular);
     }
 
     [Fact]
-    public async Task EvaluateSubstanceSafety_WhenCardiovascularEmergencyReported_ReturnsEmergencyEscalation()
+    public async Task EvaluateSubstanceSafety_WhenCardiovascularEmergencyReported_ReturnsUrgentMedicalAttention()
     {
         var token = await RegisterAndLoginCoachAsync("coach_eval_emerg");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -156,13 +242,13 @@ public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFacto
 
         var result = await response.Content.ReadFromJsonAsync<SubstanceSafetyEvaluationResultDto>();
         result.Should().NotBeNull();
-        result!.EscalationLevel.Should().Be(SubstanceEscalationLevel.EmergencyMedicalAttention);
+        result!.EscalationLevel.Should().Be(EscalationLevel.UrgentMedicalAttention);
         result.MatchedRedFlags.Should().Contain("PED Cardiovascular Emergency Symptoms");
         result.EscalationRecordId.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task EvaluateSubstanceSafety_WhenJaundiceReported_ReturnsUrgentMedicalReferral()
+    public async Task EvaluateSubstanceSafety_WhenJaundiceReported_ReturnsHealthcareProfessionalReferral()
     {
         var token = await RegisterAndLoginCoachAsync("coach_eval_jaundice");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -178,7 +264,7 @@ public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFacto
 
         var result = await response.Content.ReadFromJsonAsync<SubstanceSafetyEvaluationResultDto>();
         result.Should().NotBeNull();
-        result!.EscalationLevel.Should().Be(SubstanceEscalationLevel.UrgentMedicalReferral);
+        result!.EscalationLevel.Should().Be(EscalationLevel.HealthcareProfessionalReferral);
         result.MatchedRedFlags.Should().Contain("Hepatic Toxicity & Cholestatic Jaundice");
     }
 
@@ -245,7 +331,7 @@ public class SubstanceIntegrationTests : IClassFixture<CustomWebApplicationFacto
         var resp8 = await _client.GetAsync("/api/substance-safety/escalations");
         resp8.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        var resp9 = await _client.GetAsync("/api/substance-safety/rules");
+        var resp9 = await _client.GetAsync("/api/substance-safety/red-flags");
         resp9.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

@@ -13,10 +13,10 @@ public class SubstanceDomainTests
         var act = () => new SupplementKnowledge(
             id: Guid.NewGuid(),
             name: "Creatine",
-            supplementCategory: SupplementCategory.Performance,
-            evidenceLevel: EvidenceLevel.MetaAnalysis,
+            primaryClaimedBenefit: "High-intensity energy resynthesis",
+            evidenceStatus: SupplementEvidenceStatus.StrongEvidence,
+            effectMagnitude: EffectMagnitude.Moderate,
             description: "Ergogenic supplement.",
-            evidenceSummary: "Supported by extensive evidence.",
             uncertaintyStatement: "   "); // Empty
 
         act.Should().Throw<ArgumentException>()
@@ -29,19 +29,32 @@ public class SubstanceDomainTests
         var supplement = new SupplementKnowledge(
             id: Guid.NewGuid(),
             name: "Creatine Monohydrate",
-            supplementCategory: SupplementCategory.Performance,
-            evidenceLevel: EvidenceLevel.MetaAnalysis,
+            primaryClaimedBenefit: "Increases phosphocreatine stores",
+            evidenceStatus: SupplementEvidenceStatus.StrongEvidence,
+            effectMagnitude: EffectMagnitude.Moderate,
             description: "Increases intramuscular phosphocreatine.",
-            evidenceSummary: "Meta-analyses demonstrate significant strength gains.",
             uncertaintyStatement: "High responders vs. non-responders exist based on baseline dietary intake.",
-            commonForms: "Monohydrate",
-            typicalDoseRange: "3-5 g/day",
-            isEgyptianMarketAvailable: true);
+            efficacyClaim: "Meta-analyses demonstrate significant strength gains.",
+            populationNote: "Healthy exercising adults",
+            typicalDoseRangeMin: 3m,
+            typicalDoseRangeMax: 5m,
+            doseUnit: "g/day",
+            isEgyptianMarketAvailable: true,
+            commonAliases: new[] { "Creatine", "Creapure" });
 
         supplement.Name.Should().Be("Creatine Monohydrate");
-        supplement.Category.Should().Be(SubstanceCategory.Supplement);
+        supplement.SubstanceCategory.Should().Be(SubstanceCategory.Supplement);
         supplement.UncertaintyStatement.Should().NotBeNullOrWhiteSpace();
+        supplement.PrimaryClaimedBenefit.Should().Be("Increases phosphocreatine stores");
+        supplement.EvidenceStatus.Should().Be(SupplementEvidenceStatus.StrongEvidence);
+        supplement.EffectMagnitude.Should().Be(EffectMagnitude.Moderate);
+        supplement.TypicalDoseRangeMin.Should().Be(3m);
+        supplement.TypicalDoseRangeMax.Should().Be(5m);
+        supplement.CommonAliases.Should().Contain("Creapure");
         supplement.IsActive.Should().BeTrue();
+        // Supplement ReviewDueAt is 24 months
+        supplement.ReviewDueAtUtc.Should().NotBeNull();
+        supplement.ReviewDueAtUtc!.Value.Should().BeCloseTo(DateTime.UtcNow.AddMonths(24), TimeSpan.FromMinutes(1));
     }
 
     [Fact]
@@ -50,11 +63,10 @@ public class SubstanceDomainTests
         var act = () => new HormoneKnowledge(
             id: Guid.NewGuid(),
             name: "Testosterone",
-            hormoneAxis: HormoneAxis.HPTA,
+            hormoneCategory: HormoneCategory.Androgen,
             description: "Primary androgen.",
             physiologicalRole: "Protein synthesis and androgenic signaling.",
-            trainingImpactSummary: "Heavy resistance training induces acute transient spikes.",
-            evidenceSummary: "Clinical endocrinology guidelines.",
+            trainingRelevance: "Heavy resistance training induces acute transient spikes.",
             uncertaintyStatement: ""); // Empty
 
         act.Should().Throw<ArgumentException>()
@@ -67,21 +79,26 @@ public class SubstanceDomainTests
         var hormone = new HormoneKnowledge(
             id: Guid.NewGuid(),
             name: "Cortisol",
-            hormoneAxis: HormoneAxis.Adrenal,
+            hormoneCategory: HormoneCategory.Glucocorticoid,
             description: "Primary glucocorticoid.",
             physiologicalRole: "Substrate mobilization and anti-inflammatory signaling.",
-            trainingImpactSummary: "Acute post-exercise rise is normal; chronic elevation indicates overtraining.",
-            evidenceSummary: "Extensively documented in endocrinology.",
-            uncertaintyStatement: "Single morning serum samples have high acute noise.");
+            trainingRelevance: "Acute post-exercise rise is normal; chronic elevation indicates overtraining.",
+            uncertaintyStatement: "Single morning serum samples have high acute noise.",
+            medicalEvaluationTriggers: new[] { "Cushingoid features", "Chronic unremitting fatigue" });
 
         hormone.Name.Should().Be("Cortisol");
-        hormone.Category.Should().Be(SubstanceCategory.Hormone);
-        hormone.HormoneAxis.Should().Be(HormoneAxis.Adrenal);
+        hormone.SubstanceCategory.Should().Be(SubstanceCategory.Hormone);
+        hormone.HormoneCategory.Should().Be(HormoneCategory.Glucocorticoid);
+        hormone.PhysiologicalRole.Should().Be("Substrate mobilization and anti-inflammatory signaling.");
+        hormone.TrainingRelevance.Should().Be("Acute post-exercise rise is normal; chronic elevation indicates overtraining.");
         hormone.UncertaintyStatement.Should().NotBeNullOrWhiteSpace();
+        hormone.MedicalEvaluationTriggers.Should().Contain("Cushingoid features");
+        // Hormone ReviewDueAt is 24 months
+        hormone.ReviewDueAtUtc!.Value.Should().BeCloseTo(DateTime.UtcNow.AddMonths(24), TimeSpan.FromMinutes(1));
     }
 
     [Fact]
-    public void PEDSafetyRecord_WhenValid_ContainsEducationalDisclaimerAndNoProhibitedFields()
+    public void PEDSafetyRecord_WhenValid_ContainsEducationalDisclaimerAnd12MonthReviewCycle()
     {
         var ped = new PEDSafetyRecord(
             id: Guid.NewGuid(),
@@ -89,12 +106,15 @@ public class SubstanceDomainTests
             pedCategory: PEDCategory.AAS,
             description: "Synthetic testosterone derivatives.",
             mechanismSummary: "Androgen receptor agonism increasing protein synthesis.",
-            healthRisksSummary: "Cardiovascular remodeling, atherogenic dyslipidemia, HPTA shutdown, hepatotoxicity.",
-            evidenceSummary: "Comprehensive consensus reviews.");
+            monitoringConcepts: new[] { "Lipid Panel", "Complete Blood Count", "Liver Enzymes" });
 
-        ped.Category.Should().Be(SubstanceCategory.PED);
+        ped.SubstanceCategory.Should().Be(SubstanceCategory.PED);
+        ped.PEDCategory.Should().Be(PEDCategory.AAS);
         ped.SafetyDisclaimer.Should().Contain("HARM REDUCTION ONLY");
         ped.SafetyDisclaimer.Should().Contain("prohibits prescribing, cycle planning, dosing, sourcing");
+        ped.MonitoringConcepts.Should().Contain("Lipid Panel");
+        // PED ReviewDueAt is 12 months
+        ped.ReviewDueAtUtc!.Value.Should().BeCloseTo(DateTime.UtcNow.AddMonths(12), TimeSpan.FromMinutes(1));
     }
 
     [Fact]
@@ -105,29 +125,49 @@ public class SubstanceDomainTests
             name: "SARMs",
             pedCategory: PEDCategory.SARM,
             description: "Selective androgen receptor modulators.",
-            mechanismSummary: "Tissue-selective androgen receptor binding.",
-            healthRisksSummary: "Endocrine suppression and drug-induced liver injury.",
-            evidenceSummary: "Clinical warning reports.");
+            mechanismSummary: "Tissue-selective androgen receptor binding.");
 
         var risk = new PEDRiskRecord(
             id: Guid.NewGuid(),
             pedSafetyRecordId: ped.Id,
-            organSystem: OrganSystem.Hepatic,
+            riskCategory: RiskCategory.Hepatic,
             severity: PEDRiskSeverity.High,
-            riskDescription: "Drug-induced liver injury and cholestatic jaundice.",
+            description: "Drug-induced liver injury and cholestatic jaundice.",
+            evidenceLevel: EvidenceLevel.ClinicalGuideline,
             reversibilityNotes: "Usually reversible upon discontinuation.");
 
         ped.AddRisk(risk);
 
-        ped.Risks.Should().HaveCount(1);
-        ped.Risks.First().OrganSystem.Should().Be(OrganSystem.Hepatic);
-        ped.Risks.First().Severity.Should().Be(PEDRiskSeverity.High);
+        ped.DocumentedRisks.Should().HaveCount(1);
+        ped.DocumentedRisks.First().RiskCategory.Should().Be(RiskCategory.Hepatic);
+        ped.DocumentedRisks.First().Severity.Should().Be(PEDRiskSeverity.High);
+        ped.DocumentedRisks.First().EvidenceLevel.Should().Be(EvidenceLevel.ClinicalGuideline);
+    }
+
+    [Fact]
+    public void PEDRedFlagRule_WhenValid_InitializesWithLockedDefaults()
+    {
+        var rule = new PEDRedFlagRule(
+            id: Guid.NewGuid(),
+            name: "Cardio Red Flag",
+            description: "Chest pain",
+            signalPattern: "PED_Emergency_Cardiovascular",
+            escalationLevel: EscalationLevel.UrgentMedicalAttention,
+            recommendedAction: "Call 123 immediately",
+            evidenceBasis: "Emergency triage guidelines",
+            pedCategory: PEDCategory.AAS);
+
+        rule.Name.Should().Be("Cardio Red Flag");
+        rule.EscalationLevel.Should().Be(EscalationLevel.UrgentMedicalAttention);
+        rule.RequiresClinicalReview.Should().BeTrue();
+        rule.PEDCategory.Should().Be(PEDCategory.AAS);
+        rule.IsActive.Should().BeTrue();
     }
 
     [Fact]
     public void SubstanceEscalationRecord_DoesNotContainClientIdProperty()
     {
-        // Architecturally verify that SubstanceEscalationRecord is coach-owned and contains NO ClientId
+        // Strict contract verification: SubstanceEscalationRecord is coach-owned and contains NO ClientId
         var property = typeof(SubstanceEscalationRecord).GetProperty("ClientId");
         property.Should().BeNull("SubstanceEscalationRecord must remain strictly coach-owned and cannot link to Client entities.");
     }
@@ -138,7 +178,7 @@ public class SubstanceDomainTests
         var act = () => new SubstanceEscalationRecord(
             id: Guid.NewGuid(),
             coachId: Guid.Empty,
-            escalationLevel: SubstanceEscalationLevel.EmergencyMedicalAttention,
+            escalationLevel: EscalationLevel.UrgentMedicalAttention,
             summaryRationale: "Cardiovascular emergency",
             recommendedAction: "Call 123");
 
@@ -150,14 +190,14 @@ public class SubstanceDomainTests
     public void SubstanceSafetyFlag_WhenValid_CreatesInstanceSuccessfully()
     {
         var flag = new SubstanceSafetyFlag(
-            flagType: "Renal Disease Contraindication",
-            severity: SubstanceEscalationLevel.CautionCoachReview,
-            message: "Consult nephrologist prior to high-dose use.",
-            evidenceBasis: "Clinical nephrology guidelines.");
+            category: SafetyFlagCategory.SpecialPopulationPrecaution,
+            description: "Renal Disease Precaution",
+            escalationLevel: EscalationLevel.CoachAwareness,
+            coachNote: "Consult nephrologist prior to high-dose use.");
 
-        flag.FlagType.Should().Be("Renal Disease Contraindication");
-        flag.Severity.Should().Be(SubstanceEscalationLevel.CautionCoachReview);
-        flag.Message.Should().NotBeNullOrWhiteSpace();
+        flag.Category.Should().Be(SafetyFlagCategory.SpecialPopulationPrecaution);
+        flag.EscalationLevel.Should().Be(EscalationLevel.CoachAwareness);
+        flag.CoachNote.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -166,17 +206,17 @@ public class SubstanceDomainTests
         var supplement = new SupplementKnowledge(
             id: Guid.NewGuid(),
             name: "Caffeine",
-            supplementCategory: SupplementCategory.Performance,
-            evidenceLevel: EvidenceLevel.MetaAnalysis,
+            primaryClaimedBenefit: "Alertness and ergogenic support",
+            evidenceStatus: SupplementEvidenceStatus.StrongEvidence,
+            effectMagnitude: EffectMagnitude.Moderate,
             description: "Stimulant",
-            evidenceSummary: "Meta-analytic evidence",
             uncertaintyStatement: "Tolerance develops with habituation.");
 
         supplement.AddSafetyFlag(new SubstanceSafetyFlag(
+            SafetyFlagCategory.Contraindication,
             "Hypertension Precaution",
-            SubstanceEscalationLevel.CautionCoachReview,
-            "Avoid high doses if uncontrolled hypertension",
-            "ISSN 2021"));
+            EscalationLevel.CoachAwareness,
+            "Avoid high doses if uncontrolled hypertension"));
 
         supplement.SafetyFlags.Should().HaveCount(1);
 
@@ -190,10 +230,10 @@ public class SubstanceDomainTests
         var supplement = new SupplementKnowledge(
             id: Guid.NewGuid(),
             name: "Whey Protein",
-            supplementCategory: SupplementCategory.BodyComposition,
-            evidenceLevel: EvidenceLevel.MetaAnalysis,
+            primaryClaimedBenefit: "Muscle protein synthesis support",
+            evidenceStatus: SupplementEvidenceStatus.StrongEvidence,
+            effectMagnitude: EffectMagnitude.Moderate,
             description: "Protein powder",
-            evidenceSummary: "Morton et al. 2018",
             uncertaintyStatement: "No unique advantage over equal whole-food protein.");
 
         var reviewedAt = new DateTime(2026, 9, 25, 12, 0, 0, DateTimeKind.Utc);
@@ -201,5 +241,6 @@ public class SubstanceDomainTests
 
         supplement.ReviewedBy.Should().Be("Dr. Ahmed");
         supplement.LastReviewedAtUtc.Should().Be(reviewedAt);
+        supplement.ReviewDueAtUtc.Should().Be(reviewedAt.AddMonths(24));
     }
 }

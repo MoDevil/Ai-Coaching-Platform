@@ -22,33 +22,49 @@ public class SubstanceService : ISubstanceService
     }
 
     public async Task<IReadOnlyList<SupplementKnowledgeSummaryDto>> GetSupplementsAsync(
+        string? name = null,
+        SupplementEvidenceStatus? evidenceStatus = null,
         bool includeProvisional = false,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Supplements
-            .Where(s => s.IsActive);
+        var query = _context.Supplements.Where(s => s.IsActive);
 
         if (!includeProvisional)
         {
-            query = query.Where(s => s.PrimaryKnowledgeClaim == null || s.PrimaryKnowledgeClaim.Status != ClaimStatus.Provisional);
+            query = query.Where(s => !s.IsProvisional && (s.PrimaryKnowledgeClaim == null || s.PrimaryKnowledgeClaim.Status != ClaimStatus.Provisional));
         }
 
-        var list = await query
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            var normalized = name.Trim().ToLower();
+            query = query.Where(s => s.Name.ToLower().Contains(normalized));
+        }
+
+        if (evidenceStatus.HasValue)
+        {
+            query = query.Where(s => s.EvidenceStatus == evidenceStatus.Value);
+        }
+
+        var entities = await query
             .OrderBy(s => s.Name)
-            .Select(s => new SupplementKnowledgeSummaryDto
-            {
-                Id = s.Id,
-                Name = s.Name,
-                SupplementCategory = s.SupplementCategory,
-                EvidenceLevel = s.EvidenceLevel,
-                Description = s.Description,
-                IsEgyptianMarketAvailable = s.IsEgyptianMarketAvailable,
-                SafetyFlagCount = s.SafetyFlags.Count,
-                LastReviewedAtUtc = s.LastReviewedAtUtc
-            })
             .ToListAsync(cancellationToken);
 
-        return list;
+        return entities.Select(s => new SupplementKnowledgeSummaryDto
+        {
+            Id = s.Id,
+            Name = s.Name,
+            CommonAliases = s.CommonAliases.ToList(),
+            PrimaryClaimedBenefit = s.PrimaryClaimedBenefit,
+            EvidenceStatus = s.EvidenceStatus,
+            EffectMagnitude = s.EffectMagnitude,
+            Description = s.Description,
+            IsEgyptianMarketAvailable = s.IsEgyptianMarketAvailable,
+            IsProvisional = s.IsProvisional,
+            RequiresClinicalReview = s.RequiresClinicalReview,
+            SafetyFlagCount = s.SafetyFlags.Count,
+            LastReviewedAtUtc = s.LastReviewedAtUtc,
+            ReviewDueAtUtc = s.ReviewDueAtUtc
+        }).ToList();
     }
 
     public async Task<SupplementKnowledgeDto?> GetSupplementByIdAsync(
@@ -82,46 +98,78 @@ public class SubstanceService : ISubstanceService
         {
             Id = supplement.Id,
             Name = supplement.Name,
-            Category = supplement.Category,
-            SupplementCategory = supplement.SupplementCategory,
-            EvidenceLevel = supplement.EvidenceLevel,
+            CommonAliases = supplement.CommonAliases.ToList(),
+            SubstanceCategory = supplement.SubstanceCategory,
+            PrimaryClaimedBenefit = supplement.PrimaryClaimedBenefit,
+            EfficacyClaim = supplement.EfficacyClaim,
+            EvidenceStatus = supplement.EvidenceStatus,
+            EffectMagnitude = supplement.EffectMagnitude,
+            PopulationNote = supplement.PopulationNote,
             Description = supplement.Description,
-            EvidenceSummary = supplement.EvidenceSummary,
             UncertaintyStatement = supplement.UncertaintyStatement,
+            TypicalDoseRangeMin = supplement.TypicalDoseRangeMin,
+            TypicalDoseRangeMax = supplement.TypicalDoseRangeMax,
+            DoseUnit = supplement.DoseUnit,
+            DoseSourceClaimId = supplement.DoseSourceClaimId,
+            TimingNote = supplement.TimingNote,
             CommonForms = supplement.CommonForms,
-            TypicalDoseRange = supplement.TypicalDoseRange,
-            TimingRecommendation = supplement.TimingRecommendation,
             InteractionsAndNotes = supplement.InteractionsAndNotes,
             IsEgyptianMarketAvailable = supplement.IsEgyptianMarketAvailable,
+            IsProvisional = supplement.IsProvisional,
+            RequiresClinicalReview = supplement.RequiresClinicalReview,
+            ClaimStatus = supplement.ClaimStatus,
             LastReviewedAtUtc = supplement.LastReviewedAtUtc,
+            ReviewDueAtUtc = supplement.ReviewDueAtUtc,
             ReviewedBy = supplement.ReviewedBy,
             IsActive = supplement.IsActive,
             SafetyFlags = supplement.SafetyFlags.Select(f => new SubstanceSafetyFlagDto
             {
-                FlagType = f.FlagType,
-                Severity = f.Severity,
-                Message = f.Message,
-                EvidenceBasis = f.EvidenceBasis
+                Category = f.Category,
+                Description = f.Description,
+                AffectedPopulation = f.AffectedPopulation,
+                SourceClaimId = f.SourceClaimId,
+                EscalationLevel = f.EscalationLevel,
+                CoachNote = f.CoachNote
             }).ToList(),
             EvidenceClaim = evidenceDto
         };
     }
 
     public async Task<IReadOnlyList<HormoneKnowledgeSummaryDto>> GetHormonesAsync(
+        HormoneCategory? category = null,
+        string? name = null,
         CancellationToken cancellationToken = default)
     {
-        return await _context.Hormones
-            .Where(h => h.IsActive)
+        var query = _context.Hormones.Where(h => h.IsActive);
+
+        if (category.HasValue)
+        {
+            query = query.Where(h => h.HormoneCategory == category.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            var normalized = name.Trim().ToLower();
+            query = query.Where(h => h.Name.ToLower().Contains(normalized));
+        }
+
+        var entities = await query
             .OrderBy(h => h.Name)
-            .Select(h => new HormoneKnowledgeSummaryDto
-            {
-                Id = h.Id,
-                Name = h.Name,
-                HormoneAxis = h.HormoneAxis,
-                Description = h.Description,
-                LastReviewedAtUtc = h.LastReviewedAtUtc
-            })
             .ToListAsync(cancellationToken);
+
+        return entities.Select(h => new HormoneKnowledgeSummaryDto
+        {
+            Id = h.Id,
+            Name = h.Name,
+            CommonAliases = h.CommonAliases.ToList(),
+            HormoneCategory = h.HormoneCategory,
+            PhysiologicalRole = h.PhysiologicalRole,
+            Description = h.Description,
+            IsProvisional = h.IsProvisional,
+            RequiresClinicalReview = h.RequiresClinicalReview,
+            LastReviewedAtUtc = h.LastReviewedAtUtc,
+            ReviewDueAtUtc = h.ReviewDueAtUtc
+        }).ToList();
     }
 
     public async Task<HormoneKnowledgeDto?> GetHormoneByIdAsync(
@@ -155,44 +203,65 @@ public class SubstanceService : ISubstanceService
         {
             Id = hormone.Id,
             Name = hormone.Name,
-            Category = hormone.Category,
-            HormoneAxis = hormone.HormoneAxis,
+            CommonAliases = hormone.CommonAliases.ToList(),
+            SubstanceCategory = hormone.SubstanceCategory,
+            HormoneCategory = hormone.HormoneCategory,
             Description = hormone.Description,
             PhysiologicalRole = hormone.PhysiologicalRole,
-            TrainingImpactSummary = hormone.TrainingImpactSummary,
-            EvidenceSummary = hormone.EvidenceSummary,
+            TrainingRelevance = hormone.TrainingRelevance,
             UncertaintyStatement = hormone.UncertaintyStatement,
             BiomarkerReferenceNotes = hormone.BiomarkerReferenceNotes,
+            EvidenceClaimIds = hormone.EvidenceClaimIds.ToList(),
+            MedicalEvaluationTriggers = hormone.MedicalEvaluationTriggers.ToList(),
+            IsProvisional = hormone.IsProvisional,
+            RequiresClinicalReview = hormone.RequiresClinicalReview,
+            ClaimStatus = hormone.ClaimStatus,
             LastReviewedAtUtc = hormone.LastReviewedAtUtc,
+            ReviewDueAtUtc = hormone.ReviewDueAtUtc,
             ReviewedBy = hormone.ReviewedBy,
             IsActive = hormone.IsActive,
             SafetyFlags = hormone.SafetyFlags.Select(f => new SubstanceSafetyFlagDto
             {
-                FlagType = f.FlagType,
-                Severity = f.Severity,
-                Message = f.Message,
-                EvidenceBasis = f.EvidenceBasis
+                Category = f.Category,
+                Description = f.Description,
+                AffectedPopulation = f.AffectedPopulation,
+                SourceClaimId = f.SourceClaimId,
+                EscalationLevel = f.EscalationLevel,
+                CoachNote = f.CoachNote
             }).ToList(),
             EvidenceClaim = evidenceDto
         };
     }
 
     public async Task<IReadOnlyList<PEDSafetyRecordSummaryDto>> GetPEDSafetyRecordsAsync(
+        PEDCategory? category = null,
         CancellationToken cancellationToken = default)
     {
-        return await _context.PEDSafetyRecords
-            .Where(p => p.IsActive)
+        var query = _context.PEDSafetyRecords.Where(p => p.IsActive);
+
+        if (category.HasValue)
+        {
+            query = query.Where(p => p.PEDCategory == category.Value);
+        }
+
+        var entities = await query
+            .Include(p => p.DocumentedRisks)
             .OrderBy(p => p.Name)
-            .Select(p => new PEDSafetyRecordSummaryDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                PEDCategory = p.PEDCategory,
-                Description = p.Description,
-                RiskCount = p.Risks.Count,
-                LastReviewedAtUtc = p.LastReviewedAtUtc
-            })
             .ToListAsync(cancellationToken);
+
+        return entities.Select(p => new PEDSafetyRecordSummaryDto
+        {
+            Id = p.Id,
+            Name = p.Name,
+            CommonAliases = p.CommonAliases.ToList(),
+            PEDCategory = p.PEDCategory,
+            Description = p.Description,
+            RiskCount = p.DocumentedRisks.Count,
+            IsProvisional = p.IsProvisional,
+            RequiresClinicalReview = p.RequiresClinicalReview,
+            LastReviewedAtUtc = p.LastReviewedAtUtc,
+            ReviewDueAtUtc = p.ReviewDueAtUtc
+        }).ToList();
     }
 
     public async Task<PEDSafetyRecordDto?> GetPEDSafetyRecordByIdAsync(
@@ -226,31 +295,39 @@ public class SubstanceService : ISubstanceService
         {
             Id = ped.Id,
             Name = ped.Name,
-            Category = ped.Category,
+            CommonAliases = ped.CommonAliases.ToList(),
+            SubstanceCategory = ped.SubstanceCategory,
             PEDCategory = ped.PEDCategory,
             Description = ped.Description,
             MechanismSummary = ped.MechanismSummary,
-            HealthRisksSummary = ped.HealthRisksSummary,
-            EvidenceSummary = ped.EvidenceSummary,
             SafetyDisclaimer = ped.SafetyDisclaimer,
+            MonitoringConcepts = ped.MonitoringConcepts.ToList(),
+            IsProvisional = ped.IsProvisional,
+            RequiresClinicalReview = ped.RequiresClinicalReview,
+            ClaimStatus = ped.ClaimStatus,
             LastReviewedAtUtc = ped.LastReviewedAtUtc,
+            ReviewDueAtUtc = ped.ReviewDueAtUtc,
             ReviewedBy = ped.ReviewedBy,
             IsActive = ped.IsActive,
-            Risks = ped.Risks.Select(r => new PEDRiskRecordDto
+            Risks = ped.DocumentedRisks.Select(r => new PEDRiskRecordDto
             {
                 Id = r.Id,
-                OrganSystem = r.OrganSystem,
+                PEDSafetyRecordId = r.PEDSafetyRecordId,
+                RiskCategory = r.RiskCategory,
                 Severity = r.Severity,
-                RiskDescription = r.RiskDescription,
+                Description = r.Description,
+                EvidenceLevel = r.EvidenceLevel,
                 ReversibilityNotes = r.ReversibilityNotes,
-                KnowledgeClaimId = r.KnowledgeClaimId
+                EvidenceClaimId = r.EvidenceClaimId
             }).ToList(),
             SafetyFlags = ped.SafetyFlags.Select(f => new SubstanceSafetyFlagDto
             {
-                FlagType = f.FlagType,
-                Severity = f.Severity,
-                Message = f.Message,
-                EvidenceBasis = f.EvidenceBasis
+                Category = f.Category,
+                Description = f.Description,
+                AffectedPopulation = f.AffectedPopulation,
+                SourceClaimId = f.SourceClaimId,
+                EscalationLevel = f.EscalationLevel,
+                CoachNote = f.CoachNote
             }).ToList(),
             EvidenceClaim = evidenceDto
         };
@@ -276,7 +353,7 @@ public class SubstanceService : ISubstanceService
 
         var eval = _safetyEvaluator.Evaluate(request.ReportedSignals, activeRules, substance);
 
-        // Record Coach-Owned Escalation Log
+        // Record Coach-Owned Escalation Log (Strictly NO ClientId)
         var escalationRecord = new SubstanceEscalationRecord(
             id: Guid.NewGuid(),
             coachId: coachId,
@@ -284,9 +361,10 @@ public class SubstanceService : ISubstanceService
             summaryRationale: eval.SummaryRationale,
             recommendedAction: eval.RecommendedAction,
             substanceRecordId: request.SubstanceRecordId,
+            coachNote: request.CoachNote,
             createdAtUtc: DateTime.UtcNow,
             reportedSignals: request.ReportedSignals,
-            matchedRedFlags: eval.MatchedRedFlags);
+            triggeredFlagIds: eval.MatchedRedFlags);
 
         await _context.AddSubstanceEscalationRecordAsync(escalationRecord, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
@@ -311,24 +389,27 @@ public class SubstanceService : ISubstanceService
         if (coachId == Guid.Empty)
             throw new ArgumentException("CoachId cannot be empty.", nameof(coachId));
 
-        return await _context.SubstanceEscalationRecords
+        var entities = await _context.SubstanceEscalationRecords
+            .Include(r => r.SubstanceRecord)
             .Where(r => r.CoachId == coachId)
             .OrderByDescending(r => r.CreatedAtUtc)
-            .Select(r => new SubstanceEscalationRecordDto
-            {
-                Id = r.Id,
-                CoachId = r.CoachId,
-                SubstanceRecordId = r.SubstanceRecordId,
-                SubstanceName = r.SubstanceRecord != null ? r.SubstanceRecord.Name : null,
-                EscalationLevel = r.EscalationLevel,
-                SummaryRationale = r.SummaryRationale,
-                RecommendedAction = r.RecommendedAction,
-                Disclaimer = r.Disclaimer,
-                CreatedAtUtc = r.CreatedAtUtc,
-                ReportedSignals = r.ReportedSignals.ToList(),
-                MatchedRedFlags = r.MatchedRedFlags.ToList()
-            })
             .ToListAsync(cancellationToken);
+
+        return entities.Select(r => new SubstanceEscalationRecordDto
+        {
+            Id = r.Id,
+            CoachId = r.CoachId,
+            SubstanceRecordId = r.SubstanceRecordId,
+            SubstanceName = r.SubstanceRecord != null ? r.SubstanceRecord.Name : null,
+            EscalationLevel = r.EscalationLevel,
+            CoachNote = r.CoachNote,
+            SummaryRationale = r.SummaryRationale,
+            RecommendedAction = r.RecommendedAction,
+            Disclaimer = r.Disclaimer,
+            CreatedAtUtc = r.CreatedAtUtc,
+            ReportedSignals = r.ReportedSignals.ToList(),
+            TriggeredFlagIds = r.TriggeredFlagIds.ToList()
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<PEDRedFlagRuleDto>> GetActivePEDRedFlagRulesAsync(
@@ -341,11 +422,14 @@ public class SubstanceService : ISubstanceService
             {
                 Id = r.Id,
                 Name = r.Name,
+                PEDCategory = r.PEDCategory,
                 Description = r.Description,
                 SignalPattern = r.SignalPattern,
                 EscalationLevel = r.EscalationLevel,
+                RequiresClinicalReview = r.RequiresClinicalReview,
                 RecommendedAction = r.RecommendedAction,
                 EvidenceBasis = r.EvidenceBasis,
+                SourceClaimId = r.SourceClaimId,
                 IsActive = r.IsActive
             })
             .ToListAsync(cancellationToken);

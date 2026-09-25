@@ -9,11 +9,11 @@ import {
   PEDSafetyRecord,
   SubstanceSafetyEvaluationResult,
   SubstanceEscalationRecord,
-  SubstanceEscalationLevel,
-  SupplementCategory,
-  HormoneAxis,
+  EscalationLevel,
+  SupplementEvidenceStatus,
+  HormoneCategory,
   PEDCategory,
-  OrganSystem,
+  RiskCategory,
   PEDRiskSeverity
 } from '../../models/substance.model';
 
@@ -43,7 +43,7 @@ export class SubstanceReferenceComponent implements OnInit {
   // Safety Screener & Triage
   signalsInput = '';
   selectedSubstanceId = '';
-  contextNotes = '';
+  coachNote = '';
   screeningInProgress = false;
   evaluationResult: SubstanceSafetyEvaluationResult | null = null;
   escalations: SubstanceEscalationRecord[] = [];
@@ -75,7 +75,7 @@ export class SubstanceReferenceComponent implements OnInit {
           this.selectSupplement(data[0].id);
         }
       },
-      error: (err) => {
+      error: () => {
         this.errorMessage = 'Failed to load supplements.';
         this.loadingSupplements = false;
       }
@@ -166,7 +166,7 @@ export class SubstanceReferenceComponent implements OnInit {
     this.substanceService.evaluateSubstanceSafety({
       substanceRecordId: this.selectedSubstanceId ? this.selectedSubstanceId : undefined,
       reportedSignals: signals,
-      contextNotes: this.contextNotes ? this.contextNotes : undefined
+      coachNote: this.coachNote ? this.coachNote : undefined
     }).subscribe({
       next: (result) => {
         this.evaluationResult = result;
@@ -193,60 +193,56 @@ export class SubstanceReferenceComponent implements OnInit {
     });
   }
 
-  getEscalationBadgeClass(level: SubstanceEscalationLevel): string {
+  getEscalationBadgeClass(level: EscalationLevel): string {
     switch (level) {
-      case SubstanceEscalationLevel.EmergencyMedicalAttention:
+      case EscalationLevel.UrgentMedicalAttention:
         return 'badge-emergency';
-      case SubstanceEscalationLevel.UrgentMedicalReferral:
+      case EscalationLevel.HealthcareProfessionalReferral:
         return 'badge-urgent';
-      case SubstanceEscalationLevel.CautionCoachReview:
+      case EscalationLevel.CoachAwareness:
         return 'badge-caution';
       default:
         return 'badge-normal';
     }
   }
 
-  getEscalationLabel(level: SubstanceEscalationLevel): string {
+  getEscalationLabel(level: EscalationLevel): string {
     switch (level) {
-      case SubstanceEscalationLevel.EmergencyMedicalAttention:
-        return 'Emergency Medical Attention (911/123)';
-      case SubstanceEscalationLevel.UrgentMedicalReferral:
-        return 'Urgent Medical Referral';
-      case SubstanceEscalationLevel.CautionCoachReview:
-        return 'Caution - Coach Review Required';
+      case EscalationLevel.UrgentMedicalAttention:
+        return 'Urgent Medical Attention (Emergency Triage)';
+      case EscalationLevel.HealthcareProfessionalReferral:
+        return 'Healthcare Professional Referral Required';
+      case EscalationLevel.CoachAwareness:
+        return 'Coach Awareness / Caution';
       default:
-        return 'No Safety Concerns Detected';
+        return 'No Immediate Escalation Required';
     }
   }
 
-  getEvidenceLevelLabel(level: number): string {
-    switch (level) {
-      case 5: return 'Meta-Analysis (Grade A)';
-      case 6: return 'Clinical Guideline';
-      case 4: return 'Randomized Controlled Trial';
-      case 3: return 'Expert Consensus';
-      case 2: return 'Mechanistic Rationale';
-      default: return 'Evidence Level ' + level;
+  getEvidenceStatusLabel(status: SupplementEvidenceStatus): string {
+    switch (status) {
+      case SupplementEvidenceStatus.StrongEvidence: return 'Strong Evidence';
+      case SupplementEvidenceStatus.ModerateEvidence: return 'Moderate Evidence';
+      case SupplementEvidenceStatus.Preliminary: return 'Preliminary Evidence';
+      case SupplementEvidenceStatus.InsufficientEvidence: return 'Insufficient Evidence';
+      case SupplementEvidenceStatus.Disproven: return 'Disproven';
+      default: return 'Evidence ' + status;
     }
   }
 
-  getSupplementCategoryName(cat: SupplementCategory): string {
-    return SupplementCategory[cat] || 'Supplement';
-  }
-
-  getHormoneAxisName(axis: HormoneAxis): string {
-    return HormoneAxis[axis] || 'Endocrine Axis';
+  getHormoneCategoryName(cat: HormoneCategory): string {
+    return HormoneCategory[cat] || 'Endocrine Category';
   }
 
   getPEDCategoryName(cat: PEDCategory): string {
-    return PEDCategory[cat] || 'PED';
+    return PEDCategory[cat] || 'PED Category';
   }
 
-  getOrganSystemName(org: OrganSystem): string {
-    return OrganSystem[org] || 'Organ System';
+  getRiskCategoryName(risk: RiskCategory): string {
+    return RiskCategory[risk] || 'Risk Area';
   }
 
   getRiskSeverityName(sev: PEDRiskSeverity): string {
-    return PEDRiskSeverity[sev] || 'Risk';
+    return PEDRiskSeverity[sev] || 'Severity';
   }
 }

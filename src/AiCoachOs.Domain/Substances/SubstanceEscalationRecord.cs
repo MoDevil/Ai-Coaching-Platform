@@ -7,11 +7,13 @@ namespace AiCoachOs.Domain.Substances;
 /// Represents a logged substance safety evaluation and escalation decision.
 /// Coach-owned decision-support log. DOES NOT link to Client entities (no ClientId)
 /// to maintain strict privacy and safety architecture.
+/// Locked contract: Id, CoachId, SubstanceRecordId, ReportedSignals, TriggeredFlagIds, EscalationLevel,
+/// CoachNote, SummaryRationale, RecommendedAction, Disclaimer, CreatedAtUtc.
 /// </summary>
 public class SubstanceEscalationRecord : Entity<Guid>
 {
     private readonly List<string> _reportedSignals = new();
-    private readonly List<string> _matchedRedFlags = new();
+    private readonly List<string> _triggeredFlagIds = new();
 
     public Guid CoachId { get; private set; }
     public Coach? Coach { get; private set; }
@@ -19,26 +21,28 @@ public class SubstanceEscalationRecord : Entity<Guid>
     public Guid? SubstanceRecordId { get; private set; }
     public SubstanceRecord? SubstanceRecord { get; private set; }
 
-    public SubstanceEscalationLevel EscalationLevel { get; private set; }
+    public EscalationLevel EscalationLevel { get; private set; }
+    public string? CoachNote { get; private set; }
     public string SummaryRationale { get; private set; } = string.Empty;
     public string RecommendedAction { get; private set; } = string.Empty;
     public string Disclaimer { get; private set; } = "MEDICAL DECISION SUPPORT DISCLAIMER: AI Coach OS does not provide medical diagnoses or treatment prescriptions. Any flagged severe or emergency symptoms require immediate referral to qualified medical professionals.";
 
     public IReadOnlyCollection<string> ReportedSignals => _reportedSignals;
-    public IReadOnlyCollection<string> MatchedRedFlags => _matchedRedFlags;
+    public IReadOnlyCollection<string> TriggeredFlagIds => _triggeredFlagIds;
 
     private SubstanceEscalationRecord() { } // EF Core
 
     public SubstanceEscalationRecord(
         Guid id,
         Guid coachId,
-        SubstanceEscalationLevel escalationLevel,
+        EscalationLevel escalationLevel,
         string summaryRationale,
         string recommendedAction,
         Guid? substanceRecordId = null,
+        string? coachNote = null,
         DateTime? createdAtUtc = null,
         IEnumerable<string>? reportedSignals = null,
-        IEnumerable<string>? matchedRedFlags = null) : base(id)
+        IEnumerable<string>? triggeredFlagIds = null) : base(id)
     {
         if (coachId == Guid.Empty)
             throw new ArgumentException("CoachId cannot be empty.", nameof(coachId));
@@ -52,6 +56,7 @@ public class SubstanceEscalationRecord : Entity<Guid>
         SummaryRationale = summaryRationale.Trim();
         RecommendedAction = recommendedAction.Trim();
         SubstanceRecordId = substanceRecordId;
+        CoachNote = string.IsNullOrWhiteSpace(coachNote) ? null : coachNote.Trim();
         CreatedAtUtc = createdAtUtc ?? DateTime.UtcNow;
 
         if (reportedSignals != null)
@@ -63,12 +68,12 @@ public class SubstanceEscalationRecord : Entity<Guid>
             }
         }
 
-        if (matchedRedFlags != null)
+        if (triggeredFlagIds != null)
         {
-            foreach (var flag in matchedRedFlags)
+            foreach (var flagId in triggeredFlagIds)
             {
-                if (!string.IsNullOrWhiteSpace(flag))
-                    _matchedRedFlags.Add(flag.Trim());
+                if (!string.IsNullOrWhiteSpace(flagId))
+                    _triggeredFlagIds.Add(flagId.Trim());
             }
         }
     }
@@ -79,9 +84,9 @@ public class SubstanceEscalationRecord : Entity<Guid>
             _reportedSignals.Add(signal.Trim());
     }
 
-    public void AddMatchedRedFlag(string ruleName)
+    public void AddTriggeredFlagId(string flagId)
     {
-        if (!string.IsNullOrWhiteSpace(ruleName))
-            _matchedRedFlags.Add(ruleName.Trim());
+        if (!string.IsNullOrWhiteSpace(flagId))
+            _triggeredFlagIds.Add(flagId.Trim());
     }
 }

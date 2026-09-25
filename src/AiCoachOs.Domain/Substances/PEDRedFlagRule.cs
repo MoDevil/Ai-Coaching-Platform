@@ -6,21 +6,25 @@ namespace AiCoachOs.Domain.Substances;
 /// <summary>
 /// Represents a deterministic safety screening rule for adverse signs, red flags, or emergency symptoms
 /// related to substance and PED exposure.
+/// Locked contract: Id, Name, PEDCategory?, SignalPattern, Description, EscalationLevel, RequiresClinicalReview,
+/// SourceClaimId, RecommendedAction, EvidenceBasis, IsActive.
 /// </summary>
 public class PEDRedFlagRule : Entity<Guid>
 {
     public string Name { get; private set; } = string.Empty;
+    public PEDCategory? PEDCategory { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public string SignalPattern { get; private set; } = string.Empty;
-    public SubstanceEscalationLevel EscalationLevel { get; private set; }
+    public EscalationLevel EscalationLevel { get; private set; }
+    public bool RequiresClinicalReview { get; private set; } = true;
     public string RecommendedAction { get; private set; } = string.Empty;
     public string EvidenceBasis { get; private set; } = string.Empty;
     public bool IsActive { get; private set; }
     public DateTime? LastReviewedAtUtc { get; private set; }
     public string? ReviewedBy { get; private set; }
 
-    public Guid? KnowledgeClaimId { get; private set; }
-    public KnowledgeClaim? KnowledgeClaim { get; private set; }
+    public Guid? SourceClaimId { get; private set; }
+    public KnowledgeClaim? SourceClaim { get; private set; }
 
     private PEDRedFlagRule() { } // EF Core
 
@@ -29,13 +33,15 @@ public class PEDRedFlagRule : Entity<Guid>
         string name,
         string description,
         string signalPattern,
-        SubstanceEscalationLevel escalationLevel,
+        EscalationLevel escalationLevel,
         string recommendedAction,
         string evidenceBasis,
+        PEDCategory? pedCategory = null,
+        bool requiresClinicalReview = true,
         bool isActive = true,
         DateTime? lastReviewedAtUtc = null,
         string? reviewedBy = "M12 initial clinical safety rule seed",
-        Guid? knowledgeClaimId = null) : base(id)
+        Guid? sourceClaimId = null) : base(id)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty.", nameof(name));
@@ -52,10 +58,12 @@ public class PEDRedFlagRule : Entity<Guid>
         EscalationLevel = escalationLevel;
         RecommendedAction = recommendedAction.Trim();
         EvidenceBasis = string.IsNullOrWhiteSpace(evidenceBasis) ? "Clinical emergency triage and endocrine safety guidelines." : evidenceBasis.Trim();
+        PEDCategory = pedCategory;
+        RequiresClinicalReview = requiresClinicalReview;
         IsActive = isActive;
         LastReviewedAtUtc = lastReviewedAtUtc;
         ReviewedBy = string.IsNullOrWhiteSpace(reviewedBy) ? null : reviewedBy.Trim();
-        KnowledgeClaimId = knowledgeClaimId;
+        SourceClaimId = sourceClaimId;
     }
 
     public void Deactivate()

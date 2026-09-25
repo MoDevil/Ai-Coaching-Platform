@@ -11,7 +11,10 @@ import {
   EvaluateSubstanceSafetyRequest,
   SubstanceSafetyEvaluationResult,
   SubstanceEscalationRecord,
-  PEDRedFlagRule
+  PEDRedFlagRule,
+  SupplementEvidenceStatus,
+  HormoneCategory,
+  PEDCategory
 } from '../models/substance.model';
 
 @Injectable({
@@ -22,8 +25,14 @@ export class SubstanceService {
 
   constructor(private http: HttpClient) {}
 
-  getSupplements(includeProvisional = false): Observable<SupplementKnowledgeSummary[]> {
-    const params = new HttpParams().set('includeProvisional', includeProvisional.toString());
+  getSupplements(name?: string, evidenceStatus?: SupplementEvidenceStatus, includeProvisional = false): Observable<SupplementKnowledgeSummary[]> {
+    let params = new HttpParams().set('includeProvisional', includeProvisional.toString());
+    if (name) {
+      params = params.set('name', name);
+    }
+    if (evidenceStatus !== undefined && evidenceStatus !== null) {
+      params = params.set('evidenceStatus', evidenceStatus.toString());
+    }
     return this.http.get<SupplementKnowledgeSummary[]>(`${this.baseUrl}/supplements`, { params });
   }
 
@@ -31,16 +40,27 @@ export class SubstanceService {
     return this.http.get<SupplementKnowledge>(`${this.baseUrl}/supplements/${id}`);
   }
 
-  getHormones(): Observable<HormoneKnowledgeSummary[]> {
-    return this.http.get<HormoneKnowledgeSummary[]>(`${this.baseUrl}/hormones`);
+  getHormones(category?: HormoneCategory, name?: string): Observable<HormoneKnowledgeSummary[]> {
+    let params = new HttpParams();
+    if (category !== undefined && category !== null) {
+      params = params.set('category', category.toString());
+    }
+    if (name) {
+      params = params.set('name', name);
+    }
+    return this.http.get<HormoneKnowledgeSummary[]>(`${this.baseUrl}/hormones`, { params });
   }
 
   getHormoneById(id: string): Observable<HormoneKnowledge> {
     return this.http.get<HormoneKnowledge>(`${this.baseUrl}/hormones/${id}`);
   }
 
-  getPEDSafetyRecords(): Observable<PEDSafetyRecordSummary[]> {
-    return this.http.get<PEDSafetyRecordSummary[]>(`${this.baseUrl}/ped-safety`);
+  getPEDSafetyRecords(category?: PEDCategory): Observable<PEDSafetyRecordSummary[]> {
+    let params = new HttpParams();
+    if (category !== undefined && category !== null) {
+      params = params.set('category', category.toString());
+    }
+    return this.http.get<PEDSafetyRecordSummary[]>(`${this.baseUrl}/ped-safety`, { params });
   }
 
   getPEDSafetyRecordById(id: string): Observable<PEDSafetyRecord> {
@@ -56,6 +76,6 @@ export class SubstanceService {
   }
 
   getRules(): Observable<PEDRedFlagRule[]> {
-    return this.http.get<PEDRedFlagRule[]>(`${this.baseUrl}/substance-safety/rules`);
+    return this.http.get<PEDRedFlagRule[]>(`${this.baseUrl}/substance-safety/red-flags`);
   }
 }

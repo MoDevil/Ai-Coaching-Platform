@@ -6,41 +6,45 @@ namespace AiCoachOs.Domain.Substances;
 /// <summary>
 /// Represents a structured organ-system health risk associated with a PED class or compound.
 /// Used strictly for educational awareness and safety screening.
+/// Locked contract: RiskCategory, Description, EvidenceClaimId, EvidenceLevel, Severity, ReversibilityNotes.
 /// </summary>
 public class PEDRiskRecord : Entity<Guid>
 {
     public Guid PEDSafetyRecordId { get; private set; }
     public PEDSafetyRecord? PEDSafetyRecord { get; private set; }
 
-    public OrganSystem OrganSystem { get; private set; }
+    public RiskCategory RiskCategory { get; private set; }
     public PEDRiskSeverity Severity { get; private set; }
-    public string RiskDescription { get; private set; } = string.Empty;
+    public string Description { get; private set; } = string.Empty;
     public string? ReversibilityNotes { get; private set; }
 
-    public Guid? KnowledgeClaimId { get; private set; }
-    public KnowledgeClaim? KnowledgeClaim { get; private set; }
+    public Guid? EvidenceClaimId { get; private set; }
+    public KnowledgeClaim? EvidenceClaim { get; private set; }
+    public EvidenceLevel EvidenceLevel { get; private set; }
 
     private PEDRiskRecord() { } // EF Core
 
     public PEDRiskRecord(
         Guid id,
         Guid pedSafetyRecordId,
-        OrganSystem organSystem,
+        RiskCategory riskCategory,
         PEDRiskSeverity severity,
-        string riskDescription,
+        string description,
+        EvidenceLevel evidenceLevel = EvidenceLevel.ClinicalGuideline,
         string? reversibilityNotes = null,
-        Guid? knowledgeClaimId = null) : base(id)
+        Guid? evidenceClaimId = null) : base(id)
     {
         if (pedSafetyRecordId == Guid.Empty)
             throw new ArgumentException("PEDSafetyRecordId cannot be empty.", nameof(pedSafetyRecordId));
-        if (string.IsNullOrWhiteSpace(riskDescription))
-            throw new ArgumentException("Risk description cannot be empty.", nameof(riskDescription));
+        if (string.IsNullOrWhiteSpace(description))
+            throw new ArgumentException("Risk description cannot be empty.", nameof(description));
 
         PEDSafetyRecordId = pedSafetyRecordId;
-        OrganSystem = organSystem;
+        RiskCategory = riskCategory;
         Severity = severity;
-        RiskDescription = riskDescription.Trim();
+        Description = description.Trim();
+        EvidenceLevel = evidenceLevel;
         ReversibilityNotes = string.IsNullOrWhiteSpace(reversibilityNotes) ? null : reversibilityNotes.Trim();
-        KnowledgeClaimId = knowledgeClaimId;
+        EvidenceClaimId = evidenceClaimId;
     }
 }

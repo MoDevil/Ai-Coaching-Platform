@@ -4,19 +4,37 @@ export enum SubstanceCategory {
   PED = 3
 }
 
-export enum SupplementCategory {
-  Performance = 1,
-  HealthAndWellness = 2,
-  Recovery = 3,
-  BodyComposition = 4
+export enum SupplementEvidenceStatus {
+  StrongEvidence = 1,
+  ModerateEvidence = 2,
+  Preliminary = 3,
+  InsufficientEvidence = 4,
+  Disproven = 5
 }
 
-export enum HormoneAxis {
-  HPTA = 1,
-  Thyroid = 2,
-  Adrenal = 3,
-  GrowthHormone = 4,
-  InsulinGlucose = 5
+export enum EffectMagnitude {
+  None = 0,
+  Small = 1,
+  Moderate = 2,
+  Large = 3,
+  Unclear = 4
+}
+
+export enum SafetyFlagCategory {
+  Contraindication = 1,
+  AdverseInteraction = 2,
+  HighDoseToxicity = 3,
+  SpecialPopulationPrecaution = 4,
+  OrganStressPrecaution = 5
+}
+
+export enum HormoneCategory {
+  Androgen = 1,
+  Glucocorticoid = 2,
+  Thyroid = 3,
+  PeptideGrowth = 4,
+  MetabolicEnergy = 5,
+  EstrogenProgestin = 6
 }
 
 export enum PEDCategory {
@@ -31,7 +49,7 @@ export enum PEDCategory {
   Other = 9
 }
 
-export enum OrganSystem {
+export enum RiskCategory {
   Cardiovascular = 1,
   Hepatic = 2,
   Renal = 3,
@@ -50,18 +68,20 @@ export enum PEDRiskSeverity {
   Critical = 4
 }
 
-export enum SubstanceEscalationLevel {
+export enum EscalationLevel {
   None = 0,
-  CautionCoachReview = 1,
-  UrgentMedicalReferral = 2,
-  EmergencyMedicalAttention = 3
+  CoachAwareness = 1,
+  HealthcareProfessionalReferral = 2,
+  UrgentMedicalAttention = 3
 }
 
 export interface SubstanceSafetyFlag {
-  flagType: string;
-  severity: SubstanceEscalationLevel;
-  message: string;
-  evidenceBasis: string;
+  category: SafetyFlagCategory;
+  description: string;
+  affectedPopulation?: string;
+  sourceClaimId?: string;
+  escalationLevel: EscalationLevel;
+  coachNote: string;
 }
 
 export interface EvidenceCitation {
@@ -76,29 +96,44 @@ export interface EvidenceCitation {
 export interface SupplementKnowledgeSummary {
   id: string;
   name: string;
-  supplementCategory: SupplementCategory;
-  evidenceLevel: number;
+  commonAliases: string[];
+  primaryClaimedBenefit: string;
+  evidenceStatus: SupplementEvidenceStatus;
+  effectMagnitude: EffectMagnitude;
   description: string;
   isEgyptianMarketAvailable: boolean;
+  isProvisional: boolean;
+  requiresClinicalReview: boolean;
   safetyFlagCount: number;
   lastReviewedAtUtc?: string;
+  reviewDueAtUtc?: string;
 }
 
 export interface SupplementKnowledge {
   id: string;
   name: string;
-  category: SubstanceCategory;
-  supplementCategory: SupplementCategory;
-  evidenceLevel: number;
+  commonAliases: string[];
+  substanceCategory: SubstanceCategory;
+  primaryClaimedBenefit: string;
+  efficacyClaim?: string;
+  evidenceStatus: SupplementEvidenceStatus;
+  effectMagnitude: EffectMagnitude;
+  populationNote?: string;
   description: string;
-  evidenceSummary: string;
   uncertaintyStatement: string;
+  typicalDoseRangeMin?: number;
+  typicalDoseRangeMax?: number;
+  doseUnit?: string;
+  doseSourceClaimId?: string;
+  timingNote?: string;
   commonForms?: string;
-  typicalDoseRange?: string;
-  timingRecommendation?: string;
   interactionsAndNotes?: string;
   isEgyptianMarketAvailable: boolean;
+  isProvisional: boolean;
+  requiresClinicalReview: boolean;
+  claimStatus: number;
   lastReviewedAtUtc?: string;
+  reviewDueAtUtc?: string;
   reviewedBy?: string;
   isActive: boolean;
   safetyFlags: SubstanceSafetyFlag[];
@@ -108,23 +143,34 @@ export interface SupplementKnowledge {
 export interface HormoneKnowledgeSummary {
   id: string;
   name: string;
-  hormoneAxis: HormoneAxis;
+  commonAliases: string[];
+  hormoneCategory: HormoneCategory;
+  physiologicalRole: string;
   description: string;
+  isProvisional: boolean;
+  requiresClinicalReview: boolean;
   lastReviewedAtUtc?: string;
+  reviewDueAtUtc?: string;
 }
 
 export interface HormoneKnowledge {
   id: string;
   name: string;
-  category: SubstanceCategory;
-  hormoneAxis: HormoneAxis;
+  commonAliases: string[];
+  substanceCategory: SubstanceCategory;
+  hormoneCategory: HormoneCategory;
   description: string;
   physiologicalRole: string;
-  trainingImpactSummary: string;
-  evidenceSummary: string;
+  trainingRelevance: string;
   uncertaintyStatement: string;
   biomarkerReferenceNotes?: string;
+  evidenceClaimIds: string[];
+  medicalEvaluationTriggers: string[];
+  isProvisional: boolean;
+  requiresClinicalReview: boolean;
+  claimStatus: number;
   lastReviewedAtUtc?: string;
+  reviewDueAtUtc?: string;
   reviewedBy?: string;
   isActive: boolean;
   safetyFlags: SubstanceSafetyFlag[];
@@ -133,33 +179,43 @@ export interface HormoneKnowledge {
 
 export interface PEDRiskRecord {
   id: string;
-  organSystem: OrganSystem;
+  pedSafetyRecordId: string;
+  riskCategory: RiskCategory;
   severity: PEDRiskSeverity;
-  riskDescription: string;
+  description: string;
+  evidenceLevel: number;
   reversibilityNotes?: string;
-  knowledgeClaimId?: string;
+  evidenceClaimId?: string;
 }
 
 export interface PEDSafetyRecordSummary {
   id: string;
   name: string;
+  commonAliases: string[];
   pedCategory: PEDCategory;
   description: string;
   riskCount: number;
+  isProvisional: boolean;
+  requiresClinicalReview: boolean;
   lastReviewedAtUtc?: string;
+  reviewDueAtUtc?: string;
 }
 
 export interface PEDSafetyRecord {
   id: string;
   name: string;
-  category: SubstanceCategory;
+  commonAliases: string[];
+  substanceCategory: SubstanceCategory;
   pedCategory: PEDCategory;
   description: string;
   mechanismSummary: string;
-  healthRisksSummary: string;
-  evidenceSummary: string;
   safetyDisclaimer: string;
+  monitoringConcepts: string[];
+  isProvisional: boolean;
+  requiresClinicalReview: boolean;
+  claimStatus: number;
   lastReviewedAtUtc?: string;
+  reviewDueAtUtc?: string;
   reviewedBy?: string;
   isActive: boolean;
   risks: PEDRiskRecord[];
@@ -170,23 +226,26 @@ export interface PEDSafetyRecord {
 export interface PEDRedFlagRule {
   id: string;
   name: string;
+  pedCategory?: PEDCategory;
   description: string;
   signalPattern: string;
-  escalationLevel: SubstanceEscalationLevel;
+  escalationLevel: EscalationLevel;
+  requiresClinicalReview: boolean;
   recommendedAction: string;
   evidenceBasis: string;
+  sourceClaimId?: string;
   isActive: boolean;
 }
 
 export interface EvaluateSubstanceSafetyRequest {
   substanceRecordId?: string;
   reportedSignals: string[];
-  contextNotes?: string;
+  coachNote?: string;
 }
 
 export interface SubstanceSafetyEvaluationResult {
   escalationRecordId?: string;
-  escalationLevel: SubstanceEscalationLevel;
+  escalationLevel: EscalationLevel;
   summaryRationale: string;
   recommendedAction: string;
   disclaimer: string;
@@ -200,11 +259,12 @@ export interface SubstanceEscalationRecord {
   coachId: string;
   substanceRecordId?: string;
   substanceName?: string;
-  escalationLevel: SubstanceEscalationLevel;
+  escalationLevel: EscalationLevel;
+  coachNote?: string;
   summaryRationale: string;
   recommendedAction: string;
   disclaimer: string;
   createdAtUtc: string;
   reportedSignals: string[];
-  matchedRedFlags: string[];
+  triggeredFlagIds: string[];
 }

@@ -18,13 +18,13 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: Array.Empty<string>(),
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.None);
+        result.EscalationLevel.Should().Be(EscalationLevel.None);
         result.SummaryRationale.Should().Contain("No adverse signals reported");
         result.MatchedRedFlags.Should().BeEmpty();
     }
 
     [Fact]
-    public void Evaluate_WhenCardiovascularChestPainSignal_ReturnsEmergencyMedicalAttention()
+    public void Evaluate_WhenCardiovascularChestPainSignal_ReturnsUrgentMedicalAttention()
     {
         var signals = new List<string> { "Client reported crushing chest pressure and sudden shortness of breath during workout" };
 
@@ -32,13 +32,13 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.EmergencyMedicalAttention);
+        result.EscalationLevel.Should().Be(EscalationLevel.UrgentMedicalAttention);
         result.MatchedRedFlags.Should().Contain("PED Cardiovascular Emergency Symptoms");
         result.RecommendedAction.Should().Contain("IMMEDIATE EMERGENCY MEDICAL ATTENTION REQUIRED");
     }
 
     [Fact]
-    public void Evaluate_WhenCardiovascularSyncopeSignal_ReturnsEmergencyMedicalAttention()
+    public void Evaluate_WhenCardiovascularSyncopeSignal_ReturnsUrgentMedicalAttention()
     {
         var signals = new List<string> { "Severe heart racing and fainted after set" };
 
@@ -46,12 +46,12 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.EmergencyMedicalAttention);
+        result.EscalationLevel.Should().Be(EscalationLevel.UrgentMedicalAttention);
         result.MatchedRedFlags.Should().Contain("PED Cardiovascular Emergency Symptoms");
     }
 
     [Fact]
-    public void Evaluate_WhenHypertensiveCrisisSymptoms_ReturnsEmergencyMedicalAttention()
+    public void Evaluate_WhenHypertensiveCrisisSymptoms_ReturnsUrgentMedicalAttention()
     {
         var signals = new List<string> { "Severe acute occipital headache with blurred vision and sudden nosebleed" };
 
@@ -59,12 +59,12 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.EmergencyMedicalAttention);
+        result.EscalationLevel.Should().Be(EscalationLevel.UrgentMedicalAttention);
         result.MatchedRedFlags.Should().Contain("Hypertensive Crisis & Neurological Symptoms");
     }
 
     [Fact]
-    public void Evaluate_WhenHepaticJaundiceSymptoms_ReturnsUrgentMedicalReferral()
+    public void Evaluate_WhenHepaticJaundiceSymptoms_ReturnsHealthcareProfessionalReferral()
     {
         var signals = new List<string> { "Noticeable yellowing of sclera (yellow eyes), dark tea-colored urine, and right upper quadrant pain" };
 
@@ -72,13 +72,13 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.UrgentMedicalReferral);
+        result.EscalationLevel.Should().Be(EscalationLevel.HealthcareProfessionalReferral);
         result.MatchedRedFlags.Should().Contain("Hepatic Toxicity & Cholestatic Jaundice");
         result.RecommendedAction.Should().Contain("URGENT MEDICAL REFERRAL");
     }
 
     [Fact]
-    public void Evaluate_WhenPsychiatricEmergencySymptoms_ReturnsUrgentMedicalReferral()
+    public void Evaluate_WhenPsychiatricEmergencySymptoms_ReturnsHealthcareProfessionalReferral()
     {
         var signals = new List<string> { "Extreme uncontrollable rage, severe paranoia, and acute suicidal thoughts" };
 
@@ -86,13 +86,13 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.UrgentMedicalReferral);
+        result.EscalationLevel.Should().Be(EscalationLevel.HealthcareProfessionalReferral);
         result.MatchedRedFlags.Should().Contain("Acute Neuropsychiatric & Mood Disturbance");
         result.RecommendedAction.Should().Contain("URGENT PSYCHIATRIC / MEDICAL REFERRAL");
     }
 
     [Fact]
-    public void Evaluate_WhenEndocrineSuppressionSymptoms_ReturnsCautionCoachReview()
+    public void Evaluate_WhenEndocrineSuppressionSymptoms_ReturnsCoachAwareness()
     {
         var signals = new List<string> { "Testicular atrophy, profound fatigue, and severe libido loss after cessation" };
 
@@ -100,14 +100,14 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.CautionCoachReview);
+        result.EscalationLevel.Should().Be(EscalationLevel.CoachAwareness);
         result.MatchedRedFlags.Should().Contain("Severe Endocrine Axis Suppression");
     }
 
     [Fact]
-    public void Evaluate_HighestEscalationWins_EmergencyOverridesUrgentAndCaution()
+    public void Evaluate_HighestEscalationWins_UrgentOverridesReferralAndCaution()
     {
-        // Combined signals: Endocrine (Caution) + Jaundice (Urgent) + Chest Pain (Emergency)
+        // Combined signals: Endocrine (CoachAwareness) + Jaundice (HealthcareProfessionalReferral) + Chest Pain (UrgentMedicalAttention)
         var signals = new List<string>
         {
             "Testicular atrophy and low libido",
@@ -119,8 +119,8 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        // Emergency MUST WIN
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.EmergencyMedicalAttention);
+        // UrgentMedicalAttention MUST WIN
+        result.EscalationLevel.Should().Be(EscalationLevel.UrgentMedicalAttention);
         result.MatchedRedFlags.Should().Contain("PED Cardiovascular Emergency Symptoms");
         result.MatchedRedFlags.Should().Contain("Hepatic Toxicity & Cholestatic Jaundice");
         result.MatchedRedFlags.Should().Contain("Severe Endocrine Axis Suppression");
@@ -139,7 +139,7 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.UrgentMedicalReferral);
+        result.EscalationLevel.Should().Be(EscalationLevel.HealthcareProfessionalReferral);
     }
 
     [Fact]
@@ -148,17 +148,17 @@ public class SubstanceSafetyEvaluatorTests
         var supplement = new SupplementKnowledge(
             id: Guid.NewGuid(),
             name: "Caffeine Extreme",
-            supplementCategory: SupplementCategory.Performance,
-            evidenceLevel: EvidenceLevel.MetaAnalysis,
+            primaryClaimedBenefit: "High intensity energy",
+            evidenceStatus: SupplementEvidenceStatus.StrongEvidence,
+            effectMagnitude: EffectMagnitude.Moderate,
             description: "High dose stimulant",
-            evidenceSummary: "Ergogenic at controlled doses",
             uncertaintyStatement: "High sensitivity in naive users");
 
         supplement.AddSafetyFlag(new SubstanceSafetyFlag(
-            flagType: "High Dose Cardiovascular Precaution",
-            severity: SubstanceEscalationLevel.CautionCoachReview,
-            message: "Avoid combining with other stimulants or pre-workouts.",
-            evidenceBasis: "ISSN 2021"));
+            category: SafetyFlagCategory.HighDoseToxicity,
+            description: "High Dose Cardiovascular Precaution",
+            escalationLevel: EscalationLevel.CoachAwareness,
+            coachNote: "Avoid combining with other stimulants or pre-workouts."));
 
         var signals = new List<string> { "Mild jitters and elevated heart rate" };
 
@@ -167,7 +167,7 @@ public class SubstanceSafetyEvaluatorTests
             activeRules: _seedRules,
             substance: supplement);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.CautionCoachReview);
+        result.EscalationLevel.Should().Be(EscalationLevel.CoachAwareness);
         result.SummaryRationale.Should().Contain("High Dose Cardiovascular Precaution");
     }
 
@@ -180,6 +180,6 @@ public class SubstanceSafetyEvaluatorTests
             reportedSignals: signals,
             activeRules: _seedRules);
 
-        result.EscalationLevel.Should().Be(SubstanceEscalationLevel.None);
+        result.EscalationLevel.Should().Be(EscalationLevel.None);
     }
 }

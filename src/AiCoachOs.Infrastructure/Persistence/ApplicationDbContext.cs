@@ -478,8 +478,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task<AiCoachOs.Domain.Substances.PEDSafetyRecord?> FindPEDSafetyRecordByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await Set<AiCoachOs.Domain.Substances.PEDSafetyRecord>()
-            .Include(p => p.Risks)
-                .ThenInclude(r => r.KnowledgeClaim)
+            .Include(p => p.DocumentedRisks)
+                .ThenInclude(r => r.EvidenceClaim)
             .Include(p => p.PrimaryKnowledgeClaim)
                 .ThenInclude(c => c!.Sources)
                     .ThenInclude(cs => cs.Source)

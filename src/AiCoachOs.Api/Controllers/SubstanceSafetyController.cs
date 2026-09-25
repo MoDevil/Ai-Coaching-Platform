@@ -44,6 +44,7 @@ public class SubstanceSafetyController : ControllerBase
         return Ok(escalations);
     }
 
+    [HttpGet("red-flags")]
     [HttpGet("rules")]
     [ProducesResponseType(typeof(IReadOnlyList<PEDRedFlagRuleDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<PEDRedFlagRuleDto>>> GetActiveRules(

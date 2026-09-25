@@ -1,5 +1,6 @@
 using AiCoachOs.Application.Substances.Dtos;
 using AiCoachOs.Application.Substances.Interfaces;
+using AiCoachOs.Domain.Substances;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,9 +21,10 @@ public class PedSafetyController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<PEDSafetyRecordSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<PEDSafetyRecordSummaryDto>>> GetPEDSafetyRecords(
+        [FromQuery] PEDCategory? category = null,
         CancellationToken cancellationToken = default)
     {
-        var records = await _substanceService.GetPEDSafetyRecordsAsync(cancellationToken);
+        var records = await _substanceService.GetPEDSafetyRecordsAsync(category, cancellationToken);
         return Ok(records);
     }
 

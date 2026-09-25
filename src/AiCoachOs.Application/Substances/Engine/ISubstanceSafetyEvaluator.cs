@@ -12,7 +12,7 @@ public interface ISubstanceSafetyEvaluator
 
 public class SubstanceSafetyEvaluationResult
 {
-    public SubstanceEscalationLevel EscalationLevel { get; set; }
+    public EscalationLevel EscalationLevel { get; set; }
     public string SummaryRationale { get; set; } = string.Empty;
     public string RecommendedAction { get; set; } = string.Empty;
     public string Disclaimer { get; set; } = "MEDICAL DECISION SUPPORT DISCLAIMER: AI Coach OS does not provide medical diagnoses or treatment prescriptions. Any flagged severe or emergency symptoms require immediate referral to qualified medical professionals.";

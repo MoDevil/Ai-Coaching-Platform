@@ -4,16 +4,24 @@ namespace AiCoachOs.Domain.Substances;
 
 /// <summary>
 /// Represents structured, evidence-backed knowledge regarding dietary and performance supplements.
-/// Enforces mandatory uncertainty statements and evidence-level integration.
+/// Locked contract: PrimaryClaimedBenefit, EfficacyClaim, EvidenceStatus, EffectMagnitude, PopulationNote,
+/// UncertaintyStatement, TypicalDoseRangeMin/Max, DoseUnit, DoseSourceClaimId, TimingNote, SafetyFlags.
+/// Enforces mandatory non-empty uncertainty statement.
 /// </summary>
 public class SupplementKnowledge : SubstanceRecord
 {
-    public SupplementCategory SupplementCategory { get; private set; }
-    public EvidenceLevel EvidenceLevel { get; private set; }
+    public string PrimaryClaimedBenefit { get; private set; } = string.Empty;
+    public string? EfficacyClaim { get; private set; }
+    public SupplementEvidenceStatus EvidenceStatus { get; private set; }
+    public EffectMagnitude EffectMagnitude { get; private set; }
+    public string? PopulationNote { get; private set; }
     public string UncertaintyStatement { get; private set; } = string.Empty;
+    public decimal? TypicalDoseRangeMin { get; private set; }
+    public decimal? TypicalDoseRangeMax { get; private set; }
+    public string? DoseUnit { get; private set; }
+    public Guid? DoseSourceClaimId { get; private set; }
+    public string? TimingNote { get; private set; }
     public string? CommonForms { get; private set; }
-    public string? TypicalDoseRange { get; private set; }
-    public string? TimingRecommendation { get; private set; }
     public string? InteractionsAndNotes { get; private set; }
     public bool IsEgyptianMarketAvailable { get; private set; }
 
@@ -22,40 +30,62 @@ public class SupplementKnowledge : SubstanceRecord
     public SupplementKnowledge(
         Guid id,
         string name,
-        SupplementCategory supplementCategory,
-        EvidenceLevel evidenceLevel,
+        string primaryClaimedBenefit,
+        SupplementEvidenceStatus evidenceStatus,
+        EffectMagnitude effectMagnitude,
         string description,
-        string evidenceSummary,
         string uncertaintyStatement,
-        Guid? primaryKnowledgeClaimId = null,
+        string? efficacyClaim = null,
+        string? populationNote = null,
+        decimal? typicalDoseRangeMin = null,
+        decimal? typicalDoseRangeMax = null,
+        string? doseUnit = null,
+        Guid? doseSourceClaimId = null,
+        string? timingNote = null,
         string? commonForms = null,
-        string? typicalDoseRange = null,
-        string? timingRecommendation = null,
         string? interactionsAndNotes = null,
         bool isEgyptianMarketAvailable = true,
+        Guid? primaryKnowledgeClaimId = null,
+        bool isProvisional = false,
+        bool requiresClinicalReview = false,
+        ClaimStatus claimStatus = ClaimStatus.Active,
         DateTime? lastReviewedAtUtc = null,
+        DateTime? reviewDueAtUtc = null,
         string? reviewedBy = null,
-        bool isActive = true)
+        bool isActive = true,
+        IEnumerable<string>? commonAliases = null)
         : base(
             id: id,
             name: name,
-            category: SubstanceCategory.Supplement,
+            substanceCategory: SubstanceCategory.Supplement,
             description: description,
-            evidenceSummary: evidenceSummary,
-            primaryKnowledgeClaimId: primaryKnowledgeClaimId,
+            isProvisional: isProvisional,
+            requiresClinicalReview: requiresClinicalReview,
+            claimStatus: claimStatus,
             lastReviewedAtUtc: lastReviewedAtUtc,
+            reviewDueAtUtc: reviewDueAtUtc,
             reviewedBy: reviewedBy,
-            isActive: isActive)
+            isActive: isActive,
+            primaryKnowledgeClaimId: primaryKnowledgeClaimId,
+            commonAliases: commonAliases)
     {
+        if (string.IsNullOrWhiteSpace(primaryClaimedBenefit))
+            throw new ArgumentException("Primary claimed benefit cannot be empty.", nameof(primaryClaimedBenefit));
         if (string.IsNullOrWhiteSpace(uncertaintyStatement))
             throw new ArgumentException("Uncertainty statement is mandatory and cannot be empty for supplement knowledge.", nameof(uncertaintyStatement));
 
-        SupplementCategory = supplementCategory;
-        EvidenceLevel = evidenceLevel;
+        PrimaryClaimedBenefit = primaryClaimedBenefit.Trim();
+        EfficacyClaim = string.IsNullOrWhiteSpace(efficacyClaim) ? null : efficacyClaim.Trim();
+        EvidenceStatus = evidenceStatus;
+        EffectMagnitude = effectMagnitude;
+        PopulationNote = string.IsNullOrWhiteSpace(populationNote) ? null : populationNote.Trim();
         UncertaintyStatement = uncertaintyStatement.Trim();
+        TypicalDoseRangeMin = typicalDoseRangeMin;
+        TypicalDoseRangeMax = typicalDoseRangeMax;
+        DoseUnit = string.IsNullOrWhiteSpace(doseUnit) ? null : doseUnit.Trim();
+        DoseSourceClaimId = doseSourceClaimId;
+        TimingNote = string.IsNullOrWhiteSpace(timingNote) ? null : timingNote.Trim();
         CommonForms = string.IsNullOrWhiteSpace(commonForms) ? null : commonForms.Trim();
-        TypicalDoseRange = string.IsNullOrWhiteSpace(typicalDoseRange) ? null : typicalDoseRange.Trim();
-        TimingRecommendation = string.IsNullOrWhiteSpace(timingRecommendation) ? null : timingRecommendation.Trim();
         InteractionsAndNotes = string.IsNullOrWhiteSpace(interactionsAndNotes) ? null : interactionsAndNotes.Trim();
         IsEgyptianMarketAvailable = isEgyptianMarketAvailable;
     }

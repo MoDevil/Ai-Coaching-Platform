@@ -32,6 +32,7 @@
       <div class="sidebar-list">
         <h3>Available Supplements</h3>
         <div *ngIf="loadingSupplements" class="loading">Loading supplements...</div>
+        <div *ngIf="!loadingSupplements && supplements.length === 0" class="empty-hint">No verified supplements loaded yet.</div>
         <div class="list-group">
           <div *ngFor="let s of supplements" 
                class="list-item" 
@@ -39,10 +40,10 @@
                (click)="selectSupplement(s.id)">
             <div class="item-header">
               <span class="item-name">{{ s.name }}</span>
-              <span class="badge badge-info">{{ getEvidenceLevelLabel(s.evidenceLevel) }}</span>
+              <span class="badge badge-info">{{ getEvidenceStatusLabel(s.evidenceStatus) }}</span>
             </div>
             <div class="item-sub">
-              <span class="category-tag">{{ getSupplementCategoryName(s.supplementCategory) }}</span>
+              <span class="category-tag">{{ s.primaryClaimedBenefit }}</span>
               <span *ngIf="s.safetyFlagCount > 0" class="badge badge-warning">{{ s.safetyFlagCount }} Precautions</span>
             </div>
           </div>
@@ -55,8 +56,7 @@
             <div>
               <h2>{{ selectedSupplement.name }}</h2>
               <div class="meta-row">
-                <span class="badge badge-primary">{{ getSupplementCategoryName(selectedSupplement.supplementCategory) }}</span>
-                <span class="badge badge-info">{{ getEvidenceLevelLabel(selectedSupplement.evidenceLevel) }}</span>
+                <span class="badge badge-info">{{ getEvidenceStatusLabel(selectedSupplement.evidenceStatus) }}</span>
                 <span *ngIf="selectedSupplement.isEgyptianMarketAvailable" class="badge badge-success">Egyptian Market Available</span>
               </div>
             </div>
@@ -69,8 +69,7 @@
           <div *ngIf="selectedSupplement.safetyFlags.length > 0" class="section-box alert-box-warning">
             <h3>⚠️ Safety Precautions & Contraindications</h3>
             <div *ngFor="let flag of selectedSupplement.safetyFlags" class="flag-item">
-              <strong>{{ flag.flagType }}:</strong> {{ flag.message }}
-              <div class="evidence-micro">{{ flag.evidenceBasis }}</div>
+              <strong>{{ flag.description }}:</strong> {{ flag.coachNote }}
             </div>
           </div>
 
@@ -84,19 +83,21 @@
           <div class="section-box">
             <h3>Mechanistic Overview & Physiological Function</h3>
             <p>{{ selectedSupplement.description }}</p>
-            <h4>Efficacy Summary</h4>
-            <p>{{ selectedSupplement.evidenceSummary }}</p>
+            <h4>Primary Claimed Benefit</h4>
+            <p>{{ selectedSupplement.primaryClaimedBenefit }}</p>
+            <h4 *ngIf="selectedSupplement.efficacyClaim">Efficacy Summary</h4>
+            <p *ngIf="selectedSupplement.efficacyClaim">{{ selectedSupplement.efficacyClaim }}</p>
           </div>
 
           <!-- Dosing & Timing Guidelines -->
           <div class="section-box dosing-grid">
-            <div class="dosing-card" *ngIf="selectedSupplement.typicalDoseRange">
+            <div class="dosing-card" *ngIf="selectedSupplement.typicalDoseRangeMin">
               <strong>Evidence-Based Dose Range:</strong>
-              <div>{{ selectedSupplement.typicalDoseRange }}</div>
+              <div>{{ selectedSupplement.typicalDoseRangeMin }} - {{ selectedSupplement.typicalDoseRangeMax }} {{ selectedSupplement.doseUnit }}</div>
             </div>
-            <div class="dosing-card" *ngIf="selectedSupplement.timingRecommendation">
+            <div class="dosing-card" *ngIf="selectedSupplement.timingNote">
               <strong>Timing Recommendation:</strong>
-              <div>{{ selectedSupplement.timingRecommendation }}</div>
+              <div>{{ selectedSupplement.timingNote }}</div>
             </div>
             <div class="dosing-card" *ngIf="selectedSupplement.commonForms">
               <strong>Common Commercial Forms:</strong>
@@ -131,6 +132,7 @@
       <div class="sidebar-list">
         <h3>Endocrine Pathways</h3>
         <div *ngIf="loadingHormones" class="loading">Loading hormones...</div>
+        <div *ngIf="!loadingHormones && hormones.length === 0" class="empty-hint">No verified hormones loaded yet.</div>
         <div class="list-group">
           <div *ngFor="let h of hormones" 
                class="list-item" 
@@ -140,7 +142,7 @@
               <span class="item-name">{{ h.name }}</span>
             </div>
             <div class="item-sub">
-              <span class="category-tag">{{ getHormoneAxisName(h.hormoneAxis) }} Axis</span>
+              <span class="category-tag">{{ getHormoneCategoryName(h.hormoneCategory) }}</span>
             </div>
           </div>
         </div>
@@ -152,7 +154,7 @@
             <div>
               <h2>{{ selectedHormone.name }}</h2>
               <div class="meta-row">
-                <span class="badge badge-primary">{{ getHormoneAxisName(selectedHormone.hormoneAxis) }} Axis</span>
+                <span class="badge badge-primary">{{ getHormoneCategoryName(selectedHormone.hormoneCategory) }}</span>
               </div>
             </div>
             <div *ngIf="selectedHormone.lastReviewedAtUtc" class="review-date">
@@ -175,13 +177,7 @@
           <!-- Training Impact -->
           <div class="section-box">
             <h3>Impact of Resistance Training & Stress Adaptation</h3>
-            <p>{{ selectedHormone.trainingImpactSummary }}</p>
-          </div>
-
-          <!-- Evidence Summary -->
-          <div class="section-box">
-            <h3>Scientific Evidence Summary</h3>
-            <p>{{ selectedHormone.evidenceSummary }}</p>
+            <p>{{ selectedHormone.trainingRelevance }}</p>
           </div>
 
           <!-- Biomarker Notes -->
@@ -218,6 +214,7 @@
       <div class="sidebar-list">
         <h3>PED Risk Classes</h3>
         <div *ngIf="loadingPEDs" class="loading">Loading PED safety profiles...</div>
+        <div *ngIf="!loadingPEDs && pedRecords.length === 0" class="empty-hint">No verified PED profiles loaded yet.</div>
         <div class="list-group">
           <div *ngFor="let p of pedRecords" 
                class="list-item" 
@@ -251,29 +248,31 @@
             <p>{{ selectedPED.mechanismSummary }}</p>
           </div>
 
-          <!-- Systemic Health Risks Summary -->
-          <div class="section-box alert-box-danger">
-            <h3>⚠️ Systemic Morbidity & Health Risks</h3>
-            <p>{{ selectedPED.healthRisksSummary }}</p>
-          </div>
-
           <!-- Organ-System Specific Risks -->
           <div class="section-box">
             <h3>Organ-System Health Complications</h3>
             <div class="risks-grid">
               <div *ngFor="let risk of selectedPED.risks" class="risk-card">
                 <div class="risk-card-header">
-                  <span class="organ-title">{{ getOrganSystemName(risk.organSystem) }}</span>
+                  <span class="organ-title">{{ getRiskCategoryName(risk.riskCategory) }}</span>
                   <span class="badge" [class.badge-danger]="risk.severity >= 3" [class.badge-warning]="risk.severity < 3">
                     Severity: {{ getRiskSeverityName(risk.severity) }}
                   </span>
                 </div>
-                <p class="risk-desc">{{ risk.riskDescription }}</p>
+                <p class="risk-desc">{{ risk.description }}</p>
                 <div *ngIf="risk.reversibilityNotes" class="reversibility-note">
                   <strong>Reversibility:</strong> {{ risk.reversibilityNotes }}
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Monitoring Concepts -->
+          <div *ngIf="selectedPED.monitoringConcepts.length > 0" class="section-box">
+            <h3>Key Monitoring Concepts</h3>
+            <ul>
+              <li *ngFor="let m of selectedPED.monitoringConcepts">{{ m }}</li>
+            </ul>
           </div>
 
           <!-- M3 Evidence Citation -->
@@ -319,8 +318,8 @@
         </div>
 
         <div class="form-group">
-          <label for="contextNotes">Coach Context / Observation Notes</label>
-          <input id="contextNotes" type="text" class="form-control" [(ngModel)]="contextNotes"
+          <label for="coachNote">Coach Context / Observation Notes</label>
+          <input id="coachNote" type="text" class="form-control" [(ngModel)]="coachNote"
                  placeholder="e.g. Client reported symptoms starting after second heavy set" />
         </div>
 
@@ -382,8 +381,8 @@
                 </span>
               </td>
               <td>
-                <span *ngIf="esc.matchedRedFlags.length === 0">-</span>
-                <span *ngFor="let f of esc.matchedRedFlags" class="badge badge-warning mr-1">{{ f }}</span>
+                <span *ngIf="esc.triggeredFlagIds.length === 0">-</span>
+                <span *ngFor="let f of esc.triggeredFlagIds" class="badge badge-warning mr-1">{{ f }}</span>
               </td>
               <td class="rationale-cell">{{ esc.summaryRationale }}</td>
             </tr>

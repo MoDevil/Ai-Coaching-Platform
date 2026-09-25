@@ -1,31 +1,41 @@
+using System.Text.Json.Serialization;
+
 namespace AiCoachOs.Domain.Substances;
 
 /// <summary>
-/// Represents a safety flag, contraindication, or warning associated with a substance.
+/// Represents a structured safety flag, contraindication, or precaution associated with a substance.
+/// Locked contract: Category, Description, AffectedPopulation, SourceClaimId, EscalationLevel, CoachNote.
 /// </summary>
 public class SubstanceSafetyFlag
 {
-    public string FlagType { get; private set; } = string.Empty;
-    public SubstanceEscalationLevel Severity { get; private set; }
-    public string Message { get; private set; } = string.Empty;
-    public string EvidenceBasis { get; private set; } = string.Empty;
+    public SafetyFlagCategory Category { get; private set; }
+    public string Description { get; private set; } = string.Empty;
+    public string? AffectedPopulation { get; private set; }
+    public Guid? SourceClaimId { get; private set; }
+    public EscalationLevel EscalationLevel { get; private set; }
+    public string CoachNote { get; private set; } = string.Empty;
 
     private SubstanceSafetyFlag() { } // EF Core
 
+    [JsonConstructor]
     public SubstanceSafetyFlag(
-        string flagType,
-        SubstanceEscalationLevel severity,
-        string message,
-        string evidenceBasis)
+        SafetyFlagCategory category,
+        string description,
+        EscalationLevel escalationLevel,
+        string coachNote,
+        string? affectedPopulation = null,
+        Guid? sourceClaimId = null)
     {
-        if (string.IsNullOrWhiteSpace(flagType))
-            throw new ArgumentException("Flag type cannot be empty.", nameof(flagType));
-        if (string.IsNullOrWhiteSpace(message))
-            throw new ArgumentException("Safety message cannot be empty.", nameof(message));
+        if (string.IsNullOrWhiteSpace(description))
+            throw new ArgumentException("Safety flag description cannot be empty.", nameof(description));
+        if (string.IsNullOrWhiteSpace(coachNote))
+            throw new ArgumentException("Coach note cannot be empty.", nameof(coachNote));
 
-        FlagType = flagType.Trim();
-        Severity = severity;
-        Message = message.Trim();
-        EvidenceBasis = string.IsNullOrWhiteSpace(evidenceBasis) ? "Standard pharmacological and sports science safety evidence." : evidenceBasis.Trim();
+        Category = category;
+        Description = description.Trim();
+        EscalationLevel = escalationLevel;
+        CoachNote = coachNote.Trim();
+        AffectedPopulation = string.IsNullOrWhiteSpace(affectedPopulation) ? null : affectedPopulation.Trim();
+        SourceClaimId = sourceClaimId;
     }
 }

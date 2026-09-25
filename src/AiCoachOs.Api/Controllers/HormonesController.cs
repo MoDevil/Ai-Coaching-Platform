@@ -1,5 +1,6 @@
 using AiCoachOs.Application.Substances.Dtos;
 using AiCoachOs.Application.Substances.Interfaces;
+using AiCoachOs.Domain.Substances;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,9 +21,11 @@ public class HormonesController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<HormoneKnowledgeSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<HormoneKnowledgeSummaryDto>>> GetHormones(
+        [FromQuery] HormoneCategory? category = null,
+        [FromQuery] string? name = null,
         CancellationToken cancellationToken = default)
     {
-        var hormones = await _substanceService.GetHormonesAsync(cancellationToken);
+        var hormones = await _substanceService.GetHormonesAsync(category, name, cancellationToken);
         return Ok(hormones);
     }
 

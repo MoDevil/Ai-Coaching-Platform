@@ -7,21 +7,41 @@ public enum SubstanceCategory
     PED = 3
 }
 
-public enum SupplementCategory
+public enum SupplementEvidenceStatus
 {
-    Performance = 1,
-    HealthAndWellness = 2,
-    Recovery = 3,
-    BodyComposition = 4
+    StrongEvidence = 1,
+    ModerateEvidence = 2,
+    Preliminary = 3,
+    InsufficientEvidence = 4,
+    Disproven = 5
 }
 
-public enum HormoneAxis
+public enum EffectMagnitude
 {
-    HPTA = 1,
-    Thyroid = 2,
-    Adrenal = 3,
-    GrowthHormone = 4,
-    InsulinGlucose = 5
+    None = 0,
+    Small = 1,
+    Moderate = 2,
+    Large = 3,
+    Unclear = 4
+}
+
+public enum SafetyFlagCategory
+{
+    Contraindication = 1,
+    AdverseInteraction = 2,
+    HighDoseToxicity = 3,
+    SpecialPopulationPrecaution = 4,
+    OrganStressPrecaution = 5
+}
+
+public enum HormoneCategory
+{
+    Androgen = 1,
+    Glucocorticoid = 2,
+    Thyroid = 3,
+    PeptideGrowth = 4,
+    MetabolicEnergy = 5,
+    EstrogenProgestin = 6
 }
 
 public enum PEDCategory
@@ -37,7 +57,7 @@ public enum PEDCategory
     Other = 9
 }
 
-public enum OrganSystem
+public enum RiskCategory
 {
     Cardiovascular = 1,
     Hepatic = 2,
@@ -58,10 +78,10 @@ public enum PEDRiskSeverity
     Critical = 4
 }
 
-public enum SubstanceEscalationLevel
+public enum EscalationLevel
 {
     None = 0,
-    CautionCoachReview = 1,
-    UrgentMedicalReferral = 2,
-    EmergencyMedicalAttention = 3
+    CoachAwareness = 1,
+    HealthcareProfessionalReferral = 2,
+    UrgentMedicalAttention = 3
 }
