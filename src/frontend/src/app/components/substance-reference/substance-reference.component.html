@@ -1,0 +1,395 @@
+<div class="substances-container">
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Substances, Endocrine & Safety Awareness</h1>
+      <p class="subtitle">Evidence-based clinical reference and deterministic harm-reduction screening for coaches</p>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-nav">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'supplements'" (click)="setTab('supplements')">
+      Dietary Supplements
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'hormones'" (click)="setTab('hormones')">
+      Hormone & Endocrine
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'pedSafety'" (click)="setTab('pedSafety')">
+      PED Safety & Harm Reduction
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'screener'" (click)="setTab('screener')">
+      Safety Screener & Triage
+    </button>
+  </div>
+
+  <!-- 1. Supplements Tab -->
+  <div *ngIf="activeTab === 'supplements'" class="tab-content">
+    <div class="layout-grid">
+      <div class="sidebar-list">
+        <h3>Available Supplements</h3>
+        <div *ngIf="loadingSupplements" class="loading">Loading supplements...</div>
+        <div class="list-group">
+          <div *ngFor="let s of supplements" 
+               class="list-item" 
+               [class.selected]="selectedSupplement?.id === s.id"
+               (click)="selectSupplement(s.id)">
+            <div class="item-header">
+              <span class="item-name">{{ s.name }}</span>
+              <span class="badge badge-info">{{ getEvidenceLevelLabel(s.evidenceLevel) }}</span>
+            </div>
+            <div class="item-sub">
+              <span class="category-tag">{{ getSupplementCategoryName(s.supplementCategory) }}</span>
+              <span *ngIf="s.safetyFlagCount > 0" class="badge badge-warning">{{ s.safetyFlagCount }} Precautions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-detail" *ngIf="selectedSupplement">
+        <div class="card detail-card">
+          <div class="detail-header">
+            <div>
+              <h2>{{ selectedSupplement.name }}</h2>
+              <div class="meta-row">
+                <span class="badge badge-primary">{{ getSupplementCategoryName(selectedSupplement.supplementCategory) }}</span>
+                <span class="badge badge-info">{{ getEvidenceLevelLabel(selectedSupplement.evidenceLevel) }}</span>
+                <span *ngIf="selectedSupplement.isEgyptianMarketAvailable" class="badge badge-success">Egyptian Market Available</span>
+              </div>
+            </div>
+            <div *ngIf="selectedSupplement.lastReviewedAtUtc" class="review-date">
+              Reviewed: {{ selectedSupplement.lastReviewedAtUtc | date:'mediumDate' }} by {{ selectedSupplement.reviewedBy }}
+            </div>
+          </div>
+
+          <!-- Mandatory Safety Flags (Displayed Before Efficacy) -->
+          <div *ngIf="selectedSupplement.safetyFlags.length > 0" class="section-box alert-box-warning">
+            <h3>⚠️ Safety Precautions & Contraindications</h3>
+            <div *ngFor="let flag of selectedSupplement.safetyFlags" class="flag-item">
+              <strong>{{ flag.flagType }}:</strong> {{ flag.message }}
+              <div class="evidence-micro">{{ flag.evidenceBasis }}</div>
+            </div>
+          </div>
+
+          <!-- Mandatory Scientific Uncertainty Statement -->
+          <div class="section-box uncertainty-box">
+            <h3>⚖️ Scientific Uncertainty & Boundary Statement</h3>
+            <p>{{ selectedSupplement.uncertaintyStatement }}</p>
+          </div>
+
+          <!-- Core Description & Evidence -->
+          <div class="section-box">
+            <h3>Mechanistic Overview & Physiological Function</h3>
+            <p>{{ selectedSupplement.description }}</p>
+            <h4>Efficacy Summary</h4>
+            <p>{{ selectedSupplement.evidenceSummary }}</p>
+          </div>
+
+          <!-- Dosing & Timing Guidelines -->
+          <div class="section-box dosing-grid">
+            <div class="dosing-card" *ngIf="selectedSupplement.typicalDoseRange">
+              <strong>Evidence-Based Dose Range:</strong>
+              <div>{{ selectedSupplement.typicalDoseRange }}</div>
+            </div>
+            <div class="dosing-card" *ngIf="selectedSupplement.timingRecommendation">
+              <strong>Timing Recommendation:</strong>
+              <div>{{ selectedSupplement.timingRecommendation }}</div>
+            </div>
+            <div class="dosing-card" *ngIf="selectedSupplement.commonForms">
+              <strong>Common Commercial Forms:</strong>
+              <div>{{ selectedSupplement.commonForms }}</div>
+            </div>
+          </div>
+
+          <div *ngIf="selectedSupplement.interactionsAndNotes" class="section-box">
+            <h3>Notes & Interactions</h3>
+            <p>{{ selectedSupplement.interactionsAndNotes }}</p>
+          </div>
+
+          <!-- M3 Evidence Citation -->
+          <div *ngIf="selectedSupplement.evidenceClaim" class="section-box evidence-box">
+            <h3>📚 M3 Scientific Evidence Traceability</h3>
+            <p><strong>Claim:</strong> {{ selectedSupplement.evidenceClaim.claimText }}</p>
+            <div class="citations-list">
+              <strong>Citations:</strong>
+              <ul>
+                <li *ngFor="let cite of selectedSupplement.evidenceClaim.sourceCitations">{{ cite }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Hormones Tab -->
+  <div *ngIf="activeTab === 'hormones'" class="tab-content">
+    <div class="layout-grid">
+      <div class="sidebar-list">
+        <h3>Endocrine Pathways</h3>
+        <div *ngIf="loadingHormones" class="loading">Loading hormones...</div>
+        <div class="list-group">
+          <div *ngFor="let h of hormones" 
+               class="list-item" 
+               [class.selected]="selectedHormone?.id === h.id"
+               (click)="selectHormone(h.id)">
+            <div class="item-header">
+              <span class="item-name">{{ h.name }}</span>
+            </div>
+            <div class="item-sub">
+              <span class="category-tag">{{ getHormoneAxisName(h.hormoneAxis) }} Axis</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-detail" *ngIf="selectedHormone">
+        <div class="card detail-card">
+          <div class="detail-header">
+            <div>
+              <h2>{{ selectedHormone.name }}</h2>
+              <div class="meta-row">
+                <span class="badge badge-primary">{{ getHormoneAxisName(selectedHormone.hormoneAxis) }} Axis</span>
+              </div>
+            </div>
+            <div *ngIf="selectedHormone.lastReviewedAtUtc" class="review-date">
+              Reviewed: {{ selectedHormone.lastReviewedAtUtc | date:'mediumDate' }} by {{ selectedHormone.reviewedBy }}
+            </div>
+          </div>
+
+          <!-- Mandatory Uncertainty Statement -->
+          <div class="section-box uncertainty-box">
+            <h3>⚖️ Endocrine Uncertainty & Variability Statement</h3>
+            <p>{{ selectedHormone.uncertaintyStatement }}</p>
+          </div>
+
+          <!-- Physiological Role -->
+          <div class="section-box">
+            <h3>Physiological Role in Human Physiology</h3>
+            <p>{{ selectedHormone.physiologicalRole }}</p>
+          </div>
+
+          <!-- Training Impact -->
+          <div class="section-box">
+            <h3>Impact of Resistance Training & Stress Adaptation</h3>
+            <p>{{ selectedHormone.trainingImpactSummary }}</p>
+          </div>
+
+          <!-- Evidence Summary -->
+          <div class="section-box">
+            <h3>Scientific Evidence Summary</h3>
+            <p>{{ selectedHormone.evidenceSummary }}</p>
+          </div>
+
+          <!-- Biomarker Notes -->
+          <div *ngIf="selectedHormone.biomarkerReferenceNotes" class="section-box biomarker-box">
+            <h3>🔬 Biomarker & Laboratory Reference Notes</h3>
+            <p>{{ selectedHormone.biomarkerReferenceNotes }}</p>
+          </div>
+
+          <!-- M3 Evidence Citation -->
+          <div *ngIf="selectedHormone.evidenceClaim" class="section-box evidence-box">
+            <h3>📚 M3 Scientific Evidence Traceability</h3>
+            <p><strong>Claim:</strong> {{ selectedHormone.evidenceClaim.claimText }}</p>
+            <div class="citations-list">
+              <strong>Citations:</strong>
+              <ul>
+                <li *ngFor="let cite of selectedHormone.evidenceClaim.sourceCitations">{{ cite }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. PED Safety & Harm Reduction Tab -->
+  <div *ngIf="activeTab === 'pedSafety'" class="tab-content">
+    <!-- MANDATORY PED DISCLAIMER -->
+    <div class="ped-disclaimer-banner">
+      <strong>🚨 SAFETY & HARM REDUCTION POLICY:</strong>
+      <p>AI Coach OS strictly prohibits prescribing, cycle planning, dosing, sourcing, or facilitating the use of Performance Enhancing Drugs (PEDs). The reference data below is strictly educational to equip coaches to identify adverse organ-system risks, counsel harm reduction, and execute immediate medical triage.</p>
+    </div>
+
+    <div class="layout-grid">
+      <div class="sidebar-list">
+        <h3>PED Risk Classes</h3>
+        <div *ngIf="loadingPEDs" class="loading">Loading PED safety profiles...</div>
+        <div class="list-group">
+          <div *ngFor="let p of pedRecords" 
+               class="list-item" 
+               [class.selected]="selectedPED?.id === p.id"
+               (click)="selectPED(p.id)">
+            <div class="item-header">
+              <span class="item-name">{{ p.name }}</span>
+            </div>
+            <div class="item-sub">
+              <span class="category-tag">{{ getPEDCategoryName(p.pedCategory) }}</span>
+              <span class="badge badge-danger">{{ p.riskCount }} Organ Risks</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-detail" *ngIf="selectedPED">
+        <div class="card detail-card">
+          <div class="detail-header">
+            <div>
+              <h2>{{ selectedPED.name }}</h2>
+              <div class="meta-row">
+                <span class="badge badge-danger">{{ getPEDCategoryName(selectedPED.pedCategory) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mechanism Overview -->
+          <div class="section-box">
+            <h3>Biological Mechanism Overview</h3>
+            <p>{{ selectedPED.mechanismSummary }}</p>
+          </div>
+
+          <!-- Systemic Health Risks Summary -->
+          <div class="section-box alert-box-danger">
+            <h3>⚠️ Systemic Morbidity & Health Risks</h3>
+            <p>{{ selectedPED.healthRisksSummary }}</p>
+          </div>
+
+          <!-- Organ-System Specific Risks -->
+          <div class="section-box">
+            <h3>Organ-System Health Complications</h3>
+            <div class="risks-grid">
+              <div *ngFor="let risk of selectedPED.risks" class="risk-card">
+                <div class="risk-card-header">
+                  <span class="organ-title">{{ getOrganSystemName(risk.organSystem) }}</span>
+                  <span class="badge" [class.badge-danger]="risk.severity >= 3" [class.badge-warning]="risk.severity < 3">
+                    Severity: {{ getRiskSeverityName(risk.severity) }}
+                  </span>
+                </div>
+                <p class="risk-desc">{{ risk.riskDescription }}</p>
+                <div *ngIf="risk.reversibilityNotes" class="reversibility-note">
+                  <strong>Reversibility:</strong> {{ risk.reversibilityNotes }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- M3 Evidence Citation -->
+          <div *ngIf="selectedPED.evidenceClaim" class="section-box evidence-box">
+            <h3>📚 Scientific Evidence Citations</h3>
+            <p><strong>Evidence Basis:</strong> {{ selectedPED.evidenceClaim.claimText }}</p>
+            <div class="citations-list">
+              <ul>
+                <li *ngFor="let cite of selectedPED.evidenceClaim.sourceCitations">{{ cite }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Safety Screener & Triage Tab -->
+  <div *ngIf="activeTab === 'screener'" class="tab-content">
+    <div class="screener-grid">
+      <div class="card screener-input-card">
+        <h2>Substance Safety & Adverse Signal Triage</h2>
+        <p class="section-desc">Evaluate reported client symptoms, adverse reactions, or red flags against deterministic clinical safety rules.</p>
+
+        <div class="form-group">
+          <label for="substanceSelect">Related Substance (Optional)</label>
+          <select id="substanceSelect" class="form-control" [(ngModel)]="selectedSubstanceId">
+            <option value="">-- General / Unknown Substance --</option>
+            <optgroup label="Dietary Supplements">
+              <option *ngFor="let s of supplements" [value]="s.id">{{ s.name }}</option>
+            </optgroup>
+            <optgroup label="PED Profiles">
+              <option *ngFor="let p of pedRecords" [value]="p.id">{{ p.name }}</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="signalsText">Reported Symptoms / Signals (One per line) *</label>
+          <textarea id="signalsText" class="form-control" rows="4" [(ngModel)]="signalsInput"
+                    placeholder="e.g.&#10;Chest pressure during training&#10;Yellow eyes and dark urine&#10;Severe acute headache and blurred vision"></textarea>
+          <small class="form-hint">Enter specific physiological symptoms (e.g. chest pain, shortness of breath, jaundice, severe headache, palpitations).</small>
+        </div>
+
+        <div class="form-group">
+          <label for="contextNotes">Coach Context / Observation Notes</label>
+          <input id="contextNotes" type="text" class="form-control" [(ngModel)]="contextNotes"
+                 placeholder="e.g. Client reported symptoms starting after second heavy set" />
+        </div>
+
+        <button type="button" class="btn btn-primary" [disabled]="screeningInProgress" (click)="runScreening()">
+          {{ screeningInProgress ? 'Evaluating Safety Rules...' : 'Run Deterministic Safety Evaluation' }}
+        </button>
+      </div>
+
+      <div class="card screener-result-card" *ngIf="evaluationResult">
+        <h2>Evaluation Result & Recommended Action</h2>
+        <div class="escalation-banner" [ngClass]="getEscalationBadgeClass(evaluationResult.escalationLevel)">
+          <div class="level-title">{{ getEscalationLabel(evaluationResult.escalationLevel) }}</div>
+        </div>
+
+        <div class="result-section">
+          <h3>Summary Rationale:</h3>
+          <p>{{ evaluationResult.summaryRationale }}</p>
+        </div>
+
+        <div class="result-section action-box">
+          <h3>Required Protocol Action:</h3>
+          <p>{{ evaluationResult.recommendedAction }}</p>
+        </div>
+
+        <div *ngIf="evaluationResult.matchedRedFlags.length > 0" class="result-section">
+          <h3>Matched Clinical Red-Flag Rules:</h3>
+          <ul>
+            <li *ngFor="let flag of evaluationResult.matchedRedFlags">{{ flag }}</li>
+          </ul>
+        </div>
+
+        <div class="disclaimer-micro">
+          {{ evaluationResult.disclaimer }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Coach Escalation History -->
+    <div class="card history-card" *ngIf="escalations.length > 0">
+      <h2>Recent Coach Safety Triage Logs (Isolated to Your Account)</h2>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Substance</th>
+              <th>Escalation Level</th>
+              <th>Matched Red Flags</th>
+              <th>Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let esc of escalations">
+              <td>{{ esc.createdAtUtc | date:'short' }}</td>
+              <td>{{ esc.substanceName || 'General / None' }}</td>
+              <td>
+                <span class="badge" [ngClass]="getEscalationBadgeClass(esc.escalationLevel)">
+                  {{ getEscalationLabel(esc.escalationLevel) }}
+                </span>
+              </td>
+              <td>
+                <span *ngIf="esc.matchedRedFlags.length === 0">-</span>
+                <span *ngFor="let f of esc.matchedRedFlags" class="badge badge-warning mr-1">{{ f }}</span>
+              </td>
+              <td class="rationale-cell">{{ esc.summaryRationale }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

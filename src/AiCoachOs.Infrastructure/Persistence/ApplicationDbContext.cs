@@ -69,6 +69,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<AiCoachOs.Domain.Gyms.GymProfile> GymProfilesDbSet => Set<AiCoachOs.Domain.Gyms.GymProfile>();
 
+    public DbSet<AiCoachOs.Domain.Substances.SubstanceRecord> SubstancesDbSet => Set<AiCoachOs.Domain.Substances.SubstanceRecord>();
+    public DbSet<AiCoachOs.Domain.Substances.PEDRiskRecord> PEDRiskRecordsDbSet => Set<AiCoachOs.Domain.Substances.PEDRiskRecord>();
+    public DbSet<AiCoachOs.Domain.Substances.PEDRedFlagRule> PEDRedFlagRulesDbSet => Set<AiCoachOs.Domain.Substances.PEDRedFlagRule>();
+    public DbSet<AiCoachOs.Domain.Substances.SubstanceEscalationRecord> SubstanceEscalationRecordsDbSet => Set<AiCoachOs.Domain.Substances.SubstanceEscalationRecord>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
@@ -119,6 +124,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<AiCoachOs.Domain.Nutrition.EgyptianFood> IApplicationDbContext.EgyptianFoods => EgyptianFoodsDbSet.AsNoTracking();
 
     IQueryable<AiCoachOs.Domain.Gyms.GymProfile> IApplicationDbContext.GymProfiles => GymProfilesDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Substances.SubstanceRecord> IApplicationDbContext.Substances => SubstancesDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Substances.SupplementKnowledge> IApplicationDbContext.Supplements => Set<AiCoachOs.Domain.Substances.SupplementKnowledge>().AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Substances.HormoneKnowledge> IApplicationDbContext.Hormones => Set<AiCoachOs.Domain.Substances.HormoneKnowledge>().AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Substances.PEDSafetyRecord> IApplicationDbContext.PEDSafetyRecords => Set<AiCoachOs.Domain.Substances.PEDSafetyRecord>().AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Substances.PEDRiskRecord> IApplicationDbContext.PEDRiskRecords => PEDRiskRecordsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Substances.PEDRedFlagRule> IApplicationDbContext.PEDRedFlagRules => PEDRedFlagRulesDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Substances.SubstanceEscalationRecord> IApplicationDbContext.SubstanceEscalationRecords => SubstanceEscalationRecordsDbSet.AsNoTracking();
 
     public async Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default)
     {
@@ -427,6 +440,57 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task<AiCoachOs.Domain.Gyms.GymProfile?> FindGymProfileByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await GymProfilesDbSet.FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
+    }
+
+    public async Task AddSubstanceRecordAsync(AiCoachOs.Domain.Substances.SubstanceRecord substance, CancellationToken cancellationToken = default)
+    {
+        await SubstancesDbSet.AddAsync(substance, cancellationToken);
+    }
+
+    public async Task AddPEDRedFlagRuleAsync(AiCoachOs.Domain.Substances.PEDRedFlagRule rule, CancellationToken cancellationToken = default)
+    {
+        await PEDRedFlagRulesDbSet.AddAsync(rule, cancellationToken);
+    }
+
+    public async Task AddSubstanceEscalationRecordAsync(AiCoachOs.Domain.Substances.SubstanceEscalationRecord record, CancellationToken cancellationToken = default)
+    {
+        await SubstanceEscalationRecordsDbSet.AddAsync(record, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Substances.SupplementKnowledge?> FindSupplementByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await Set<AiCoachOs.Domain.Substances.SupplementKnowledge>()
+            .Include(s => s.PrimaryKnowledgeClaim)
+                .ThenInclude(c => c!.Sources)
+                    .ThenInclude(cs => cs.Source)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Substances.HormoneKnowledge?> FindHormoneByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await Set<AiCoachOs.Domain.Substances.HormoneKnowledge>()
+            .Include(h => h.PrimaryKnowledgeClaim)
+                .ThenInclude(c => c!.Sources)
+                    .ThenInclude(cs => cs.Source)
+            .FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Substances.PEDSafetyRecord?> FindPEDSafetyRecordByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await Set<AiCoachOs.Domain.Substances.PEDSafetyRecord>()
+            .Include(p => p.Risks)
+                .ThenInclude(r => r.KnowledgeClaim)
+            .Include(p => p.PrimaryKnowledgeClaim)
+                .ThenInclude(c => c!.Sources)
+                    .ThenInclude(cs => cs.Source)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Substances.SubstanceRecord?> FindSubstanceByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await SubstancesDbSet
+            .Include(s => s.PrimaryKnowledgeClaim)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

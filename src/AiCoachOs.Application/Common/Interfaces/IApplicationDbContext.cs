@@ -58,6 +58,14 @@ public interface IApplicationDbContext
 
     IQueryable<AiCoachOs.Domain.Gyms.GymProfile> GymProfiles { get; }
 
+    IQueryable<AiCoachOs.Domain.Substances.SubstanceRecord> Substances { get; }
+    IQueryable<AiCoachOs.Domain.Substances.SupplementKnowledge> Supplements { get; }
+    IQueryable<AiCoachOs.Domain.Substances.HormoneKnowledge> Hormones { get; }
+    IQueryable<AiCoachOs.Domain.Substances.PEDSafetyRecord> PEDSafetyRecords { get; }
+    IQueryable<AiCoachOs.Domain.Substances.PEDRiskRecord> PEDRiskRecords { get; }
+    IQueryable<AiCoachOs.Domain.Substances.PEDRedFlagRule> PEDRedFlagRules { get; }
+    IQueryable<AiCoachOs.Domain.Substances.SubstanceEscalationRecord> SubstanceEscalationRecords { get; }
+
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
     Task AddConsentRecordAsync(ConsentRecord consentRecord, CancellationToken cancellationToken = default);
@@ -82,6 +90,10 @@ public interface IApplicationDbContext
     Task AddGymProfileAsync(AiCoachOs.Domain.Gyms.GymProfile gym, CancellationToken cancellationToken = default);
     void RemoveGymProfile(AiCoachOs.Domain.Gyms.GymProfile gym);
 
+    Task AddSubstanceRecordAsync(AiCoachOs.Domain.Substances.SubstanceRecord substance, CancellationToken cancellationToken = default);
+    Task AddPEDRedFlagRuleAsync(AiCoachOs.Domain.Substances.PEDRedFlagRule rule, CancellationToken cancellationToken = default);
+    Task AddSubstanceEscalationRecordAsync(AiCoachOs.Domain.Substances.SubstanceEscalationRecord record, CancellationToken cancellationToken = default);
+
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
     Task<Client?> FindClientByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -103,6 +115,11 @@ public interface IApplicationDbContext
     Task<AiCoachOs.Domain.Nutrition.NutritionCalibrationRecord?> FindNutritionCalibrationRecordByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Nutrition.EgyptianFood?> FindEgyptianFoodByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Gyms.GymProfile?> FindGymProfileByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<AiCoachOs.Domain.Substances.SupplementKnowledge?> FindSupplementByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Substances.HormoneKnowledge?> FindHormoneByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Substances.PEDSafetyRecord?> FindPEDSafetyRecordByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Substances.SubstanceRecord?> FindSubstanceByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

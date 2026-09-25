@@ -118,6 +118,10 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Gyms.Interfaces.IGymService, GymService>();
         services.AddScoped<AiCoachOs.Application.Nutrition.Engine.IFoodSuggestionEngine, AiCoachOs.Application.Nutrition.Engine.FoodSuggestionEngine>();
 
+        // M12 Substances & Safety Awareness Services
+        services.AddScoped<AiCoachOs.Application.Substances.Engine.ISubstanceSafetyEvaluator, AiCoachOs.Application.Substances.Engine.SubstanceSafetyEvaluator>();
+        services.AddScoped<AiCoachOs.Application.Substances.Interfaces.ISubstanceService, AiCoachOs.Infrastructure.Services.SubstanceService>();
+
         return services;
     }
 }

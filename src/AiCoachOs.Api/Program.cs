@@ -83,11 +83,12 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed baseline exercise library if needed
+// Seed baseline exercise library and substance safety knowledge
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AiCoachOs.Infrastructure.Persistence.ApplicationDbContext>();
     await AiCoachOs.Infrastructure.Persistence.ExerciseLibrarySeeder.SeedAsync(dbContext);
+    await AiCoachOs.Infrastructure.Persistence.SubstanceSeeder.SeedAsync(dbContext);
 }
 
 app.Run();

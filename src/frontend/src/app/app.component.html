@@ -11,6 +11,7 @@
       <ng-container *ngIf="authService.currentUser$ | async as user; else unauthenticatedNav">
         <a routerLink="/clients" routerLinkActive="active" class="nav-item">Clients</a>
         <a routerLink="/exercises" routerLinkActive="active" class="nav-item">Exercises</a>
+        <a routerLink="/substances" routerLinkActive="active" class="nav-item">Substances & Safety</a>
         <a routerLink="/clients/new" routerLinkActive="active" class="nav-item">+ New Client</a>
         
         <div class="user-menu">

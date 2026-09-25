@@ -11,6 +11,7 @@ import { ExerciseDetailComponent } from './components/exercise-detail/exercise-d
 import { ClientTrainingProfileComponent } from './components/client-training-profile/client-training-profile.component';
 import { ProgramDetailComponent } from './components/program-detail/program-detail.component';
 import { WorkoutLoggerComponent } from './components/workout-logger/workout-logger.component';
+import { SubstanceReferenceComponent } from './components/substance-reference/substance-reference.component';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
@@ -26,6 +27,7 @@ const routes: Routes = [
   { path: 'workouts/:id', component: WorkoutLoggerComponent, canActivate: [AuthGuard] },
   { path: 'exercises', component: ExerciseListComponent, canActivate: [AuthGuard] },
   { path: 'exercises/:id', component: ExerciseDetailComponent, canActivate: [AuthGuard] },
+  { path: 'substances', component: SubstanceReferenceComponent, canActivate: [AuthGuard] },
   { path: '', redirectTo: '/clients', pathMatch: 'full' },
   { path: '**', redirectTo: '/clients' }
 ];
