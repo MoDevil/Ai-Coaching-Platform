@@ -9,7 +9,8 @@ export enum MemoryCategory {
   NutritionHabit = 8,
   AdherenceNote = 9,
   RecoveryNote = 10,
-  GeneralNote = 11
+  GeneralNote = 11,
+  UnresolvedQuestion = 12
 }
 
 export enum MemorySourceType {
@@ -33,13 +34,6 @@ export enum MemoryRecordStatus {
   Superseded = 3,
   Archived = 4,
   Anonymized = 5
-}
-
-export enum ConflictResolutionAction {
-  KeepRecordA = 1,
-  KeepRecordB = 2,
-  KeepBoth = 3,
-  SupersedeBothWithNew = 4
 }
 
 export interface ClientMemoryRecordDto {
@@ -104,10 +98,8 @@ export interface ClientMemoryConflictDto {
 }
 
 export interface ResolveClientMemoryConflictRequestDto {
-  action: ConflictResolutionAction;
+  winningRecordId: string;
   resolutionNote: string;
-  authoritativeRecordId?: string;
-  newCorrectedContent?: string;
 }
 
 export interface ClientMemorySnapshotDto {

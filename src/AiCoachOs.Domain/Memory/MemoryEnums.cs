@@ -12,7 +12,8 @@ public enum MemoryCategory
     NutritionHabit = 8,
     AdherenceNote = 9,
     RecoveryNote = 10,
-    GeneralNote = 11
+    GeneralNote = 11,
+    UnresolvedQuestion = 12
 }
 
 public enum MemorySourceType
@@ -88,12 +89,4 @@ public enum CoachDecisionOutcome
     AcceptedWithModifications = 2,
     Rejected = 3,
     Deferred = 4
-}
-
-public enum ConflictResolutionAction
-{
-    KeepRecordA = 1,
-    KeepRecordB = 2,
-    KeepBoth = 3,
-    SupersedeBothWithNew = 4
 }

@@ -28,6 +28,7 @@ public class ClientMemoryRecord : Entity<Guid>
     public string? SupersessionReason { get; private set; }
 
     public bool IsConflicted { get; private set; }
+    public MemoryConfidenceLevel? PreConflictConfidenceLevel { get; private set; }
     public string? ConflictNotes { get; private set; }
     public string? CoachCorrectionNote { get; private set; }
     public DateTime? CorrectedAt { get; private set; }
@@ -131,6 +132,11 @@ public class ClientMemoryRecord : Entity<Guid>
         if (RecordStatus != MemoryRecordStatus.Active)
             throw new InvalidOperationException($"Cannot conflict a record with status {RecordStatus}.");
 
+        if (ConfidenceLevel != MemoryConfidenceLevel.Conflicted)
+        {
+            PreConflictConfidenceLevel = ConfidenceLevel;
+        }
+
         IsConflicted = true;
         ConfidenceLevel = MemoryConfidenceLevel.Conflicted;
         RecordStatus = MemoryRecordStatus.Conflicted;
@@ -138,16 +144,22 @@ public class ClientMemoryRecord : Entity<Guid>
         MarkUpdated();
     }
 
-    public void ResolveConflict(MemoryConfidenceLevel restoredConfidence)
+    public void ResolveConflict(MemoryConfidenceLevel? explicitRestoredConfidence = null)
     {
         if (RecordStatus != MemoryRecordStatus.Conflicted && !IsConflicted)
             throw new InvalidOperationException("Record is not in a conflicted state.");
+
+        var restoredConfidence = explicitRestoredConfidence 
+            ?? PreConflictConfidenceLevel 
+            ?? (SourceType == MemorySourceType.SystemGenerated || SourceType == MemorySourceType.CoachCorrected ? MemoryConfidenceLevel.Confirmed : MemoryConfidenceLevel.Provisional);
+
         if (restoredConfidence == MemoryConfidenceLevel.Conflicted || restoredConfidence == MemoryConfidenceLevel.Superseded)
             throw new InvalidOperationException($"Cannot restore conflict with confidence {restoredConfidence}.");
 
         IsConflicted = false;
         RecordStatus = MemoryRecordStatus.Active;
         ConfidenceLevel = restoredConfidence;
+        PreConflictConfidenceLevel = null;
         ConflictNotes = null;
         MarkUpdated();
     }

@@ -33,9 +33,8 @@
         </div>
       </div>
       <div class="conflict-actions">
-        <button class="btn btn-sm btn-primary" (click)="onResolveConflict(1, 'Authoritative Record A chosen')">Keep Record A</button>
-        <button class="btn btn-sm btn-primary" (click)="onResolveConflict(2, 'Authoritative Record B chosen')">Keep Record B</button>
-        <button class="btn btn-sm btn-secondary" (click)="onResolveConflict(3, 'Both records kept')">Keep Both</button>
+        <button class="btn btn-sm btn-primary" (click)="onResolveConflict(c, c.recordAId, 'Authoritative Record A chosen')">Keep Record A</button>
+        <button class="btn btn-sm btn-primary" (click)="onResolveConflict(c, c.recordBId, 'Authoritative Record B chosen')">Keep Record B</button>
       </div>
     </div>
   </div>

@@ -264,4 +264,64 @@ public class ClientMemoryDomainTests
         var actSupersede = () => record.Supersede(Guid.NewGuid(), "New reason");
         actSupersede.Should().Throw<InvalidOperationException>();
     }
+
+    [Fact]
+    public void ResolveConflict_RestoresExactPreConflictConfidenceLevel_ForProvisionalAndConfirmed()
+    {
+        // 1. Record A: CoachRecorded -> Provisional + Active
+        var recordA = new ClientMemoryRecord(
+            id: Guid.NewGuid(),
+            clientId: Guid.NewGuid(),
+            coachId: Guid.NewGuid(),
+            memoryCategory: MemoryCategory.Preference,
+            sourceType: MemorySourceType.CoachRecorded,
+            content: "Prefers Squats");
+
+        recordA.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Provisional);
+        recordA.RecordStatus.Should().Be(MemoryRecordStatus.Active);
+
+        // 2. Record B: SystemGenerated -> Confirmed + Active
+        var recordB = new ClientMemoryRecord(
+            id: Guid.NewGuid(),
+            clientId: Guid.NewGuid(),
+            coachId: Guid.NewGuid(),
+            memoryCategory: MemoryCategory.Aversion,
+            sourceType: MemorySourceType.SystemGenerated,
+            content: "Avoids Squats");
+
+        recordB.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Confirmed);
+        recordB.RecordStatus.Should().Be(MemoryRecordStatus.Active);
+
+        // Both enter conflict
+        recordA.FlagConflicted("Conflict detected");
+        recordB.FlagConflicted("Conflict detected");
+
+        recordA.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Conflicted);
+        recordA.RecordStatus.Should().Be(MemoryRecordStatus.Conflicted);
+        recordA.PreConflictConfidenceLevel.Should().Be(MemoryConfidenceLevel.Provisional);
+
+        recordB.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Conflicted);
+        recordB.RecordStatus.Should().Be(MemoryRecordStatus.Conflicted);
+        recordB.PreConflictConfidenceLevel.Should().Be(MemoryConfidenceLevel.Confirmed);
+
+        // Case 1: Record A (Provisional) wins
+        recordA.ResolveConflict();
+        recordA.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Provisional);
+        recordA.RecordStatus.Should().Be(MemoryRecordStatus.Active);
+        recordA.IsConflicted.Should().BeFalse();
+
+        // Case 2: Record B (Confirmed) wins (test on separate conflict instance)
+        var recordB2 = new ClientMemoryRecord(
+            id: Guid.NewGuid(),
+            clientId: Guid.NewGuid(),
+            coachId: Guid.NewGuid(),
+            memoryCategory: MemoryCategory.Aversion,
+            sourceType: MemorySourceType.SystemGenerated,
+            content: "Avoids Squats");
+        recordB2.FlagConflicted("Conflict detected");
+        recordB2.ResolveConflict();
+        recordB2.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Confirmed);
+        recordB2.RecordStatus.Should().Be(MemoryRecordStatus.Active);
+        recordB2.IsConflicted.Should().BeFalse();
+    }
 }

@@ -166,12 +166,114 @@ public class ClientMemoryIntegrationTests : IClassFixture<CustomWebApplicationFa
         var flagged = await patchRes.Content.ReadFromJsonAsync<ClientMemoryRecordDto>();
         flagged!.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Uncertain);
         flagged.RecordStatus.Should().Be(MemoryRecordStatus.Active);
+    }
 
-        // Check unresolved questions endpoint
+    [Fact]
+    public async Task GetUnresolvedQuestions_ReturnsOnlyUnresolvedQuestionCategory_ExcludesOtherUncertainAndConflicted()
+    {
+        var token = await RegisterAndLoginCoachAsync("unresolved_q_only");
+        var client = await CreateClientForCoachAsync(token, "Tarek", "Zaki");
+
+        // 1. UnresolvedQuestion category record
+        var qRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory", new CreateClientMemoryRequestDto
+        {
+            MemoryCategory = MemoryCategory.UnresolvedQuestion,
+            SourceType = MemorySourceType.CoachRecorded,
+            Content = "Does client experience knee pain during deep back squats?"
+        });
+        qRes.StatusCode.Should().Be(HttpStatusCode.Created);
+        var qRecord = await qRes.Content.ReadFromJsonAsync<ClientMemoryRecordDto>();
+
+        // 2. NutritionHabit flagged as Uncertain
+        var habitRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory", new CreateClientMemoryRequestDto
+        {
+            MemoryCategory = MemoryCategory.NutritionHabit,
+            SourceType = MemorySourceType.CoachRecorded,
+            Content = "Believes they eat 150g protein daily"
+        });
+        var habitRecord = await habitRes.Content.ReadFromJsonAsync<ClientMemoryRecordDto>();
+        await _client.PatchAsync($"/api/clients/{client.Id}/memory/{habitRecord!.Id}/flag-uncertain", null);
+
+        // 3. Conflicted records
+        var pref1 = new PreferenceContent(PreferenceSubjectType.Exercise, "ex-bench", "Bench Press", PreferenceSentiment.Prefers);
+        var pref2 = new PreferenceContent(PreferenceSubjectType.Exercise, "ex-bench", "Bench Press", PreferenceSentiment.Avoids);
+        await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory", new CreateClientMemoryRequestDto
+        {
+            MemoryCategory = MemoryCategory.Preference,
+            SourceType = MemorySourceType.CoachRecorded,
+            Content = JsonSerializer.Serialize(pref1)
+        });
+        await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory", new CreateClientMemoryRequestDto
+        {
+            MemoryCategory = MemoryCategory.Aversion,
+            SourceType = MemorySourceType.CoachRecorded,
+            Content = JsonSerializer.Serialize(pref2)
+        });
+
+        // Query unresolved-questions endpoint
         var questionsRes = await _client.GetAsync($"/api/clients/{client.Id}/memory/unresolved-questions");
         questionsRes.StatusCode.Should().Be(HttpStatusCode.OK);
         var questions = await questionsRes.Content.ReadFromJsonAsync<List<UnresolvedQuestionDto>>();
-        questions.Should().Contain(q => q.RecordId == created.Id);
+
+        // Must strictly contain the UnresolvedQuestion category and NOT other uncertain or conflicted records
+        questions.Should().HaveCount(1);
+        questions!.First().RecordId.Should().Be(qRecord!.Id);
+        questions.First().Content.Should().Be("Does client experience knee pain during deep back squats?");
+    }
+
+    [Fact]
+    public async Task ResolveConflict_RestoresConfirmedConfidenceWhenConfirmedRecordWins()
+    {
+        var token = await RegisterAndLoginCoachAsync("confirmed_conflict_winner");
+        var client = await CreateClientForCoachAsync(token, "Hassan", "Fawzy");
+
+        var pref1 = new PreferenceContent(PreferenceSubjectType.Exercise, "ex-ohp", "Overhead Press", PreferenceSentiment.Prefers);
+        var pref2 = new PreferenceContent(PreferenceSubjectType.Exercise, "ex-ohp", "Overhead Press", PreferenceSentiment.Avoids);
+
+        // Record 1 created with CoachCorrected -> initial confidence is Confirmed
+        var res1 = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory", new CreateClientMemoryRequestDto
+        {
+            MemoryCategory = MemoryCategory.Preference,
+            SourceType = MemorySourceType.CoachCorrected,
+            Content = JsonSerializer.Serialize(pref1)
+        });
+        var record1 = await res1.Content.ReadFromJsonAsync<ClientMemoryRecordDto>();
+        record1!.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Confirmed);
+
+        // Record 2 created -> triggers conflict
+        var res2 = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory", new CreateClientMemoryRequestDto
+        {
+            MemoryCategory = MemoryCategory.Aversion,
+            SourceType = MemorySourceType.CoachRecorded,
+            Content = JsonSerializer.Serialize(pref2)
+        });
+        var record2 = await res2.Content.ReadFromJsonAsync<ClientMemoryRecordDto>();
+
+        // Get conflict
+        var conflictsRes = await _client.GetAsync($"/api/clients/{client.Id}/memory/conflicts?unresolvedOnly=true");
+        var conflicts = await conflictsRes.Content.ReadFromJsonAsync<List<ClientMemoryConflictDto>>();
+        conflicts.Should().HaveCount(1);
+
+        // Resolve conflict selecting Record 1 (which had Confirmed confidence before conflict)
+        var resolveRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory/conflicts/{conflicts!.First().Id}/resolve",
+            new ResolveClientMemoryConflictRequestDto
+            {
+                WinningRecordId = record1.Id,
+                ResolutionNote = "Coach reaffirmed client loves OHP"
+            });
+        resolveRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Refetch record 1: should restore Confirmed confidence level and Active status
+        var refetched1 = await _client.GetFromJsonAsync<ClientMemoryRecordDto>($"/api/clients/{client.Id}/memory/{record1.Id}");
+        refetched1!.RecordStatus.Should().Be(MemoryRecordStatus.Active);
+        refetched1.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Confirmed);
+        refetched1.IsConflicted.Should().BeFalse();
+
+        // Refetch record 2: should be Superseded
+        var refetched2 = await _client.GetFromJsonAsync<ClientMemoryRecordDto>($"/api/clients/{client.Id}/memory/{record2!.Id}");
+        refetched2!.RecordStatus.Should().Be(MemoryRecordStatus.Superseded);
+        refetched2.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Superseded);
+        refetched2.SupersededById.Should().Be(record1.Id);
     }
 
     [Fact]
@@ -226,11 +328,11 @@ public class ClientMemoryIntegrationTests : IClassFixture<CustomWebApplicationFa
         conflicts!.First().RecordAId.Should().Be(record1.Id);
         conflicts.First().RecordBId.Should().Be(record2.Id);
 
-        // Resolve conflict: Keep Record 1
+        // Resolve conflict: Select Record 1 as winner
         var resolveRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory/conflicts/{conflicts.First().Id}/resolve",
             new ResolveClientMemoryConflictRequestDto
             {
-                Action = ConflictResolutionAction.KeepRecordA,
+                WinningRecordId = record1.Id,
                 ResolutionNote = "Confirmed client enjoys RDL with proper technique"
             });
         resolveRes.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -239,10 +341,14 @@ public class ClientMemoryIntegrationTests : IClassFixture<CustomWebApplicationFa
         var resolved1 = await _client.GetFromJsonAsync<ClientMemoryRecordDto>($"/api/clients/{client.Id}/memory/{record1.Id}");
         var resolved2 = await _client.GetFromJsonAsync<ClientMemoryRecordDto>($"/api/clients/{client.Id}/memory/{record2.Id}");
 
+        // Winning record restores pre-conflict confidence (Provisional) and becomes Active
         resolved1!.RecordStatus.Should().Be(MemoryRecordStatus.Active);
+        resolved1.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Provisional);
         resolved1.IsConflicted.Should().BeFalse();
 
+        // Losing record becomes Superseded
         resolved2!.RecordStatus.Should().Be(MemoryRecordStatus.Superseded);
+        resolved2.ConfidenceLevel.Should().Be(MemoryConfidenceLevel.Superseded);
         resolved2.SupersededById.Should().Be(record1.Id);
     }
 

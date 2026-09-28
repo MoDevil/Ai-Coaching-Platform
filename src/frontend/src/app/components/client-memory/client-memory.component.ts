@@ -9,7 +9,6 @@ import {
   MemoryCategory,
   MemoryConfidenceLevel,
   MemoryRecordStatus,
-  ConflictResolutionAction,
   MemorySourceType
 } from '../../models/memory.model';
 import { MemoryService } from '../../services/memory.service';
@@ -45,7 +44,8 @@ export class ClientMemoryComponent implements OnInit {
     { value: MemoryCategory.NutritionHabit, label: 'Nutrition Habit' },
     { value: MemoryCategory.AdherenceNote, label: 'Adherence Note' },
     { value: MemoryCategory.RecoveryNote, label: 'Recovery Note' },
-    { value: MemoryCategory.GeneralNote, label: 'General Note' }
+    { value: MemoryCategory.GeneralNote, label: 'General Note' },
+    { value: MemoryCategory.UnresolvedQuestion, label: 'Unresolved Question' }
   ];
 
   constructor(
@@ -164,15 +164,9 @@ export class ClientMemoryComponent implements OnInit {
     });
   }
 
-  openConflictResolution(conflict: ClientMemoryConflictDto): void {
-    this.selectedConflictForResolution = conflict;
-  }
-
-  onResolveConflict(action: ConflictResolutionAction, note: string): void {
-    if (!this.selectedConflictForResolution) return;
-
-    this.memoryService.resolveConflict(this.clientId, this.selectedConflictForResolution.id, {
-      action,
+  onResolveConflict(conflict: ClientMemoryConflictDto, winningRecordId: string, note: string): void {
+    this.memoryService.resolveConflict(this.clientId, conflict.id, {
+      winningRecordId,
       resolutionNote: note || 'Resolved by coach'
     }).subscribe({
       next: () => {

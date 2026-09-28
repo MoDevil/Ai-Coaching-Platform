@@ -79,10 +79,8 @@ public class CreateClientMemoryConflictRequestDto
 
 public class ResolveClientMemoryConflictRequestDto
 {
-    public ConflictResolutionAction Action { get; set; }
+    public Guid WinningRecordId { get; set; }
     public string ResolutionNote { get; set; } = string.Empty;
-    public Guid? AuthoritativeRecordId { get; set; }
-    public string? NewCorrectedContent { get; set; }
 }
 
 public class ClientMemorySnapshotDto

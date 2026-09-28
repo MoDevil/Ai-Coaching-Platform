@@ -56,6 +56,8 @@ public class ClientMemoryRecordConfiguration : IEntityTypeConfiguration<ClientMe
         builder.Property(m => m.IsConflicted)
             .IsRequired();
 
+        builder.Property(m => m.PreConflictConfidenceLevel);
+
         builder.Property(m => m.ConflictNotes)
             .HasMaxLength(2000);
 

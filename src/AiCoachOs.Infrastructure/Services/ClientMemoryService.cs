@@ -373,52 +373,21 @@ public class ClientMemoryService : IClientMemoryService
             throw new InvalidOperationException("Involved conflict records could not be found.");
         }
 
-        switch (request.Action)
+        if (request.WinningRecordId != recordA.Id && request.WinningRecordId != recordB.Id)
         {
-            case ConflictResolutionAction.KeepRecordA:
-                recordA.ResolveConflict(MemoryConfidenceLevel.Confirmed);
-                recordB.Supersede(recordA.Id, request.ResolutionNote);
-                conflict.Resolve(coachId, request.ResolutionNote, winningRecordId: recordA.Id);
-                break;
-
-            case ConflictResolutionAction.KeepRecordB:
-                recordB.ResolveConflict(MemoryConfidenceLevel.Confirmed);
-                recordA.Supersede(recordB.Id, request.ResolutionNote);
-                conflict.Resolve(coachId, request.ResolutionNote, winningRecordId: recordB.Id);
-                break;
-
-            case ConflictResolutionAction.KeepBoth:
-                recordA.ResolveConflict(MemoryConfidenceLevel.Confirmed);
-                recordB.ResolveConflict(MemoryConfidenceLevel.Confirmed);
-                conflict.Resolve(coachId, request.ResolutionNote, winningRecordId: null);
-                break;
-
-            case ConflictResolutionAction.SupersedeBothWithNew:
-                if (string.IsNullOrWhiteSpace(request.NewCorrectedContent))
-                {
-                    throw new ArgumentException("New corrected content is required when superseding both conflicted records.", nameof(request.NewCorrectedContent));
-                }
-
-                var newRecord = new ClientMemoryRecord(
-                    id: Guid.NewGuid(),
-                    clientId: clientId,
-                    coachId: coachId,
-                    memoryCategory: recordA.MemoryCategory,
-                    sourceType: MemorySourceType.CoachCorrected,
-                    content: request.NewCorrectedContent,
-                    explicitConfidence: MemoryConfidenceLevel.Confirmed,
-                    coachCorrectionNote: request.ResolutionNote);
-
-                recordA.Supersede(newRecord.Id, request.ResolutionNote);
-                recordB.Supersede(newRecord.Id, request.ResolutionNote);
-
-                await _dbContext.AddClientMemoryRecordAsync(newRecord, cancellationToken);
-                conflict.Resolve(coachId, request.ResolutionNote, winningRecordId: newRecord.Id);
-                break;
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(request.Action), "Unknown conflict resolution action.");
+            throw new ArgumentException("WinningRecordId must match either RecordA or RecordB of the conflict.", nameof(request.WinningRecordId));
         }
+
+        var winningRecord = request.WinningRecordId == recordA.Id ? recordA : recordB;
+        var losingRecord = request.WinningRecordId == recordA.Id ? recordB : recordA;
+
+        // Winning record: IsConflicted = false, Status = Active, Confidence restored to pre-conflict value
+        winningRecord.ResolveConflict();
+
+        // Losing record: Status = Superseded, Confidence = Superseded, SupersededById = winningRecord.Id, SupersessionReason = resolutionNote
+        losingRecord.Supersede(winningRecord.Id, request.ResolutionNote);
+
+        conflict.Resolve(coachId, request.ResolutionNote, winningRecordId: winningRecord.Id);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         return MapConflictToDto(conflict);
@@ -519,21 +488,22 @@ public class ClientMemoryService : IClientMemoryService
         var coachId = await _currentCoachService.GetRequiredCoachIdAsync(cancellationToken);
         await EnsureClientAccessAsync(clientId, coachId, cancellationToken);
 
-        var uncertainOrConflicted = await _dbContext.ClientMemoryRecords
+        var unresolvedQuestions = await _dbContext.ClientMemoryRecords
             .Where(m => m.ClientId == clientId && m.CoachId == coachId &&
                         !m.IsAnonymized &&
-                        (m.ConfidenceLevel == MemoryConfidenceLevel.Uncertain || m.RecordStatus == MemoryRecordStatus.Conflicted || m.IsConflicted))
+                        m.RecordStatus != MemoryRecordStatus.Anonymized &&
+                        m.MemoryCategory == MemoryCategory.UnresolvedQuestion)
             .OrderByDescending(m => m.RecordedAt)
             .ToListAsync(cancellationToken);
 
-        return uncertainOrConflicted.Select(r => new UnresolvedQuestionDto
+        return unresolvedQuestions.Select(r => new UnresolvedQuestionDto
         {
             RecordId = r.Id,
             Category = r.MemoryCategory,
             Content = r.Content,
             ConfidenceLevel = r.ConfidenceLevel,
             RecordStatus = r.RecordStatus,
-            QuestionContext = r.IsConflicted ? $"Conflicted record: {r.ConflictNotes}" : "Flagged as uncertain for coach review",
+            QuestionContext = "Unresolved question requiring client/coach follow-up",
             RecordedAt = r.RecordedAt
         }).ToList();
     }
