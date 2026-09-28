@@ -126,6 +126,24 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Memory.Engine.IClientMemoryConflictDetector, AiCoachOs.Application.Memory.Engine.ClientMemoryConflictDetector>();
         services.AddScoped<AiCoachOs.Application.Memory.Interfaces.IClientMemoryService, AiCoachOs.Infrastructure.Services.ClientMemoryService>();
 
+        // M14 AI Provider & Reasoning Layer
+        var aiSettings = new AiCoachOs.Application.Ai.Models.AiSettings();
+        configuration.GetSection(AiCoachOs.Application.Ai.Models.AiSettings.SectionName).Bind(aiSettings);
+        services.Configure<AiCoachOs.Application.Ai.Models.AiSettings>(configuration.GetSection(AiCoachOs.Application.Ai.Models.AiSettings.SectionName));
+
+        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
+
+        if (string.Equals(aiSettings.Provider, "Anthropic", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider, AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
+        }
+        else
+        {
+            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider, AiCoachOs.Infrastructure.Ai.MockAiProvider>();
+        }
+
+        services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiReasoningService, AiCoachOs.Infrastructure.Ai.AiReasoningService>();
+
         return services;
     }
 }

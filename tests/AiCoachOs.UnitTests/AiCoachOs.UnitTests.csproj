@@ -16,6 +16,8 @@
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AiCoachOs.Domain\AiCoachOs.Domain.csproj" />
     <ProjectReference Include="..\..\src\AiCoachOs.Application\AiCoachOs.Application.csproj" />
+    <ProjectReference Include="..\..\src\AiCoachOs.Infrastructure\AiCoachOs.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
