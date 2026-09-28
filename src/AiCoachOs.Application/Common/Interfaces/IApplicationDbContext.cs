@@ -66,6 +66,12 @@ public interface IApplicationDbContext
     IQueryable<AiCoachOs.Domain.Substances.PEDRedFlagRule> PEDRedFlagRules { get; }
     IQueryable<AiCoachOs.Domain.Substances.SubstanceEscalationRecord> SubstanceEscalationRecords { get; }
 
+    IQueryable<AiCoachOs.Domain.Memory.ClientMemoryRecord> ClientMemoryRecords { get; }
+    IQueryable<AiCoachOs.Domain.Memory.ClientMemoryConflict> ClientMemoryConflicts { get; }
+    IQueryable<AiCoachOs.Domain.Memory.ClientMemorySnapshot> ClientMemorySnapshots { get; }
+    IQueryable<AiCoachOs.Domain.Memory.AIRecommendationRecord> AIRecommendationRecords { get; }
+    IQueryable<AiCoachOs.Domain.Memory.ClientAnonymizationLog> ClientAnonymizationLogs { get; }
+
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
     Task AddConsentRecordAsync(ConsentRecord consentRecord, CancellationToken cancellationToken = default);
@@ -94,6 +100,12 @@ public interface IApplicationDbContext
     Task AddPEDRedFlagRuleAsync(AiCoachOs.Domain.Substances.PEDRedFlagRule rule, CancellationToken cancellationToken = default);
     Task AddSubstanceEscalationRecordAsync(AiCoachOs.Domain.Substances.SubstanceEscalationRecord record, CancellationToken cancellationToken = default);
 
+    Task AddClientMemoryRecordAsync(AiCoachOs.Domain.Memory.ClientMemoryRecord memoryRecord, CancellationToken cancellationToken = default);
+    Task AddClientMemoryConflictAsync(AiCoachOs.Domain.Memory.ClientMemoryConflict conflict, CancellationToken cancellationToken = default);
+    Task AddClientMemorySnapshotAsync(AiCoachOs.Domain.Memory.ClientMemorySnapshot snapshot, CancellationToken cancellationToken = default);
+    Task AddAIRecommendationRecordAsync(AiCoachOs.Domain.Memory.AIRecommendationRecord recommendation, CancellationToken cancellationToken = default);
+    Task AddClientAnonymizationLogAsync(AiCoachOs.Domain.Memory.ClientAnonymizationLog log, CancellationToken cancellationToken = default);
+
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
     Task<Client?> FindClientByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -120,6 +132,11 @@ public interface IApplicationDbContext
     Task<AiCoachOs.Domain.Substances.HormoneKnowledge?> FindHormoneByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Substances.PEDSafetyRecord?> FindPEDSafetyRecordByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Substances.SubstanceRecord?> FindSubstanceByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<AiCoachOs.Domain.Memory.ClientMemoryRecord?> FindClientMemoryRecordByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Memory.ClientMemoryConflict?> FindClientMemoryConflictByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Memory.ClientMemorySnapshot?> FindClientMemorySnapshotByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Memory.AIRecommendationRecord?> FindAIRecommendationRecordByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -122,6 +122,10 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Substances.Engine.ISubstanceSafetyEvaluator, AiCoachOs.Application.Substances.Engine.SubstanceSafetyEvaluator>();
         services.AddScoped<AiCoachOs.Application.Substances.Interfaces.ISubstanceService, AiCoachOs.Infrastructure.Services.SubstanceService>();
 
+        // M13 Client Memory Services
+        services.AddScoped<AiCoachOs.Application.Memory.Engine.IClientMemoryConflictDetector, AiCoachOs.Application.Memory.Engine.ClientMemoryConflictDetector>();
+        services.AddScoped<AiCoachOs.Application.Memory.Interfaces.IClientMemoryService, AiCoachOs.Infrastructure.Services.ClientMemoryService>();
+
         return services;
     }
 }

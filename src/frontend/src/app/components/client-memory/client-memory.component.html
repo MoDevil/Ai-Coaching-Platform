@@ -1,0 +1,147 @@
+<div class="memory-container">
+  <div class="header-section">
+    <h2>Client Memory & Provenance</h2>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="onGenerateSnapshot()">Generate Structured Snapshot</button>
+      <button class="btn btn-danger" (click)="onAnonymize()">Anonymize Records</button>
+    </div>
+  </div>
+
+  <!-- Unresolved / Uncertain Section -->
+  <div class="alert-section" *ngIf="unresolvedQuestions.length > 0">
+    <h3>⚠️ Unresolved Questions & Uncertainties ({{ unresolvedQuestions.length }})</h3>
+    <div class="uncertain-list">
+      <div class="uncertain-card" *ngFor="let q of unresolvedQuestions">
+        <span class="category-badge">{{ getCategoryName(q.category) }}</span>
+        <p class="question-content">{{ q.content }}</p>
+        <span class="context-note">{{ q.questionContext }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Conflicts Section -->
+  <div class="conflicts-section" *ngIf="conflicts.length > 0">
+    <h3>⚡ Conflicted Information Requiring Resolution ({{ conflicts.length }})</h3>
+    <div class="conflict-card" *ngFor="let c of conflicts">
+      <div class="conflict-desc">{{ c.conflictDescription }}</div>
+      <div class="conflict-records">
+        <div class="record-box" *ngIf="c.recordA">
+          <strong>Record A:</strong> {{ c.recordA.content }}
+        </div>
+        <div class="record-box" *ngIf="c.recordB">
+          <strong>Record B:</strong> {{ c.recordB.content }}
+        </div>
+      </div>
+      <div class="conflict-actions">
+        <button class="btn btn-sm btn-primary" (click)="onResolveConflict(1, 'Authoritative Record A chosen')">Keep Record A</button>
+        <button class="btn btn-sm btn-primary" (click)="onResolveConflict(2, 'Authoritative Record B chosen')">Keep Record B</button>
+        <button class="btn btn-sm btn-secondary" (click)="onResolveConflict(3, 'Both records kept')">Keep Both</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add New Memory -->
+  <div class="form-section card">
+    <h3>Record New Client Observation / Context</h3>
+    <form [formGroup]="memoryForm" (ngSubmit)="onAddMemory()">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select formControlName="memoryCategory" class="form-control">
+            <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </div>
+        <div class="form-group flex-2">
+          <label>Content / Observation (JSON or Text)</label>
+          <input type="text" formControlName="content" class="form-control" placeholder="e.g. Prefers dumbbell pressing, Avoids barbell squats..." />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label>Source Description</label>
+          <input type="text" formControlName="sourceDescription" class="form-control" placeholder="e.g. Intake interview, Check-in feedback" />
+        </div>
+        <div class="form-group flex-1">
+          <label>Reference</label>
+          <input type="text" formControlName="sourceReference" class="form-control" placeholder="e.g. Session #3" />
+        </div>
+      </div>
+      <button type="submit" class="btn btn-success" [disabled]="memoryForm.invalid">Add Memory Record</button>
+    </form>
+  </div>
+
+  <!-- Correction Modal / Form -->
+  <div class="card correction-box" *ngIf="selectedRecordForCorrection">
+    <h3>Correct Memory Record</h3>
+    <p class="muted">Original: {{ selectedRecordForCorrection.content }}</p>
+    <form [formGroup]="correctionForm" (ngSubmit)="onSaveCorrection()">
+      <div class="form-group">
+        <label>Updated Content</label>
+        <input type="text" formControlName="content" class="form-control" />
+      </div>
+      <div class="form-group">
+        <label>Correction Reason (Required)</label>
+        <input type="text" formControlName="reason" class="form-control" placeholder="Why is this record being corrected?" />
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" [disabled]="correctionForm.invalid">Save Correction</button>
+        <button type="button" class="btn btn-secondary" (click)="selectedRecordForCorrection = null">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filters & Timeline -->
+  <div class="timeline-section card">
+    <div class="filter-bar">
+      <h3>Memory Timeline</h3>
+      <div class="filter-controls">
+        <select [(ngModel)]="selectedCategory" (change)="loadMemories()" class="form-control sm">
+          <option [ngValue]="null">All Categories</option>
+          <option *ngFor="let c of categories" [ngValue]="c.value">{{ c.label }}</option>
+        </select>
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="includeAnonymized" (change)="loadMemories()" /> Include Anonymized
+        </label>
+      </div>
+    </div>
+
+    <div *ngIf="isLoading" class="loading">Loading memories...</div>
+
+    <div class="memory-list" *ngIf="!isLoading">
+      <div *ngIf="memories.length === 0" class="empty-state">No memory records found.</div>
+      <div class="memory-card" *ngFor="let m of memories" [ngClass]="{
+        'status-active': m.recordStatus === 1,
+        'status-conflicted': m.recordStatus === 2,
+        'status-superseded': m.recordStatus === 3,
+        'status-archived': m.recordStatus === 4,
+        'status-anonymized': m.recordStatus === 5
+      }">
+        <div class="memory-meta">
+          <span class="category-badge">{{ getCategoryName(m.memoryCategory) }}</span>
+          <span class="badge" [ngClass]="'conf-' + m.confidenceLevel">{{ getConfidenceName(m.confidenceLevel) }}</span>
+          <span class="badge" [ngClass]="'stat-' + m.recordStatus">{{ getStatusName(m.recordStatus) }}</span>
+          <span class="date">{{ m.recordedAt | date:'short' }}</span>
+        </div>
+
+        <div class="memory-body">
+          <p class="content-text">{{ m.content }}</p>
+          <div class="source-info" *ngIf="m.sourceDescription">
+            <small>Source: {{ m.sourceDescription }} <span *ngIf="m.sourceReference">({{ m.sourceReference }})</span></small>
+          </div>
+          <div class="correction-note" *ngIf="m.coachCorrectionNote">
+            <small>Correction Note: {{ m.coachCorrectionNote }}</small>
+          </div>
+          <div class="conflict-note" *ngIf="m.conflictNotes">
+            <small class="text-danger">Conflict: {{ m.conflictNotes }}</small>
+          </div>
+        </div>
+
+        <div class="memory-card-actions" *ngIf="m.recordStatus === 1 && !m.isConflicted && !m.isAnonymized">
+          <button class="btn btn-sm btn-outline" (click)="openCorrection(m)">Correct</button>
+          <button class="btn btn-sm btn-outline" (click)="onFlagUncertain(m)" *ngIf="m.confidenceLevel !== 3">Flag Uncertain</button>
+          <button class="btn btn-sm btn-outline text-muted" (click)="onArchive(m)">Archive</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

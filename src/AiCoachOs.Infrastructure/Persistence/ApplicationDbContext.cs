@@ -74,10 +74,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<AiCoachOs.Domain.Substances.PEDRedFlagRule> PEDRedFlagRulesDbSet => Set<AiCoachOs.Domain.Substances.PEDRedFlagRule>();
     public DbSet<AiCoachOs.Domain.Substances.SubstanceEscalationRecord> SubstanceEscalationRecordsDbSet => Set<AiCoachOs.Domain.Substances.SubstanceEscalationRecord>();
 
+    public DbSet<AiCoachOs.Domain.Memory.ClientMemoryRecord> ClientMemoryRecordsDbSet => Set<AiCoachOs.Domain.Memory.ClientMemoryRecord>();
+    public DbSet<AiCoachOs.Domain.Memory.ClientMemoryConflict> ClientMemoryConflictsDbSet => Set<AiCoachOs.Domain.Memory.ClientMemoryConflict>();
+    public DbSet<AiCoachOs.Domain.Memory.ClientMemorySnapshot> ClientMemorySnapshotsDbSet => Set<AiCoachOs.Domain.Memory.ClientMemorySnapshot>();
+    public DbSet<AiCoachOs.Domain.Memory.AIRecommendationRecord> AIRecommendationRecordsDbSet => Set<AiCoachOs.Domain.Memory.AIRecommendationRecord>();
+    public DbSet<AiCoachOs.Domain.Memory.ClientAnonymizationLog> ClientAnonymizationLogsDbSet => Set<AiCoachOs.Domain.Memory.ClientAnonymizationLog>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
     IQueryable<ConsentRecord> IApplicationDbContext.ConsentRecords => ConsentRecordsDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Memory.ClientMemoryRecord> IApplicationDbContext.ClientMemoryRecords => ClientMemoryRecordsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Memory.ClientMemoryConflict> IApplicationDbContext.ClientMemoryConflicts => ClientMemoryConflictsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Memory.ClientMemorySnapshot> IApplicationDbContext.ClientMemorySnapshots => ClientMemorySnapshotsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Memory.AIRecommendationRecord> IApplicationDbContext.AIRecommendationRecords => AIRecommendationRecordsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Memory.ClientAnonymizationLog> IApplicationDbContext.ClientAnonymizationLogs => ClientAnonymizationLogsDbSet.AsNoTracking();
 
     IQueryable<Exercise> IApplicationDbContext.Exercises => ExercisesDbSet.AsNoTracking();
     IQueryable<Muscle> IApplicationDbContext.Muscles => MusclesDbSet.AsNoTracking();
@@ -491,6 +503,58 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         return await SubstancesDbSet
             .Include(s => s.PrimaryKnowledgeClaim)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task AddClientMemoryRecordAsync(AiCoachOs.Domain.Memory.ClientMemoryRecord memoryRecord, CancellationToken cancellationToken = default)
+    {
+        await ClientMemoryRecordsDbSet.AddAsync(memoryRecord, cancellationToken);
+    }
+
+    public async Task AddClientMemoryConflictAsync(AiCoachOs.Domain.Memory.ClientMemoryConflict conflict, CancellationToken cancellationToken = default)
+    {
+        await ClientMemoryConflictsDbSet.AddAsync(conflict, cancellationToken);
+    }
+
+    public async Task AddClientMemorySnapshotAsync(AiCoachOs.Domain.Memory.ClientMemorySnapshot snapshot, CancellationToken cancellationToken = default)
+    {
+        await ClientMemorySnapshotsDbSet.AddAsync(snapshot, cancellationToken);
+    }
+
+    public async Task AddAIRecommendationRecordAsync(AiCoachOs.Domain.Memory.AIRecommendationRecord recommendation, CancellationToken cancellationToken = default)
+    {
+        await AIRecommendationRecordsDbSet.AddAsync(recommendation, cancellationToken);
+    }
+
+    public async Task AddClientAnonymizationLogAsync(AiCoachOs.Domain.Memory.ClientAnonymizationLog log, CancellationToken cancellationToken = default)
+    {
+        await ClientAnonymizationLogsDbSet.AddAsync(log, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Memory.ClientMemoryRecord?> FindClientMemoryRecordByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ClientMemoryRecordsDbSet
+            .Include(m => m.SupersededBy)
+            .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Memory.ClientMemoryConflict?> FindClientMemoryConflictByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ClientMemoryConflictsDbSet
+            .Include(c => c.RecordA)
+            .Include(c => c.RecordB)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Memory.ClientMemorySnapshot?> FindClientMemorySnapshotByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ClientMemorySnapshotsDbSet
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.Memory.AIRecommendationRecord?> FindAIRecommendationRecordByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await AIRecommendationRecordsDbSet
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

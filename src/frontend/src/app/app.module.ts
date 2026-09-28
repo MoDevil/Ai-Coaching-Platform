@@ -17,6 +17,7 @@ import { ClientTrainingProfileComponent } from './components/client-training-pro
 import { ProgramDetailComponent } from './components/program-detail/program-detail.component';
 import { WorkoutLoggerComponent } from './components/workout-logger/workout-logger.component';
 import { SubstanceReferenceComponent } from './components/substance-reference/substance-reference.component';
+import { ClientMemoryComponent } from './components/client-memory/client-memory.component';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
 @NgModule({
@@ -33,7 +34,8 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
     ClientTrainingProfileComponent,
     ProgramDetailComponent,
     WorkoutLoggerComponent,
-    SubstanceReferenceComponent
+    SubstanceReferenceComponent,
+    ClientMemoryComponent
   ],
   imports: [
     BrowserModule,

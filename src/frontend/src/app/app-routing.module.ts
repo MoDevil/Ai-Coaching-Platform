@@ -12,6 +12,7 @@ import { ClientTrainingProfileComponent } from './components/client-training-pro
 import { ProgramDetailComponent } from './components/program-detail/program-detail.component';
 import { WorkoutLoggerComponent } from './components/workout-logger/workout-logger.component';
 import { SubstanceReferenceComponent } from './components/substance-reference/substance-reference.component';
+import { ClientMemoryComponent } from './components/client-memory/client-memory.component';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
@@ -22,6 +23,7 @@ const routes: Routes = [
   { path: 'clients/:id', component: ClientDetailComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id/edit', component: ClientEditComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id/training-profile', component: ClientTrainingProfileComponent, canActivate: [AuthGuard] },
+  { path: 'clients/:id/memory', component: ClientMemoryComponent, canActivate: [AuthGuard] },
   { path: 'programs/:id', component: ProgramDetailComponent, canActivate: [AuthGuard] },
   { path: 'programs', component: ProgramDetailComponent, canActivate: [AuthGuard] },
   { path: 'workouts/:id', component: WorkoutLoggerComponent, canActivate: [AuthGuard] },
