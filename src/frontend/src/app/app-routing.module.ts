@@ -15,6 +15,7 @@ import { SubstanceReferenceComponent } from './components/substance-reference/su
 import { ClientMemoryComponent } from './components/client-memory/client-memory.component';
 import { ClientPhotosComponent } from './components/client-photos/client-photos.component';
 import { ClientVideosComponent } from './components/client-videos/client-videos.component';
+import { ExpertIngestionComponent } from './components/expert-ingestion/expert-ingestion.component';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
@@ -34,6 +35,7 @@ const routes: Routes = [
   { path: 'exercises', component: ExerciseListComponent, canActivate: [AuthGuard] },
   { path: 'exercises/:id', component: ExerciseDetailComponent, canActivate: [AuthGuard] },
   { path: 'substances', component: SubstanceReferenceComponent, canActivate: [AuthGuard] },
+  { path: 'expert-ingestion', component: ExpertIngestionComponent, canActivate: [AuthGuard] },
   { path: '', redirectTo: '/clients', pathMatch: 'full' },
   { path: '**', redirectTo: '/clients' }
 ];

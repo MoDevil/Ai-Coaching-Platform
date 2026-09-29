@@ -1,0 +1,323 @@
+<div class="expert-ingestion-container">
+  <div class="header-actions">
+    <div>
+      <h2>Expert Content Ingestion & Claim Review</h2>
+      <p class="subtitle">Extract actionable coaching claims from YouTube videos, web articles, and expert publications.</p>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" (click)="showSourceModal = true">+ New Expert Source</button>
+      <button class="btn btn-primary" (click)="showSubmitModal = true">+ Ingest Content</button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+
+  <div class="ingestion-layout">
+    <!-- Left column: Ingestion list -->
+    <div class="ingestion-list-panel">
+      <div class="panel-header">
+        <h3>Ingested Sources ({{ ingestions.length }})</h3>
+        <button class="btn btn-sm btn-outline" (click)="loadIngestions()">Refresh</button>
+      </div>
+
+      <div *ngIf="isLoading && ingestions.length === 0" class="loading-state">
+        Loading ingestions...
+      </div>
+
+      <div *ngIf="!isLoading && ingestions.length === 0" class="empty-state">
+        No content ingested yet. Click "+ Ingest Content" to get started.
+      </div>
+
+      <div class="ingestion-cards">
+        <div *ngFor="let item of ingestions"
+             class="ingestion-card"
+             [class.active]="selectedIngestion?.id === item.id"
+             (click)="selectIngestion(item.id)">
+          <div class="card-header">
+            <span class="badge" [ngClass]="'badge-' + item.status">
+              {{ statusLabels[item.status] }}
+            </span>
+            <span class="content-type">{{ contentTypeLabels[item.contentType] }}</span>
+          </div>
+          <h4 class="card-title">{{ item.title }}</h4>
+          <p class="source-url">{{ item.sourceUrl }}</p>
+          <div class="card-footer">
+            <span>{{ item.claimCount }} claims</span>
+            <span>{{ item.wordCount | number }} words</span>
+            <span>{{ item.submittedAtUtc | date:'short' }}</span>
+          </div>
+          <div *ngIf="item.containsMedicalClaims" class="medical-flag">
+            ⚠ Medical / Clinical Terminology Flagged
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: Selected Ingestion Details & Claims -->
+    <div class="ingestion-detail-panel">
+      <div *ngIf="!selectedIngestion" class="placeholder-state">
+        Select an ingestion from the list to review extracted claims.
+      </div>
+
+      <div *ngIf="selectedIngestion" class="detail-content">
+        <div class="detail-header">
+          <div>
+            <h3>{{ selectedIngestion.title }}</h3>
+            <p class="source-info">
+              <strong>Source:</strong> {{ selectedIngestion.sourceName || 'Unknown / General Web' }} &bull;
+              <a [href]="selectedIngestion.sourceUrl" target="_blank" rel="noopener">Open Source URL ↗</a>
+            </p>
+          </div>
+          <div class="status-box">
+            <span class="badge" [ngClass]="'badge-' + selectedIngestion.status">
+              {{ statusLabels[selectedIngestion.status] }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Medical disclaimer if flagged -->
+        <div *ngIf="selectedIngestion.containsMedicalClaims" class="medical-banner">
+          <h4>⚠ Medical Content Guardrail</h4>
+          <p>Automated scan detected medical / pharmaceutical terminology. Clinical claims have been excluded from coaching claims to maintain safe non-medical boundaries.</p>
+        </div>
+
+        <!-- Failure notification if failed -->
+        <div *ngIf="selectedIngestion.status === 6 && selectedIngestion.failureReason" class="alert alert-danger">
+          <strong>Ingestion Failed:</strong> {{ selectedIngestion.failureReason }}
+        </div>
+
+        <!-- Extracted text summary -->
+        <div class="text-snippet-box" *ngIf="selectedIngestion.rawExtractedTextSnippet">
+          <div class="snippet-header">
+            <strong>Extracted Content Preview ({{ selectedIngestion.wordCount | number }} words{{ selectedIngestion.wasTruncated ? ' - Truncated at 15k words' : '' }})</strong>
+          </div>
+          <p class="snippet-text">{{ selectedIngestion.rawExtractedTextSnippet }}</p>
+        </div>
+
+        <!-- Extracted Claims Section -->
+        <div class="claims-section">
+          <div class="claims-header">
+            <h4>Extracted Actionable Claims ({{ selectedIngestion.claims.length }})</h4>
+            <span class="sub-text">Deterministic M3 conflict detection applied. Review and approve each claim individually.</span>
+          </div>
+
+          <div *ngIf="selectedIngestion.claims.length === 0 && selectedIngestion.status === 1" class="loading-state">
+            Extracting claims with AI Coach OS reasoning engine...
+          </div>
+
+          <div *ngIf="selectedIngestion.claims.length === 0 && selectedIngestion.status !== 1" class="empty-state">
+            No actionable claims extracted from this content.
+          </div>
+
+          <div class="claims-list">
+            <div *ngFor="let claim of selectedIngestion.claims" class="claim-card" [class.approved]="claim.reviewStatus === 2" [class.rejected]="claim.reviewStatus === 3">
+              <div class="claim-top">
+                <div class="claim-topic">
+                  <span class="topic-badge">{{ claim.topic }}</span>
+                  <span *ngIf="claim.subTopic" class="subtopic-badge">{{ claim.subTopic }}</span>
+                  <span class="nature-badge">{{ natureLabels[claim.natureOfClaim] }}</span>
+                </div>
+                <div class="review-status">
+                  <span class="badge" [ngClass]="'review-' + claim.reviewStatus">
+                    {{ reviewStatusLabels[claim.reviewStatus] }}
+                  </span>
+                </div>
+              </div>
+
+              <p class="claim-text">{{ claim.claimText }}</p>
+
+              <div *ngIf="claim.contextOrTimestamp" class="claim-context">
+                <strong>Context / Timestamp:</strong> {{ claim.contextOrTimestamp }}
+              </div>
+
+              <!-- M3 Deterministic Comparison Badges -->
+              <div class="m3-comparison-box">
+                <div *ngIf="claim.supportingClaimId" class="comparison-item support">
+                  <span class="comp-label">✓ Supports M3 Knowledge Claim:</span>
+                  <span class="comp-text">"{{ claim.supportingClaimText }}"</span>
+                </div>
+                <div *ngIf="claim.conflictingClaimId" class="comparison-item conflict">
+                  <span class="comp-label">⚡ Conflicts with M3 Knowledge Claim:</span>
+                  <span class="comp-text">"{{ claim.conflictingClaimText }}"</span>
+                </div>
+                <div *ngIf="!claim.supportingClaimId && !claim.conflictingClaimId" class="comparison-item neutral">
+                  <span class="comp-label">✦ New Scientific Territory:</span> No direct M3 supporting/conflicting claim.
+                </div>
+              </div>
+
+              <div *ngIf="claim.coachNotes" class="coach-notes-box">
+                <strong>Coach Notes:</strong> {{ claim.coachNotes }}
+              </div>
+
+              <div class="claim-actions">
+                <button class="btn btn-sm btn-primary" (click)="openReviewModal(claim)">
+                  {{ claim.reviewStatus === 1 ? 'Review Claim' : 'Edit Review' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit Ingestion Modal -->
+  <div *ngIf="showSubmitModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Ingest Domain Expert Content</h3>
+        <button class="close-btn" (click)="showSubmitModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Content URL *</label>
+          <input type="url" [(ngModel)]="submitUrl" placeholder="https://www.youtube.com/watch?v=... or https://article.com/..." class="form-control" />
+          <small class="form-hint">YouTube videos extract auto-transcripts via yt-dlp without downloading video files. Web articles extract clean text.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Content Title (Optional)</label>
+          <input type="text" [(ngModel)]="submitTitle" placeholder="Auto-detected if left empty" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Link to Expert Source (Optional)</label>
+          <select [(ngModel)]="submitSourceId" class="form-control">
+            <option [ngValue]="null">-- General / Unspecified Source --</option>
+            <option *ngFor="let s of sources" [ngValue]="s.id">{{ s.name }} ({{ s.channelOrPublication }})</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Content Type Override</label>
+          <select [(ngModel)]="submitContentType" class="form-control">
+            <option [ngValue]="1">YouTube Video</option>
+            <option [ngValue]="2">Web Article / Transcript</option>
+            <option [ngValue]="3">Podcast Transcript</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showSubmitModal = false" [disabled]="isSubmitting">Cancel</button>
+        <button class="btn btn-primary" (click)="onSubmitIngestion()" [disabled]="isSubmitting">
+          {{ isSubmitting ? 'Submitting...' : 'Start Ingestion' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Source Modal -->
+  <div *ngIf="showSourceModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add Recognized Expert Source</h3>
+        <button class="close-btn" (click)="showSourceModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Expert / Author Name *</label>
+          <input type="text" [(ngModel)]="newSourceName" placeholder="e.g. Dr. Brad Schoenfeld" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Channel / Publication *</label>
+          <input type="text" [(ngModel)]="newSourceChannel" placeholder="e.g. Look Great Naked / YouTube" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Primary Platform</label>
+          <select [(ngModel)]="newSourcePlatform" class="form-control">
+            <option [ngValue]="1">YouTube</option>
+            <option [ngValue]="2">Web Article</option>
+            <option [ngValue]="3">Podcast</option>
+            <option [ngValue]="4">Book</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Primary Domain *</label>
+          <input type="text" [(ngModel)]="newSourceDomain" placeholder="e.g. Hypertrophy, Biomechanics, Sports Nutrition" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Credibility Tier</label>
+          <select [(ngModel)]="newSourceCredibility" class="form-control">
+            <option [ngValue]="1">High (Peer-Reviewed / Elite)</option>
+            <option [ngValue]="2">Medium (Established Coach)</option>
+            <option [ngValue]="3">Low / Unverified</option>
+            <option [ngValue]="4">Practitioner / Field Expert</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bio / Context</label>
+          <textarea [(ngModel)]="newSourceBio" rows="3" placeholder="Brief expert credentials and domain focus..." class="form-control"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showSourceModal = false">Cancel</button>
+        <button class="btn btn-primary" (click)="onCreateSource()">Save Source</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Claim Modal -->
+  <div *ngIf="selectedClaimForReview" class="modal-backdrop">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>Coach Review: Claim</h3>
+        <button class="close-btn" (click)="selectedClaimForReview = null">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="review-claim-preview">
+          <div class="claim-topic">
+            <span class="topic-badge">{{ selectedClaimForReview.topic }}</span>
+            <span *ngIf="selectedClaimForReview.subTopic" class="subtopic-badge">{{ selectedClaimForReview.subTopic }}</span>
+          </div>
+          <p class="claim-quote">"{{ selectedClaimForReview.claimText }}"</p>
+        </div>
+
+        <div class="form-group">
+          <label>Review Decision *</label>
+          <div class="radio-options">
+            <label><input type="radio" [(ngModel)]="reviewDecision" [value]="2" /> Approve & Integrate into Knowledge Base</label>
+            <label><input type="radio" [(ngModel)]="reviewDecision" [value]="3" /> Reject</label>
+            <label><input type="radio" [(ngModel)]="reviewDecision" [value]="4" /> Defer / Bookmark for Later</label>
+          </div>
+        </div>
+
+        <div *ngIf="reviewDecision === 2" class="approval-fields">
+          <div class="form-group">
+            <label>Knowledge Base Integration Strategy</label>
+            <div class="checkbox-option">
+              <label>
+                <input type="checkbox" [(ngModel)]="reviewCreateNewKnowledgeClaim" />
+                Create new Provisional Knowledge Claim (Status: Provisional, EvidenceLevel: ExpertConsensus)
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" *ngIf="reviewCreateNewKnowledgeClaim">
+            <label>Question / Key Hypothesis</label>
+            <input type="text" [(ngModel)]="reviewQuestion" class="form-control" />
+          </div>
+
+          <div class="form-group">
+            <label>Practitioner Nuances / Gym-Floor Observation</label>
+            <textarea [(ngModel)]="reviewPractitionerNotes" rows="2" placeholder="Practical nuances observed in real-world training..." class="form-control"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Egypt-Specific Localization Notes</label>
+            <textarea [(ngModel)]="reviewEgyptSpecificNotes" rows="2" placeholder="Equipment differences in Egyptian gyms, local Egyptian food staples, cultural adherence..." class="form-control"></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Coach Decision Notes</label>
+          <textarea [(ngModel)]="reviewNotes" rows="2" placeholder="Rationale for approval or rejection..." class="form-control"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="selectedClaimForReview = null">Cancel</button>
+        <button class="btn btn-primary" (click)="onSaveClaimReview()">Save Decision</button>
+      </div>
+    </div>
+  </div>
+</div>

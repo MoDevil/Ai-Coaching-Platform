@@ -44,6 +44,10 @@ public class KnowledgeClaimConfiguration : IEntityTypeConfiguration<KnowledgeCla
         builder.Property(kc => kc.Population).HasColumnName("population").HasMaxLength(500);
         builder.Property(kc => kc.Limitations).HasColumnName("limitations");
         builder.Property(kc => kc.PracticalApplication).HasColumnName("practical_application");
+        builder.Property(kc => kc.ExpertConsensus).HasColumnName("expert_consensus");
+        builder.Property(kc => kc.ExpertDisagreements).HasColumnName("expert_disagreements");
+        builder.Property(kc => kc.PractitionerNotes).HasColumnName("practitioner_notes");
+        builder.Property(kc => kc.EgyptSpecificNotes).HasColumnName("egypt_specific_notes");
         builder.Property(kc => kc.ExerciseId).HasColumnName("exercise_id");
         builder.Property(kc => kc.ReviewedAtUtc).HasColumnName("reviewed_at_utc");
         builder.Property(kc => kc.ReviewedBy).HasColumnName("reviewed_by").HasMaxLength(200);

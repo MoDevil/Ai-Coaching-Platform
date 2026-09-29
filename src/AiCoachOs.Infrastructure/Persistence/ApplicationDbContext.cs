@@ -82,6 +82,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<AiCoachOs.Domain.Photos.ClientPhoto> ClientPhotosDbSet => Set<AiCoachOs.Domain.Photos.ClientPhoto>();
     public DbSet<AiCoachOs.Domain.Videos.ClientVideo> ClientVideosDbSet => Set<AiCoachOs.Domain.Videos.ClientVideo>();
+    public DbSet<AiCoachOs.Domain.ExpertIngestion.ExpertSource> ExpertSourcesDbSet => Set<AiCoachOs.Domain.ExpertIngestion.ExpertSource>();
+    public DbSet<AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion> ExpertContentIngestionsDbSet => Set<AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion>();
+    public DbSet<AiCoachOs.Domain.ExpertIngestion.ExpertClaim> ExpertClaimsDbSet => Set<AiCoachOs.Domain.ExpertIngestion.ExpertClaim>();
 
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
@@ -96,6 +99,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     IQueryable<AiCoachOs.Domain.Photos.ClientPhoto> IApplicationDbContext.ClientPhotos => ClientPhotosDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.Videos.ClientVideo> IApplicationDbContext.ClientVideos => ClientVideosDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.ExpertIngestion.ExpertSource> IApplicationDbContext.ExpertSources => ExpertSourcesDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion> IApplicationDbContext.ExpertContentIngestions => ExpertContentIngestionsDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.ExpertIngestion.ExpertClaim> IApplicationDbContext.ExpertClaims => ExpertClaimsDbSet.AsNoTracking();
 
     IQueryable<Exercise> IApplicationDbContext.Exercises => ExercisesDbSet.AsNoTracking();
     IQueryable<Muscle> IApplicationDbContext.Muscles => MusclesDbSet.AsNoTracking();
@@ -596,6 +602,44 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
             .Include(v => v.ObservationRecord)
             .Include(v => v.Exercise)
             .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+    }
+
+    public async Task AddExpertSourceAsync(AiCoachOs.Domain.ExpertIngestion.ExpertSource source, CancellationToken cancellationToken = default)
+    {
+        await ExpertSourcesDbSet.AddAsync(source, cancellationToken);
+    }
+
+    public async Task AddExpertContentIngestionAsync(AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion ingestion, CancellationToken cancellationToken = default)
+    {
+        await ExpertContentIngestionsDbSet.AddAsync(ingestion, cancellationToken);
+    }
+
+    public async Task AddExpertClaimAsync(AiCoachOs.Domain.ExpertIngestion.ExpertClaim claim, CancellationToken cancellationToken = default)
+    {
+        await ExpertClaimsDbSet.AddAsync(claim, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.ExpertIngestion.ExpertSource?> FindExpertSourceByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ExpertSourcesDbSet.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion?> FindExpertContentIngestionByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ExpertContentIngestionsDbSet
+            .Include(i => i.Source)
+            .Include(i => i.Claims)
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+    }
+
+    public async Task<AiCoachOs.Domain.ExpertIngestion.ExpertClaim?> FindExpertClaimByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ExpertClaimsDbSet
+            .Include(c => c.Ingestion)
+            .Include(c => c.SupportingClaim)
+            .Include(c => c.ConflictingClaim)
+            .Include(c => c.ApprovedKnowledgeClaim)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

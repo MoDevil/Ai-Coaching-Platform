@@ -153,6 +153,12 @@ public static class DependencyInjection
         services.AddSingleton<AiCoachOs.Application.Videos.Interfaces.IVideoAnalysisJobService, AiCoachOs.Infrastructure.Videos.VideoAnalysisJobService>();
         services.AddScoped<AiCoachOs.Application.Videos.Interfaces.IVideoAnalysisService, AiCoachOs.Infrastructure.Videos.VideoAnalysisService>();
 
+        // M17 Expert Content Ingestion Services
+        services.AddHttpClient<AiCoachOs.Application.ExpertIngestion.Interfaces.IContentFetcherService, AiCoachOs.Infrastructure.ExpertIngestion.ContentFetcherService>();
+        services.AddScoped<AiCoachOs.Application.ExpertIngestion.Interfaces.IClaimExtractionService, AiCoachOs.Infrastructure.ExpertIngestion.ClaimExtractionService>();
+        services.AddScoped<AiCoachOs.Application.ExpertIngestion.Interfaces.IConflictDetectionService, AiCoachOs.Infrastructure.ExpertIngestion.ConflictDetectionService>();
+        services.AddScoped<AiCoachOs.Application.ExpertIngestion.Interfaces.IExpertIngestionService, AiCoachOs.Infrastructure.ExpertIngestion.ExpertIngestionService>();
+
         return services;
     }
 }

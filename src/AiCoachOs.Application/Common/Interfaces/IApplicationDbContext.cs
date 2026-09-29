@@ -74,6 +74,9 @@ public interface IApplicationDbContext
 
     IQueryable<AiCoachOs.Domain.Photos.ClientPhoto> ClientPhotos { get; }
     IQueryable<AiCoachOs.Domain.Videos.ClientVideo> ClientVideos { get; }
+    IQueryable<AiCoachOs.Domain.ExpertIngestion.ExpertSource> ExpertSources { get; }
+    IQueryable<AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion> ExpertContentIngestions { get; }
+    IQueryable<AiCoachOs.Domain.ExpertIngestion.ExpertClaim> ExpertClaims { get; }
 
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
@@ -115,6 +118,10 @@ public interface IApplicationDbContext
     Task AddClientVideoAsync(AiCoachOs.Domain.Videos.ClientVideo video, CancellationToken cancellationToken = default);
     void RemoveClientVideo(AiCoachOs.Domain.Videos.ClientVideo video);
 
+    Task AddExpertSourceAsync(AiCoachOs.Domain.ExpertIngestion.ExpertSource source, CancellationToken cancellationToken = default);
+    Task AddExpertContentIngestionAsync(AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion ingestion, CancellationToken cancellationToken = default);
+    Task AddExpertClaimAsync(AiCoachOs.Domain.ExpertIngestion.ExpertClaim claim, CancellationToken cancellationToken = default);
+
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
     Task<Client?> FindClientByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -149,6 +156,10 @@ public interface IApplicationDbContext
 
     Task<AiCoachOs.Domain.Photos.ClientPhoto?> FindClientPhotoByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Videos.ClientVideo?> FindClientVideoByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<AiCoachOs.Domain.ExpertIngestion.ExpertSource?> FindExpertSourceByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion?> FindExpertContentIngestionByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.ExpertIngestion.ExpertClaim?> FindExpertClaimByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

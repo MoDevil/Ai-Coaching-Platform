@@ -22,6 +22,26 @@ public class KnowledgeClaim : Entity<Guid>
     public ClaimStatus Status { get; private set; }
 
     /// <summary>
+    /// M17 additive field: synthesized consensus among top domain experts.
+    /// </summary>
+    public string? ExpertConsensus { get; private set; }
+
+    /// <summary>
+    /// M17 additive field: documented disagreements or edge cases among experts.
+    /// </summary>
+    public string? ExpertDisagreements { get; private set; }
+
+    /// <summary>
+    /// M17 additive field: gym-floor practitioner nuances and coaching observations.
+    /// </summary>
+    public string? PractitionerNotes { get; private set; }
+
+    /// <summary>
+    /// M17 additive field: Egyptian context (equipment availability, local foods, cultural factors).
+    /// </summary>
+    public string? EgyptSpecificNotes { get; private set; }
+
+    /// <summary>
     /// Optional link to an Exercise. Nullable for general coaching/scientific principles.
     /// Note: Associating a claim with an exercise does NOT mutate Exercise properties
     /// or alter its MetadataStatus.
@@ -124,6 +144,19 @@ public class KnowledgeClaim : Entity<Guid>
     public void UpdateStatus(ClaimStatus newStatus)
     {
         Status = newStatus;
+        MarkUpdated();
+    }
+
+    public void UpdateExpertNuances(
+        string? expertConsensus, 
+        string? expertDisagreements, 
+        string? practitionerNotes, 
+        string? egyptSpecificNotes)
+    {
+        if (expertConsensus != null) ExpertConsensus = expertConsensus.Trim();
+        if (expertDisagreements != null) ExpertDisagreements = expertDisagreements.Trim();
+        if (practitionerNotes != null) PractitionerNotes = practitionerNotes.Trim();
+        if (egyptSpecificNotes != null) EgyptSpecificNotes = egyptSpecificNotes.Trim();
         MarkUpdated();
     }
 }
