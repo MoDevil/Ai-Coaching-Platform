@@ -144,6 +144,10 @@ public static class DependencyInjection
 
         services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiReasoningService, AiCoachOs.Infrastructure.Ai.AiReasoningService>();
 
+        // M15 Photo Vision Architecture Services
+        services.AddScoped<AiCoachOs.Application.Photos.Interfaces.IPhotoStorageService, AiCoachOs.Infrastructure.Photos.LocalStorageService>();
+        services.AddScoped<AiCoachOs.Application.Photos.Interfaces.IPhotoVisionService, AiCoachOs.Infrastructure.Photos.PhotoVisionService>();
+
         return services;
     }
 }

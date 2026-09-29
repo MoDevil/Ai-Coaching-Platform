@@ -1,0 +1,180 @@
+<div class="photos-container">
+  <div class="photos-header">
+    <div>
+      <h2>Client Physique Progress & Vision Observations</h2>
+      <p class="subtitle">Secure, privacy-first photo tracking with deterministic safety boundaries.</p>
+    </div>
+    <button class="btn btn-primary" (click)="showUploadModal = true">+ Upload Progress Photo</button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+
+  <div class="photos-layout" *ngIf="photos.length > 0; else noPhotos">
+    <!-- Photo Timeline / Thumbnails -->
+    <div class="timeline-sidebar">
+      <h3>Timeline ({{ photos.length }})</h3>
+      <div class="timeline-list">
+        <div
+          *ngFor="let photo of photos"
+          class="timeline-card"
+          [class.active]="selectedPhoto?.id === photo.id"
+          (click)="selectPhoto(photo)">
+          <div class="card-badge">{{ getSetTypeLabel(photo.photoSetType) }}</div>
+          <div class="card-date">{{ photo.takenAt | date:'mediumDate' }}</div>
+          <div class="card-status" *ngIf="photo.hasObservation">
+            <span class="badge badge-success">Observed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Photo Viewer & Vision Observations -->
+    <div class="photo-detail-view" *ngIf="selectedPhoto">
+      <div class="detail-header">
+        <div>
+          <h3>{{ getSetTypeLabel(selectedPhoto.photoSetType) }} — {{ selectedPhoto.takenAt | date:'longDate' }}</h3>
+          <span class="meta-tag">Size: {{ (selectedPhoto.fileSizeBytes / 1024).toFixed(1) }} KB</span>
+          <span class="meta-tag">MIME: {{ selectedPhoto.mimeType }}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" (click)="deleteSelectedPhoto()">Delete Photo</button>
+      </div>
+
+      <!-- Photo Display -->
+      <div class="viewer-box">
+        <div *ngIf="selectedPhotoUrl" class="image-wrapper">
+          <img [src]="selectedPhotoUrl" alt="Client Physique Photo" class="main-photo" />
+          <p class="url-hint">Protected signed URL (15-min expiry). EXIF purged.</p>
+        </div>
+        <div *ngIf="!selectedPhotoUrl" class="image-placeholder">
+          <span>Secure Photo Stored (UUID Protected)</span>
+        </div>
+      </div>
+
+      <!-- Vision Analysis Trigger / Observations -->
+      <div class="analysis-section">
+        <div class="analysis-controls" *ngIf="!selectedObservation">
+          <h4>AI Vision Observation</h4>
+          <p class="info-text">
+            Extracts qualitative structural symmetry, posture, and muscular development observations without medical diagnosis or body-fat estimations.
+          </p>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Optional Baseline Comparison Photo:</label>
+              <select [(ngModel)]="selectedBaselineId" class="form-control">
+                <option value="">No baseline (Current photo only)</option>
+                <ng-container *ngFor="let p of photos">
+                  <option *ngIf="p.id !== selectedPhoto.id" [value]="p.id">
+                    {{ getSetTypeLabel(p.photoSetType) }} ({{ p.takenAt | date:'shortDate' }})
+                  </option>
+                </ng-container>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Coach Note / Request Context:</label>
+              <input type="text" [(ngModel)]="coachPrompt" class="form-control" placeholder="e.g. Focus on upper back framing" />
+            </div>
+          </div>
+
+          <button class="btn btn-secondary" [disabled]="isAnalyzing" (click)="triggerAnalysis()">
+            {{ isAnalyzing ? 'Analyzing Photo...' : 'Run Vision Analysis' }}
+          </button>
+        </div>
+
+        <!-- Structured Observation Result -->
+        <div class="observation-card" *ngIf="selectedObservation">
+          <div class="obs-header">
+            <h4>Physique Observation Record (M13 Memory)</h4>
+            <span class="badge badge-provisional">Provisional Memory</span>
+          </div>
+
+          <div class="obs-grid">
+            <div class="obs-field">
+              <span class="field-label">General Observations:</span>
+              <p>{{ selectedObservation.generalObservations }}</p>
+            </div>
+
+            <div class="obs-field">
+              <span class="field-label">Apparent Symmetry:</span>
+              <p>{{ selectedObservation.apparentSymmetryNotes }}</p>
+            </div>
+
+            <div class="obs-field">
+              <span class="field-label">Posture & Alignment:</span>
+              <p>{{ selectedObservation.postureObservations }}</p>
+            </div>
+
+            <div class="obs-field">
+              <span class="field-label">Muscular Development:</span>
+              <p>{{ selectedObservation.muscularDevelopmentNotes }}</p>
+            </div>
+
+            <div class="obs-field" *ngIf="selectedObservation.comparisonNotes">
+              <span class="field-label">Baseline Comparison:</span>
+              <p>{{ selectedObservation.comparisonNotes }}</p>
+            </div>
+          </div>
+
+          <div class="limitations-banner">
+            <strong>Mandatory Vision Disclaimer:</strong>
+            <p>{{ selectedObservation.limitationsStatement }}</p>
+            <span class="confidence-note">Confidence: {{ selectedObservation.confidenceStatement }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noPhotos>
+    <div class="empty-state">
+      <p>No progress photos uploaded yet for this client.</p>
+      <button class="btn btn-primary" (click)="showUploadModal = true">Upload First Photo</button>
+    </div>
+  </ng-template>
+
+  <!-- Upload Modal -->
+  <div class="modal-backdrop" *ngIf="showUploadModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Upload Physique Progress Photo</h3>
+        <button class="close-btn" (click)="showUploadModal = false">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Photo Framing / Set Type:</label>
+          <select [(ngModel)]="uploadSetType" class="form-control">
+            <option [value]="PhotoSetType.Front">Front View</option>
+            <option [value]="PhotoSetType.Side">Side View</option>
+            <option [value]="PhotoSetType.Back">Back View</option>
+            <option [value]="PhotoSetType.Custom">Custom Framing</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Date Taken:</label>
+          <input type="date" [(ngModel)]="uploadTakenAt" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Photo File (JPEG, PNG, WebP — max 10MB):</label>
+          <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Optional Notes (max 500 chars):</label>
+          <textarea [(ngModel)]="uploadNotes" maxlength="500" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showUploadModal = false">Cancel</button>
+        <button class="btn btn-primary" [disabled]="!selectedFile || isLoading" (click)="submitUpload()">
+          {{ isLoading ? 'Uploading & Sanitizing...' : 'Upload Photo' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

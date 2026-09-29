@@ -72,6 +72,8 @@ public interface IApplicationDbContext
     IQueryable<AiCoachOs.Domain.Memory.AIRecommendationRecord> AIRecommendationRecords { get; }
     IQueryable<AiCoachOs.Domain.Memory.ClientAnonymizationLog> ClientAnonymizationLogs { get; }
 
+    IQueryable<AiCoachOs.Domain.Photos.ClientPhoto> ClientPhotos { get; }
+
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
     Task AddConsentRecordAsync(ConsentRecord consentRecord, CancellationToken cancellationToken = default);
@@ -106,6 +108,9 @@ public interface IApplicationDbContext
     Task AddAIRecommendationRecordAsync(AiCoachOs.Domain.Memory.AIRecommendationRecord recommendation, CancellationToken cancellationToken = default);
     Task AddClientAnonymizationLogAsync(AiCoachOs.Domain.Memory.ClientAnonymizationLog log, CancellationToken cancellationToken = default);
 
+    Task AddClientPhotoAsync(AiCoachOs.Domain.Photos.ClientPhoto photo, CancellationToken cancellationToken = default);
+    void RemoveClientPhoto(AiCoachOs.Domain.Photos.ClientPhoto photo);
+
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
     Task<Client?> FindClientByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -137,6 +142,8 @@ public interface IApplicationDbContext
     Task<AiCoachOs.Domain.Memory.ClientMemoryConflict?> FindClientMemoryConflictByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Memory.ClientMemorySnapshot?> FindClientMemorySnapshotByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AiCoachOs.Domain.Memory.AIRecommendationRecord?> FindAIRecommendationRecordByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<AiCoachOs.Domain.Photos.ClientPhoto?> FindClientPhotoByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

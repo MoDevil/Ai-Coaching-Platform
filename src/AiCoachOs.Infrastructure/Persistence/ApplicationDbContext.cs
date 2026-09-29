@@ -80,6 +80,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<AiCoachOs.Domain.Memory.AIRecommendationRecord> AIRecommendationRecordsDbSet => Set<AiCoachOs.Domain.Memory.AIRecommendationRecord>();
     public DbSet<AiCoachOs.Domain.Memory.ClientAnonymizationLog> ClientAnonymizationLogsDbSet => Set<AiCoachOs.Domain.Memory.ClientAnonymizationLog>();
 
+    public DbSet<AiCoachOs.Domain.Photos.ClientPhoto> ClientPhotosDbSet => Set<AiCoachOs.Domain.Photos.ClientPhoto>();
+
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
     IQueryable<Client> IApplicationDbContext.Clients => ClientsDbSet.AsNoTracking();
@@ -90,6 +92,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<AiCoachOs.Domain.Memory.ClientMemorySnapshot> IApplicationDbContext.ClientMemorySnapshots => ClientMemorySnapshotsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.Memory.AIRecommendationRecord> IApplicationDbContext.AIRecommendationRecords => AIRecommendationRecordsDbSet.AsNoTracking();
     IQueryable<AiCoachOs.Domain.Memory.ClientAnonymizationLog> IApplicationDbContext.ClientAnonymizationLogs => ClientAnonymizationLogsDbSet.AsNoTracking();
+
+    IQueryable<AiCoachOs.Domain.Photos.ClientPhoto> IApplicationDbContext.ClientPhotos => ClientPhotosDbSet.AsNoTracking();
 
     IQueryable<Exercise> IApplicationDbContext.Exercises => ExercisesDbSet.AsNoTracking();
     IQueryable<Muscle> IApplicationDbContext.Muscles => MusclesDbSet.AsNoTracking();
@@ -555,6 +559,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     {
         return await AIRecommendationRecordsDbSet
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
+    public async Task AddClientPhotoAsync(AiCoachOs.Domain.Photos.ClientPhoto photo, CancellationToken cancellationToken = default)
+    {
+        await ClientPhotosDbSet.AddAsync(photo, cancellationToken);
+    }
+
+    public void RemoveClientPhoto(AiCoachOs.Domain.Photos.ClientPhoto photo)
+    {
+        ClientPhotosDbSet.Remove(photo);
+    }
+
+    public async Task<AiCoachOs.Domain.Photos.ClientPhoto?> FindClientPhotoByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ClientPhotosDbSet
+            .Include(p => p.ObservationRecord)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -136,12 +136,95 @@ public class AnthropicAiProvider : IAiProvider
         return ParseAnthropicResponse(responseJson, model);
     }
 
-    public Task<AiCompletionResponse> AnalyzeImageAsync(
-        byte[] imageBytes, 
-        string prompt, 
+    public async Task<AiCompletionResponse> AnalyzeImageAsync(
+        AiImageRequest request, 
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("Image analysis is reserved for future milestones and not implemented in M14.");
+        if (string.IsNullOrWhiteSpace(_settings.AnthropicApiKey))
+        {
+            _logger.LogError("Anthropic API key is not configured.");
+            return new AiCompletionResponse
+            {
+                IsSuccess = false,
+                ProviderName = ProviderName,
+                ModelName = DefaultModelName,
+                ErrorMessage = "Anthropic API key is missing or not configured."
+            };
+        }
+
+        var model = request.Model ?? DefaultModelName;
+        var maxTokens = request.MaxTokens ?? _settings.MaxTokens;
+
+        var contentBlocks = new List<object>();
+
+        foreach (var img in request.Images)
+        {
+            contentBlocks.Add(new
+            {
+                type = "image",
+                source = new
+                {
+                    type = "base64",
+                    media_type = img.MimeType,
+                    data = Convert.ToBase64String(img.ImageData)
+                }
+            });
+        }
+
+        contentBlocks.Add(new
+        {
+            type = "text",
+            text = request.UserPrompt
+        });
+
+        var requestBody = new
+        {
+            model,
+            max_tokens = maxTokens,
+            temperature = 0.2,
+            system = request.SystemPrompt,
+            messages = new[]
+            {
+                new { role = "user", content = contentBlocks }
+            }
+        };
+
+        const string endpoint = "https://api.anthropic.com/v1/messages";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            httpRequest.Headers.Add("x-api-key", _settings.AnthropicApiKey);
+            httpRequest.Headers.Add("anthropic-version", "2023-06-01");
+            httpRequest.Content = JsonContent.Create(requestBody);
+
+            var responseMessage = await _httpClient.SendAsync(httpRequest, cancellationToken);
+            if (!responseMessage.IsSuccessStatusCode)
+            {
+                var errorBody = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Anthropic Vision API error {StatusCode}: {ErrorBody}", responseMessage.StatusCode, errorBody);
+                return new AiCompletionResponse
+                {
+                    IsSuccess = false,
+                    ProviderName = ProviderName,
+                    ModelName = model,
+                    ErrorMessage = $"Anthropic Vision API error: {responseMessage.StatusCode} - {errorBody}"
+                };
+            }
+
+            var responseJson = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
+            return ParseAnthropicResponse(responseJson, model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed calling Anthropic Vision API.");
+            return new AiCompletionResponse
+            {
+                IsSuccess = false,
+                ProviderName = ProviderName,
+                ModelName = model,
+                ErrorMessage = $"Anthropic Vision API connection error: {ex.Message}"
+            };
+        }
     }
 
     public Task<AiCompletionResponse> AnalyzeVideoAsync(
@@ -149,7 +232,7 @@ public class AnthropicAiProvider : IAiProvider
         string prompt, 
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("Video analysis is reserved for future milestones and not implemented in M14.");
+        throw new NotImplementedException("Video analysis is reserved for future milestones (M16) and not implemented in M15.");
     }
 
     private AiCompletionResponse ParseAnthropicResponse(string responseJson, string model)

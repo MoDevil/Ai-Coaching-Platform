@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using AiCoachOs.Application.Ai.Dtos;
 using AiCoachOs.Application.Ai.Interfaces;
+using AiCoachOs.Application.Photos.Dtos;
 
 namespace AiCoachOs.Infrastructure.Ai;
 
@@ -49,11 +50,37 @@ public class MockAiProvider : IAiProvider
     }
 
     public Task<AiCompletionResponse> AnalyzeImageAsync(
-        byte[] imageBytes, 
-        string prompt, 
+        AiImageRequest request, 
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("Image analysis is reserved for future milestones and not implemented in M14.");
+        var hasBaseline = request.Images.Count > 1;
+
+        var observationResult = new PhysiqueObservationResult
+        {
+            GeneralObservations = "Client presents consistent framing and standing posture under standard lighting.",
+            ApparentSymmetryNotes = "Bilateral shoulder and clavicle height appear visually aligned.",
+            PostureObservations = "Standing sagittal and frontal plane alignment visually observable.",
+            MuscularDevelopmentNotes = "Upper and lower torso musculature shows clear visual definition.",
+            ComparisonNotes = hasBaseline
+                ? "Qualitative comparison against baseline demonstrates visual progress in upper body development."
+                : "Baseline comparison was unavailable.",
+            LimitationsStatement = "Visual observations are qualitative estimates from 2D photos and do not constitute diagnostic or quantitative composition measurement.",
+            CoachActionRequired = true,
+            ConfidenceStatement = "Qualitative observational assessment based on available visual lighting and posture."
+        };
+
+        var response = new AiCompletionResponse
+        {
+            IsSuccess = true,
+            ProviderName = ProviderName,
+            ModelName = DefaultModelName,
+            TokensUsed = 400,
+            RecommendationText = System.Text.Json.JsonSerializer.Serialize(observationResult),
+            RationaleText = "Deterministic mock vision analysis completed.",
+            ConfidenceStatement = observationResult.ConfidenceStatement
+        };
+
+        return Task.FromResult(response);
     }
 
     public Task<AiCompletionResponse> AnalyzeVideoAsync(
@@ -61,6 +88,6 @@ public class MockAiProvider : IAiProvider
         string prompt, 
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("Video analysis is reserved for future milestones and not implemented in M14.");
+        throw new NotImplementedException("Video analysis is reserved for future milestones (M16) and not implemented in M15.");
     }
 }

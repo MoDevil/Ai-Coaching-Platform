@@ -43,13 +43,11 @@ public class AiReasoningServiceUnitTests
     }
 
     [Fact]
-    public void MockAiProvider_ImageAndVideoStubs_ThrowNotImplementedException()
+    public void MockAiProvider_VideoStub_ThrowsNotImplementedException()
     {
         var provider = new MockAiProvider();
-        var actImage = () => provider.AnalyzeImageAsync(Array.Empty<byte>(), "prompt");
         var actVideo = () => provider.AnalyzeVideoAsync(Array.Empty<byte>(), "prompt");
 
-        actImage.Should().ThrowAsync<NotImplementedException>();
         actVideo.Should().ThrowAsync<NotImplementedException>();
     }
 

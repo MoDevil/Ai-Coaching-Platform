@@ -13,7 +13,8 @@ public enum MemoryCategory
     AdherenceNote = 9,
     RecoveryNote = 10,
     GeneralNote = 11,
-    UnresolvedQuestion = 12
+    UnresolvedQuestion = 12,
+    PhysiqueObservation = 13
 }
 
 public enum MemorySourceType

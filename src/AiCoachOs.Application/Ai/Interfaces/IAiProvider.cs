@@ -11,12 +11,11 @@ public interface IAiProvider
         AiCompletionRequest request, 
         CancellationToken cancellationToken = default);
 
-    // Interface stubs for future milestones (M15 / M16) — Not implemented in M14
     Task<AiCompletionResponse> AnalyzeImageAsync(
-        byte[] imageBytes, 
-        string prompt, 
+        AiImageRequest request, 
         CancellationToken cancellationToken = default);
 
+    // Interface stub for M16 Video Analysis
     Task<AiCompletionResponse> AnalyzeVideoAsync(
         byte[] videoBytes, 
         string prompt, 

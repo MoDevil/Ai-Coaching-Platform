@@ -4,6 +4,7 @@ using AiCoachOs.Application.Common.Interfaces;
 using AiCoachOs.Application.Memory.Dtos;
 using AiCoachOs.Application.Memory.Engine;
 using AiCoachOs.Application.Memory.Interfaces;
+using AiCoachOs.Application.Photos.Interfaces;
 using AiCoachOs.Domain.Memory;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,15 +15,18 @@ public class ClientMemoryService : IClientMemoryService
     private readonly IApplicationDbContext _dbContext;
     private readonly ICurrentCoachService _currentCoachService;
     private readonly IClientMemoryConflictDetector _conflictDetector;
+    private readonly IPhotoStorageService? _photoStorageService;
 
     public ClientMemoryService(
         IApplicationDbContext dbContext,
         ICurrentCoachService currentCoachService,
-        IClientMemoryConflictDetector conflictDetector)
+        IClientMemoryConflictDetector conflictDetector,
+        IPhotoStorageService? photoStorageService = null)
     {
         _dbContext = dbContext;
         _currentCoachService = currentCoachService;
         _conflictDetector = conflictDetector;
+        _photoStorageService = photoStorageService;
     }
 
     public async Task<IReadOnlyList<ClientMemoryRecordDto>> GetClientMemoriesAsync(
@@ -529,6 +533,25 @@ public class ClientMemoryService : IClientMemoryService
             {
                 tracked.Anonymize();
                 count++;
+            }
+        }
+
+        // Photo Anonymization: Purge object storage files and mark ClientPhoto shells as anonymized
+        var photoIds = await _dbContext.ClientPhotos
+            .Where(p => p.ClientId == clientId && p.CoachId == coachId && !p.IsAnonymized)
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var photoId in photoIds)
+        {
+            var trackedPhoto = await _dbContext.FindClientPhotoByIdAsync(photoId, cancellationToken);
+            if (trackedPhoto != null && !trackedPhoto.IsAnonymized)
+            {
+                if (_photoStorageService != null && !string.IsNullOrWhiteSpace(trackedPhoto.StorageKey) && trackedPhoto.StorageKey != "ANONYMIZED")
+                {
+                    await _photoStorageService.DeletePhotoAsync(trackedPhoto.StorageKey, cancellationToken);
+                }
+                trackedPhoto.MarkAnonymized();
             }
         }
 
