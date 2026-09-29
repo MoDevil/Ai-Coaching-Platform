@@ -31,9 +31,8 @@ export class ClientPhotosComponent implements OnInit {
 
   // Upload state
   showUploadModal = false;
-  uploadSetType: PhotoSetType = PhotoSetType.Front;
+  uploadSetType: PhotoSetType = PhotoSetType.FrontRelaxed;
   uploadNotes = '';
-  uploadTakenAt: string = new Date().toISOString().substring(0, 10);
   selectedFile: File | null = null;
 
   // Analysis state
@@ -123,7 +122,6 @@ export class ClientPhotosComponent implements OnInit {
         fileBytes: bytes,
         mimeType: this.selectedFile!.type || 'image/jpeg',
         photoSetType: Number(this.uploadSetType),
-        takenAt: this.uploadTakenAt ? new Date(this.uploadTakenAt).toISOString() : undefined,
         notes: this.uploadNotes || undefined
       };
 
@@ -191,10 +189,12 @@ export class ClientPhotosComponent implements OnInit {
 
   getSetTypeLabel(type: PhotoSetType): string {
     switch (type) {
-      case PhotoSetType.Front: return 'Front View';
-      case PhotoSetType.Side: return 'Side View';
-      case PhotoSetType.Back: return 'Back View';
-      case PhotoSetType.Custom: return 'Custom Framing';
+      case PhotoSetType.FrontRelaxed: return 'Front Relaxed';
+      case PhotoSetType.SideRelaxed: return 'Side Relaxed';
+      case PhotoSetType.BackRelaxed: return 'Back Relaxed';
+      case PhotoSetType.FrontFlexed: return 'Front Flexed';
+      case PhotoSetType.SideFlexed: return 'Side Flexed';
+      case PhotoSetType.BackFlexed: return 'Back Flexed';
       default: return 'Standard';
     }
   }

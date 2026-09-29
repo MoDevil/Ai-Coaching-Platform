@@ -21,7 +21,7 @@
           [class.active]="selectedPhoto?.id === photo.id"
           (click)="selectPhoto(photo)">
           <div class="card-badge">{{ getSetTypeLabel(photo.photoSetType) }}</div>
-          <div class="card-date">{{ photo.takenAt | date:'mediumDate' }}</div>
+          <div class="card-date">{{ photo.uploadedAt | date:'mediumDate' }}</div>
           <div class="card-status" *ngIf="photo.hasObservation">
             <span class="badge badge-success">Observed</span>
           </div>
@@ -33,7 +33,7 @@
     <div class="photo-detail-view" *ngIf="selectedPhoto">
       <div class="detail-header">
         <div>
-          <h3>{{ getSetTypeLabel(selectedPhoto.photoSetType) }} — {{ selectedPhoto.takenAt | date:'longDate' }}</h3>
+          <h3>{{ getSetTypeLabel(selectedPhoto.photoSetType) }} — {{ selectedPhoto.uploadedAt | date:'longDate' }}</h3>
           <span class="meta-tag">Size: {{ (selectedPhoto.fileSizeBytes / 1024).toFixed(1) }} KB</span>
           <span class="meta-tag">MIME: {{ selectedPhoto.mimeType }}</span>
         </div>
@@ -66,7 +66,7 @@
                 <option value="">No baseline (Current photo only)</option>
                 <ng-container *ngFor="let p of photos">
                   <option *ngIf="p.id !== selectedPhoto.id" [value]="p.id">
-                    {{ getSetTypeLabel(p.photoSetType) }} ({{ p.takenAt | date:'shortDate' }})
+                    {{ getSetTypeLabel(p.photoSetType) }} ({{ p.uploadedAt | date:'shortDate' }})
                   </option>
                 </ng-container>
               </select>
@@ -146,16 +146,13 @@
         <div class="form-group">
           <label>Photo Framing / Set Type:</label>
           <select [(ngModel)]="uploadSetType" class="form-control">
-            <option [value]="PhotoSetType.Front">Front View</option>
-            <option [value]="PhotoSetType.Side">Side View</option>
-            <option [value]="PhotoSetType.Back">Back View</option>
-            <option [value]="PhotoSetType.Custom">Custom Framing</option>
+            <option [value]="PhotoSetType.FrontRelaxed">Front Relaxed</option>
+            <option [value]="PhotoSetType.SideRelaxed">Side Relaxed</option>
+            <option [value]="PhotoSetType.BackRelaxed">Back Relaxed</option>
+            <option [value]="PhotoSetType.FrontFlexed">Front Flexed</option>
+            <option [value]="PhotoSetType.SideFlexed">Side Flexed</option>
+            <option [value]="PhotoSetType.BackFlexed">Back Flexed</option>
           </select>
-        </div>
-
-        <div class="form-group">
-          <label>Date Taken:</label>
-          <input type="date" [(ngModel)]="uploadTakenAt" class="form-control" />
         </div>
 
         <div class="form-group">

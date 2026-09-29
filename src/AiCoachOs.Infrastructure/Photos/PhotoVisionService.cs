@@ -62,7 +62,6 @@ public class PhotoVisionService : IPhotoVisionService
             storageKey: storageKey,
             mimeType: normalizedMime,
             fileSizeBytes: request.FileBytes.Length,
-            takenAt: request.TakenAt ?? DateTime.UtcNow,
             notes: request.Notes);
 
         await _dbContext.AddClientPhotoAsync(photo, cancellationToken);
@@ -80,7 +79,7 @@ public class PhotoVisionService : IPhotoVisionService
 
         var photos = await _dbContext.ClientPhotos
             .Where(p => p.ClientId == clientId && p.CoachId == coachId && !p.IsAnonymized)
-            .OrderByDescending(p => p.TakenAt)
+            .OrderByDescending(p => p.UploadedAt)
             .ToListAsync(cancellationToken);
 
         return photos.Select(p => new ClientPhotoSummaryDto
@@ -90,7 +89,6 @@ public class PhotoVisionService : IPhotoVisionService
             PhotoSetType = p.PhotoSetType,
             MimeType = p.MimeType,
             FileSizeBytes = p.FileSizeBytes,
-            TakenAt = p.TakenAt,
             UploadedAt = p.UploadedAt,
             HasObservation = p.ObservationRecordId.HasValue,
             ObservationRecordId = p.ObservationRecordId,
@@ -111,15 +109,16 @@ public class PhotoVisionService : IPhotoVisionService
             throw new NotFoundException("ClientPhoto", photoId);
 
         if (photo.IsAnonymized)
-            throw new InvalidOperationException("Cannot generate access URL for an anonymized photo.");
+            throw new InvalidOperationException("Cannot generate a signed URL for an anonymized photo.");
 
-        var signedUrl = await _storageService.GenerateSignedUrlAsync(photo.StorageKey, TimeSpan.FromMinutes(15), cancellationToken);
+        var expiry = TimeSpan.FromMinutes(15);
+        var signedUrl = await _storageService.GenerateSignedUrlAsync(photo.StorageKey, expiry, cancellationToken);
 
         return new SignedPhotoUrlDto
         {
             PhotoId = photo.Id,
             Url = signedUrl,
-            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(15)
+            ExpiresAtUtc = DateTimeOffset.UtcNow.Add(expiry)
         };
     }
 
@@ -135,8 +134,10 @@ public class PhotoVisionService : IPhotoVisionService
         if (photo == null || photo.ClientId != clientId || photo.CoachId != coachId)
             throw new NotFoundException("ClientPhoto", photoId);
 
+        // Delete physical object from storage
         await _storageService.DeletePhotoAsync(photo.StorageKey, cancellationToken);
 
+        // Hard delete photo record
         _dbContext.RemoveClientPhoto(photo);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -157,32 +158,38 @@ public class PhotoVisionService : IPhotoVisionService
         if (photo.IsAnonymized)
             throw new InvalidOperationException("Cannot analyze an anonymized photo.");
 
-        var currentPhotoBytes = await _storageService.DownloadPhotoAsync(photo.StorageKey, cancellationToken);
+        ClientPhoto? baselinePhoto = null;
+        if (request?.BaselinePhotoId.HasValue == true)
+        {
+            baselinePhoto = await _dbContext.FindClientPhotoByIdAsync(request.BaselinePhotoId.Value, cancellationToken);
+            if (baselinePhoto == null || baselinePhoto.ClientId != clientId || baselinePhoto.CoachId != coachId)
+                throw new NotFoundException("BaselineClientPhoto", request.BaselinePhotoId.Value);
 
-        var imagePayloads = new List<AiImagePayload>
+            if (baselinePhoto.IsAnonymized)
+                throw new InvalidOperationException("Cannot compare against an anonymized baseline photo.");
+        }
+
+        // Fetch photo bytes
+        var photoBytes = await _storageService.DownloadPhotoAsync(photo.StorageKey, cancellationToken);
+        var images = new List<AiImagePayload>
         {
             new()
             {
-                ImageData = currentPhotoBytes,
+                ImageData = photoBytes,
                 MimeType = photo.MimeType,
                 Label = $"Current Photo ({photo.PhotoSetType})"
             }
         };
 
-        ClientPhoto? baselinePhoto = null;
-        if (request?.BaselinePhotoId.HasValue == true)
+        if (baselinePhoto != null)
         {
-            baselinePhoto = await _dbContext.FindClientPhotoByIdAsync(request.BaselinePhotoId.Value, cancellationToken);
-            if (baselinePhoto != null && baselinePhoto.ClientId == clientId && !baselinePhoto.IsAnonymized)
+            var baselineBytes = await _storageService.DownloadPhotoAsync(baselinePhoto.StorageKey, cancellationToken);
+            images.Insert(0, new AiImagePayload
             {
-                var baselineBytes = await _storageService.DownloadPhotoAsync(baselinePhoto.StorageKey, cancellationToken);
-                imagePayloads.Add(new AiImagePayload
-                {
-                    ImageData = baselineBytes,
-                    MimeType = baselinePhoto.MimeType,
-                    Label = $"Baseline Comparison Photo ({baselinePhoto.PhotoSetType})"
-                });
-            }
+                ImageData = baselineBytes,
+                MimeType = baselinePhoto.MimeType,
+                Label = $"Baseline Comparison Photo ({baselinePhoto.PhotoSetType})"
+            });
         }
 
         var systemPrompt = BuildVisionSystemPrompt(baselinePhoto != null);
@@ -190,7 +197,7 @@ public class PhotoVisionService : IPhotoVisionService
 
         var aiRequest = new AiImageRequest
         {
-            Images = imagePayloads,
+            Images = images,
             SystemPrompt = systemPrompt,
             UserPrompt = userPrompt,
             MaxTokens = 2048
@@ -213,8 +220,9 @@ public class PhotoVisionService : IPhotoVisionService
             memoryCategory: MemoryCategory.PhysiqueObservation,
             sourceType: MemorySourceType.SystemGenerated,
             content: memoryContentJson,
-            observedAt: photo.TakenAt,
+            observedAt: photo.UploadedAt.UtcDateTime,
             sourceReference: photo.Id.ToString(),
+            sourceDescription: $"AI physique observation — {photo.PhotoSetType} — {photo.UploadedAt:yyyy-MM-dd}",
             explicitConfidence: MemoryConfidenceLevel.Provisional);
 
         await _dbContext.AddClientMemoryRecordAsync(memoryRecord, cancellationToken);
@@ -320,10 +328,10 @@ STRICT SAFETY AND SCOPE BOUNDARIES:
 
     private static string BuildVisionUserPrompt(ClientPhoto photo, ClientPhoto? baselinePhoto, string? coachPrompt)
     {
-        var prompt = $"Analyze the uploaded client progress photo (Set Type: {photo.PhotoSetType}, Taken At: {photo.TakenAt:yyyy-MM-dd}).";
+        var prompt = $"Analyze the uploaded client progress photo (Set Type: {photo.PhotoSetType}, Uploaded At: {photo.UploadedAt:yyyy-MM-dd}).";
         if (baselinePhoto != null)
         {
-            prompt += $" Compare visually against baseline photo (Set Type: {baselinePhoto.PhotoSetType}, Taken At: {baselinePhoto.TakenAt:yyyy-MM-dd}).";
+            prompt += $" Compare visually against baseline photo (Set Type: {baselinePhoto.PhotoSetType}, Uploaded At: {baselinePhoto.UploadedAt:yyyy-MM-dd}).";
         }
         else
         {
@@ -436,7 +444,6 @@ STRICT SAFETY AND SCOPE BOUNDARIES:
         PhotoSetType = p.PhotoSetType,
         MimeType = p.MimeType,
         FileSizeBytes = p.FileSizeBytes,
-        TakenAt = p.TakenAt,
         UploadedAt = p.UploadedAt,
         Notes = p.Notes,
         ObservationRecordId = p.ObservationRecordId,

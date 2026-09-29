@@ -11,9 +11,12 @@ namespace AiCoachOs.Domain.Photos;
 /// - StorageKey holds a UUID-based reference, never a permanent public URL.
 /// - ClientId and CoachId use FK RESTRICT to prevent orphaned records.
 /// - ObservationRecordId links to the M13 ClientMemoryRecord where the observation is stored.
+/// - Maximum allowed photo size is 10 MB.
 /// </summary>
 public class ClientPhoto : Entity<Guid>
 {
+    public const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+
     public Guid ClientId { get; private set; }
     public Client? Client { get; private set; }
 
@@ -23,14 +26,13 @@ public class ClientPhoto : Entity<Guid>
     public string StorageKey { get; private set; } = string.Empty;
     public string MimeType { get; private set; } = string.Empty;
     public long FileSizeBytes { get; private set; }
-    public DateTime TakenAt { get; private set; }
-    public DateTime UploadedAt { get; private set; }
+    public DateTimeOffset UploadedAt { get; private set; }
     public string? Notes { get; private set; }
     public Guid? ObservationRecordId { get; private set; }
     public ClientMemoryRecord? ObservationRecord { get; private set; }
 
     public bool IsAnonymized { get; private set; }
-    public DateTime? AnonymizedAt { get; private set; }
+    public DateTimeOffset? AnonymizedAt { get; private set; }
 
     private ClientPhoto() { } // EF Core
 
@@ -42,9 +44,8 @@ public class ClientPhoto : Entity<Guid>
         string storageKey,
         string mimeType,
         long fileSizeBytes,
-        DateTime takenAt,
         string? notes = null,
-        DateTime? uploadedAt = null) : base(id)
+        DateTimeOffset? uploadedAt = null) : base(id)
     {
         if (clientId == Guid.Empty)
             throw new ArgumentException("ClientId cannot be empty.", nameof(clientId));
@@ -56,6 +57,8 @@ public class ClientPhoto : Entity<Guid>
             throw new ArgumentException("MimeType cannot be empty.", nameof(mimeType));
         if (fileSizeBytes <= 0)
             throw new ArgumentException("File size must be greater than 0.", nameof(fileSizeBytes));
+        if (fileSizeBytes > MaxFileSizeBytes)
+            throw new ArgumentException($"File size exceeds the maximum limit of {MaxFileSizeBytes} bytes (10MB).", nameof(fileSizeBytes));
         if (notes != null && notes.Length > 500)
             throw new ArgumentException("Notes cannot exceed 500 characters.", nameof(notes));
 
@@ -71,8 +74,7 @@ public class ClientPhoto : Entity<Guid>
         StorageKey = storageKey.Trim();
         MimeType = normalizedMime;
         FileSizeBytes = fileSizeBytes;
-        TakenAt = takenAt;
-        UploadedAt = uploadedAt ?? DateTime.UtcNow;
+        UploadedAt = uploadedAt ?? DateTimeOffset.UtcNow;
         Notes = notes?.Trim();
         IsAnonymized = false;
     }
@@ -89,13 +91,13 @@ public class ClientPhoto : Entity<Guid>
         MarkUpdated();
     }
 
-    public void MarkAnonymized(DateTime? anonymizedAt = null)
+    public void MarkAnonymized(DateTimeOffset? anonymizedAt = null)
     {
         if (IsAnonymized)
             return;
 
         IsAnonymized = true;
-        AnonymizedAt = anonymizedAt ?? DateTime.UtcNow;
+        AnonymizedAt = anonymizedAt ?? DateTimeOffset.UtcNow;
         StorageKey = "ANONYMIZED";
         Notes = null;
         MarkUpdated();

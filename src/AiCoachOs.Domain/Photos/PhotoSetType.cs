@@ -2,8 +2,10 @@ namespace AiCoachOs.Domain.Photos;
 
 public enum PhotoSetType
 {
-    Front = 1,
-    Side = 2,
-    Back = 3,
-    Custom = 4
+    FrontRelaxed = 1,
+    SideRelaxed = 2,
+    BackRelaxed = 3,
+    FrontFlexed = 4,
+    SideFlexed = 5,
+    BackFlexed = 6
 }

@@ -5,6 +5,7 @@ using AiCoachOs.Application.Auth.DTOs;
 using AiCoachOs.Application.Clients.DTOs;
 using AiCoachOs.Application.Memory.Dtos;
 using AiCoachOs.Application.Photos.Dtos;
+using AiCoachOs.Domain.Memory;
 using AiCoachOs.Domain.Photos;
 using AiCoachOs.IntegrationTests.Infrastructure;
 using FluentAssertions;
@@ -50,6 +51,32 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
     }
 
     [Fact]
+    public async Task PhotosEndpoints_Unauthenticated_Returns401Unauthorized()
+    {
+        var unauthedClient = _factory.CreateClient();
+        var randomClientId = Guid.NewGuid();
+        var randomPhotoId = Guid.NewGuid();
+
+        var res1 = await unauthedClient.GetAsync($"/api/clients/{randomClientId}/photos");
+        res1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var res2 = await unauthedClient.PostAsJsonAsync($"/api/clients/{randomClientId}/photos", new UploadPhotoRequestDto());
+        res2.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var res3 = await unauthedClient.GetAsync($"/api/clients/{randomClientId}/photos/{randomPhotoId}/url");
+        res3.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var res4 = await unauthedClient.DeleteAsync($"/api/clients/{randomClientId}/photos/{randomPhotoId}");
+        res4.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var res5 = await unauthedClient.PostAsJsonAsync($"/api/clients/{randomClientId}/photos/{randomPhotoId}/analyze", new AnalyzePhotoRequestDto());
+        res5.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var res6 = await unauthedClient.GetAsync($"/api/clients/{randomClientId}/photos/{randomPhotoId}/observation");
+        res6.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task UploadPhoto_Returns201AndStoresSanitizedRecord()
     {
         var token = await RegisterAndLoginCoachAsync("upload_test");
@@ -59,8 +86,7 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         {
             FileBytes = CreateSampleJpegBytes(),
             MimeType = "image/jpeg",
-            PhotoSetType = PhotoSetType.Front,
-            TakenAt = DateTime.UtcNow.AddDays(-2),
+            PhotoSetType = PhotoSetType.FrontRelaxed,
             Notes = "Baseline physique check"
         };
 
@@ -70,7 +96,7 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         var photo = await response.Content.ReadFromJsonAsync<ClientPhotoDto>();
         photo.Should().NotBeNull();
         photo!.ClientId.Should().Be(client.Id);
-        photo.PhotoSetType.Should().Be(PhotoSetType.Front);
+        photo.PhotoSetType.Should().Be(PhotoSetType.FrontRelaxed);
         photo.MimeType.Should().Be("image/jpeg");
         photo.Notes.Should().Be("Baseline physique check");
         photo.IsAnonymized.Should().BeFalse();
@@ -93,7 +119,7 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         {
             FileBytes = CreateSampleJpegBytes(),
             MimeType = "image/jpeg",
-            PhotoSetType = PhotoSetType.Side
+            PhotoSetType = PhotoSetType.SideRelaxed
         };
 
         var uploadResponse = await _client.PostAsJsonAsync($"/api/clients/{clientA.Id}/photos", uploadReq);
@@ -124,8 +150,7 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         {
             FileBytes = CreateSampleJpegBytes(),
             MimeType = "image/jpeg",
-            PhotoSetType = PhotoSetType.Front,
-            TakenAt = DateTime.UtcNow.AddDays(-1)
+            PhotoSetType = PhotoSetType.FrontRelaxed
         };
 
         var uploadResponse = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos", uploadReq);
@@ -158,6 +183,50 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
     }
 
     [Fact]
+    public async Task AnalyzePhoto_Reanalysis_CreatesNewMemoryRecordAndPreservesPreviousRecord()
+    {
+        var token = await RegisterAndLoginCoachAsync("reanalysis_test");
+        var client = await CreateClientForCoachAsync(token, "Hassan", "Kamel");
+
+        var uploadReq = new UploadPhotoRequestDto
+        {
+            FileBytes = CreateSampleJpegBytes(),
+            MimeType = "image/jpeg",
+            PhotoSetType = PhotoSetType.FrontFlexed
+        };
+        var uploadRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos", uploadReq);
+        var photo = await uploadRes.Content.ReadFromJsonAsync<ClientPhotoDto>();
+
+        // First analysis
+        var firstAnalyzeRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos/{photo!.Id}/analyze", new AnalyzePhotoRequestDto());
+        firstAnalyzeRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstObs = await firstAnalyzeRes.Content.ReadFromJsonAsync<PhysiqueObservationResultDto>();
+
+        // Second analysis (Re-analysis)
+        var secondAnalyzeRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos/{photo.Id}/analyze", new AnalyzePhotoRequestDto
+        {
+            CoachPrompt = "Re-evaluating under adjusted lighting"
+        });
+        secondAnalyzeRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var secondObs = await secondAnalyzeRes.Content.ReadFromJsonAsync<PhysiqueObservationResultDto>();
+
+        // Assert new memory record ID was created
+        secondObs!.MemoryRecordId.Should().NotBe(firstObs!.MemoryRecordId);
+
+        // Assert photo ObservationRecordId points to the newest observation
+        var getObsRes = await _client.GetAsync($"/api/clients/{client.Id}/photos/{photo.Id}/observation");
+        var currentObs = await getObsRes.Content.ReadFromJsonAsync<PhysiqueObservationResultDto>();
+        currentObs!.MemoryRecordId.Should().Be(secondObs.MemoryRecordId);
+
+        // Assert all memories for client include both records
+        var memoriesRes = await _client.GetAsync($"/api/clients/{client.Id}/memory");
+        memoriesRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var memoryList = await memoriesRes.Content.ReadFromJsonAsync<List<ClientMemoryRecordDto>>();
+        memoryList.Should().Contain(m => m.Id == firstObs.MemoryRecordId);
+        memoryList.Should().Contain(m => m.Id == secondObs.MemoryRecordId);
+    }
+
+    [Fact]
     public async Task AnalyzePhoto_WithBaseline_ExecutesComparativeAnalysis()
     {
         var token = await RegisterAndLoginCoachAsync("baseline_test");
@@ -168,8 +237,7 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         {
             FileBytes = CreateSampleJpegBytes(),
             MimeType = "image/jpeg",
-            PhotoSetType = PhotoSetType.Front,
-            TakenAt = DateTime.UtcNow.AddDays(-30),
+            PhotoSetType = PhotoSetType.FrontRelaxed,
             Notes = "Day 1 baseline"
         };
         var baselineRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos", baselineReq);
@@ -180,8 +248,7 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         {
             FileBytes = CreateSampleJpegBytes(),
             MimeType = "image/jpeg",
-            PhotoSetType = PhotoSetType.Front,
-            TakenAt = DateTime.UtcNow,
+            PhotoSetType = PhotoSetType.FrontRelaxed,
             Notes = "Day 30 follow-up"
         };
         var currentRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos", currentReq);
@@ -204,7 +271,7 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
     }
 
     [Fact]
-    public async Task AnonymizeClientMemories_DeletesPhotoStorageFileAndPreservesAuditShell()
+    public async Task AnonymizeClientMemories_DeletesPhotoStorageFileAndAnonymizesObservationMemory()
     {
         var token = await RegisterAndLoginCoachAsync("anon_photo");
         var client = await CreateClientForCoachAsync(token, "Nader", "Salama");
@@ -213,11 +280,15 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         {
             FileBytes = CreateSampleJpegBytes(),
             MimeType = "image/jpeg",
-            PhotoSetType = PhotoSetType.Back,
+            PhotoSetType = PhotoSetType.BackRelaxed,
             Notes = "Confidential back photo"
         };
         var uploadRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos", uploadReq);
         var photo = await uploadRes.Content.ReadFromJsonAsync<ClientPhotoDto>();
+
+        // Analyze photo to generate linked ClientMemoryRecord
+        var analyzeRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/photos/{photo!.Id}/analyze", new AnalyzePhotoRequestDto());
+        var obs = await analyzeRes.Content.ReadFromJsonAsync<PhysiqueObservationResultDto>();
 
         // Act: Anonymize client
         var anonRes = await _client.PostAsJsonAsync($"/api/clients/{client.Id}/memory/anonymize", new AnonymizeClientMemoryRequestDto
@@ -234,5 +305,13 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         // Attempting to get signed URL for anonymized photo fails
         var urlRes = await _client.GetAsync($"/api/clients/{client.Id}/photos/{photo!.Id}/url");
         urlRes.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.InternalServerError);
+
+        // Linked observation memory record must be anonymized
+        var memRes = await _client.GetAsync($"/api/clients/{client.Id}/memory?includeAnonymized=true");
+        var memories = await memRes.Content.ReadFromJsonAsync<List<ClientMemoryRecordDto>>();
+        var linkedMem = memories!.FirstOrDefault(m => m.Id == obs!.MemoryRecordId);
+        linkedMem.Should().NotBeNull();
+        linkedMem!.IsAnonymized.Should().BeTrue();
+        linkedMem.Content.Should().Be(ClientMemoryRecord.AnonymizedContentSentinel);
     }
 }

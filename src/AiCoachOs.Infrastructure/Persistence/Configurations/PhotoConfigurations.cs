@@ -18,7 +18,6 @@ public class ClientPhotoConfiguration : IEntityTypeConfiguration<ClientPhoto>
         builder.Property(p => p.StorageKey).HasColumnName("storage_key").HasMaxLength(250).IsRequired();
         builder.Property(p => p.MimeType).HasColumnName("mime_type").HasMaxLength(50).IsRequired();
         builder.Property(p => p.FileSizeBytes).HasColumnName("file_size_bytes").IsRequired();
-        builder.Property(p => p.TakenAt).HasColumnName("taken_at").IsRequired();
         builder.Property(p => p.UploadedAt).HasColumnName("uploaded_at").IsRequired();
         builder.Property(p => p.Notes).HasColumnName("notes").HasMaxLength(500);
         builder.Property(p => p.ObservationRecordId).HasColumnName("observation_record_id");
@@ -39,6 +38,6 @@ public class ClientPhotoConfiguration : IEntityTypeConfiguration<ClientPhoto>
 
         builder.HasIndex(p => p.ClientId);
         builder.HasIndex(p => p.CoachId);
-        builder.HasIndex(p => p.TakenAt);
+        builder.HasIndex(p => p.UploadedAt);
     }
 }

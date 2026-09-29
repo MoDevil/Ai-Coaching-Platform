@@ -1,8 +1,10 @@
 export enum PhotoSetType {
-  Front = 1,
-  Side = 2,
-  Back = 3,
-  Custom = 4
+  FrontRelaxed = 1,
+  SideRelaxed = 2,
+  BackRelaxed = 3,
+  FrontFlexed = 4,
+  SideFlexed = 5,
+  BackFlexed = 6
 }
 
 export interface ClientPhotoDto {
@@ -12,7 +14,6 @@ export interface ClientPhotoDto {
   photoSetType: PhotoSetType;
   mimeType: string;
   fileSizeBytes: number;
-  takenAt: string;
   uploadedAt: string;
   notes?: string;
   observationRecordId?: string;
@@ -26,7 +27,6 @@ export interface ClientPhotoSummaryDto {
   photoSetType: PhotoSetType;
   mimeType: string;
   fileSizeBytes: number;
-  takenAt: string;
   uploadedAt: string;
   hasObservation: boolean;
   observationRecordId?: string;
@@ -43,7 +43,6 @@ export interface UploadPhotoRequestDto {
   fileBytes: number[] | string;
   mimeType: string;
   photoSetType: PhotoSetType;
-  takenAt?: string;
   notes?: string;
 }
 

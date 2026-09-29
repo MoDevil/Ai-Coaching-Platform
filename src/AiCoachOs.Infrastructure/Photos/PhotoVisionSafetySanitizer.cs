@@ -6,28 +6,27 @@ namespace AiCoachOs.Infrastructure.Photos;
 /// <summary>
 /// Deterministic post-parsing language sanitizer for AI vision observation results.
 /// The LLM is never trusted to enforce safety boundaries by system prompt alone.
-/// Strips quantitative body-fat %, medical diagnoses, pathology claims, and absolute certainty claims.
+/// Redacts quantitative body-fat %, muscle mass %, medical diagnoses, injury inferences,
+/// and prohibited certainty claims with '[observation removed — language boundary]'.
 /// </summary>
 public static class PhotoVisionSafetySanitizer
 {
-    private static readonly Regex BodyFatPercentageRegex = new(
-        @"\b(\d{1,2}(?:\.\d+)?)\s*%\s*(?:body\s*fat|bf|bodyfat)\b",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    public const string RemovalSentinel = "[observation removed — language boundary]";
 
-    private static readonly Regex BodyFatPrefixRegex = new(
-        @"\b(?:body\s*fat|bf|bodyfat)\s*(?:is|at|estimated\s*at|around|approximately)?\s*(\d{1,2}(?:\.\d+)?)\s*%",
+    private static readonly Regex BodyFatPercentageRegex = new(
+        @"\b(\d{1,2}(?:\.\d+)?)\s*%\s*(?:body\s*fat|bf|bodyfat)\b|\b(?:body\s*fat|bf|bodyfat)\s*(?:is|at|estimated\s*at|around|approximately)?\s*(\d{1,2}(?:\.\d+)?)\s*%",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex MuscleMassPercentageRegex = new(
-        @"\b(\d{1,2}(?:\.\d+)?)\s*%\s*(?:muscle\s*mass|skeletal\s*muscle|lean\s*mass)\b",
+        @"\b(\d{1,2}(?:\.\d+)?)\s*%\s*(?:muscle\s*mass|skeletal\s*muscle|lean\s*mass|body\s*composition)\b|\b(?:muscle\s*mass|skeletal\s*muscle|lean\s*mass)\s*(?:is|at|estimated\s*at|around|approximately)?\s*(\d{1,2}(?:\.\d+)?)\s*%",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static readonly Regex MedicalDiagnosisRegex = new(
-        @"\b(diagnos(?:e|is|ed|ing)|pathology|pathological|scoliosis|kyphosis\s*disease|gynecomastia|edema\s*condition|clinical\s*disorder)\b",
+    private static readonly Regex DiagnosisAndInferenceRegex = new(
+        @"\b(you\s+have|this\s+indicates|this\s+is\s+consistent\s+with|diagnos(?:e|is|ed|ing)|pathology|pathological|scoliosis|lordosis|kyphosis|gynecomastia|edema|clinical\s*disorder|injury|torn|strain|sprain|herniated|inflammation|tendonitis|impingement|bursitis)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ProhibitedCertaintyRegex = new(
-        @"\b(definitely\s+proves|conclusive\s+evidence\s+of|unquestionable\s+proof|absolute\s+certainty)\b",
+        @"(?:\b(?:clearly|definitely|certainly|guaranteed)\b|100\s*%)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public static PhysiqueObservationResult Sanitize(PhysiqueObservationResult input)
@@ -61,18 +60,17 @@ public static class PhotoVisionSafetySanitizer
 
         var result = text;
 
-        // Redact body fat percentage claims
-        result = BodyFatPercentageRegex.Replace(result, "[body composition definition]");
-        result = BodyFatPrefixRegex.Replace(result, "visual muscular definition");
+        // Redact body fat % claims
+        result = BodyFatPercentageRegex.Replace(result, RemovalSentinel);
 
-        // Redact muscle mass percentage claims
-        result = MuscleMassPercentageRegex.Replace(result, "[muscular development]");
+        // Redact muscle / body-composition % claims
+        result = MuscleMassPercentageRegex.Replace(result, RemovalSentinel);
 
-        // Neutralize medical diagnosis terms
-        result = MedicalDiagnosisRegex.Replace(result, "observed visual alignment/contour");
+        // Neutralize diagnosis / pathology / medical inference phrases
+        result = DiagnosisAndInferenceRegex.Replace(result, RemovalSentinel);
 
         // Neutralize prohibited certainty terms
-        result = ProhibitedCertaintyRegex.Replace(result, "observations suggest");
+        result = ProhibitedCertaintyRegex.Replace(result, RemovalSentinel);
 
         return result.Trim();
     }

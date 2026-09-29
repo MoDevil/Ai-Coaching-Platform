@@ -14,9 +14,6 @@ public class UploadPhotoRequestDto
     [JsonPropertyName("photoSetType")]
     public PhotoSetType PhotoSetType { get; set; }
 
-    [JsonPropertyName("takenAt")]
-    public DateTime? TakenAt { get; set; }
-
     [JsonPropertyName("notes")]
     public string? Notes { get; set; }
 }
@@ -41,11 +38,8 @@ public class ClientPhotoDto
     [JsonPropertyName("fileSizeBytes")]
     public long FileSizeBytes { get; set; }
 
-    [JsonPropertyName("takenAt")]
-    public DateTime TakenAt { get; set; }
-
     [JsonPropertyName("uploadedAt")]
-    public DateTime UploadedAt { get; set; }
+    public DateTimeOffset UploadedAt { get; set; }
 
     [JsonPropertyName("notes")]
     public string? Notes { get; set; }
@@ -57,7 +51,7 @@ public class ClientPhotoDto
     public bool IsAnonymized { get; set; }
 
     [JsonPropertyName("anonymizedAt")]
-    public DateTime? AnonymizedAt { get; set; }
+    public DateTimeOffset? AnonymizedAt { get; set; }
 }
 
 public class ClientPhotoSummaryDto
@@ -77,11 +71,8 @@ public class ClientPhotoSummaryDto
     [JsonPropertyName("fileSizeBytes")]
     public long FileSizeBytes { get; set; }
 
-    [JsonPropertyName("takenAt")]
-    public DateTime TakenAt { get; set; }
-
     [JsonPropertyName("uploadedAt")]
-    public DateTime UploadedAt { get; set; }
+    public DateTimeOffset UploadedAt { get; set; }
 
     [JsonPropertyName("hasObservation")]
     public bool HasObservation { get; set; }
@@ -102,5 +93,5 @@ public class SignedPhotoUrlDto
     public string Url { get; set; } = string.Empty;
 
     [JsonPropertyName("expiresAtUtc")]
-    public DateTime ExpiresAtUtc { get; set; }
+    public DateTimeOffset ExpiresAtUtc { get; set; }
 }
