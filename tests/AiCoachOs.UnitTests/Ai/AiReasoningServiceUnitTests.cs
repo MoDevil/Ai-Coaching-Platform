@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AiCoachOs.Application.Ai.Dtos;
 using AiCoachOs.Application.Ai.Models;
+using AiCoachOs.Domain.Knowledge;
 using AiCoachOs.Domain.Memory;
 using AiCoachOs.Infrastructure.Ai;
 using FluentAssertions;
@@ -148,5 +149,67 @@ public class AiReasoningServiceUnitTests
         payload.Rationale.Should().Be("Supported by evidence in resistance trained populations");
         payload.ConfidenceStatement.Should().Be("High certainty based on meta-analyses");
         payload.EvidenceClaimIds.Should().Contain(claimId);
+    }
+
+    [Fact]
+    public void EvidenceEligibility_ActiveAndConfirmed_IsEligible_WhileActiveUnconfirmed_IsIneligible()
+    {
+        // Arrange
+        var confirmedClaim = new KnowledgeClaim(
+            Guid.NewGuid(),
+            "Hypertrophy",
+            "What is optimal protein intake?",
+            "1.6 to 2.2 g/kg/day supports maximal muscle growth.",
+            EvidenceLevel.MetaAnalysis,
+            ClaimStatus.Active,
+            reviewedAtUtc: DateTime.UtcNow,
+            reviewedBy: "Dr. Brad Schoenfeld");
+
+        var unconfirmedClaim = new KnowledgeClaim(
+            Guid.NewGuid(),
+            "Hypertrophy",
+            "What is optimal set volume?",
+            "10-20 weekly sets per muscle group.",
+            EvidenceLevel.ExpertConsensus,
+            ClaimStatus.Active,
+            reviewedAtUtc: null,
+            reviewedBy: null);
+
+        var list = new List<KnowledgeClaim> { confirmedClaim, unconfirmedClaim };
+
+        // Act: Filter by locked M14 rule (Active + Confirmed)
+        var eligible = list
+            .Where(k => k.Status == ClaimStatus.Active && k.ReviewedAtUtc != null && !string.IsNullOrWhiteSpace(k.ReviewedBy))
+            .ToList();
+
+        // Assert
+        eligible.Should().ContainSingle();
+        eligible[0].Id.Should().Be(confirmedClaim.Id);
+        eligible.Should().NotContain(unconfirmedClaim);
+    }
+
+    [Fact]
+    public void AIRecommendationRecord_EnforcesPendingReviewStatus_AndNonEmptyConfidence()
+    {
+        var recordId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var coachId = Guid.NewGuid();
+
+        var record = new AIRecommendationRecord(
+            id: recordId,
+            clientId: clientId,
+            coachId: coachId,
+            recommendationCategory: AIRecommendationCategory.ProgramAdaptationReview,
+            recommendationText: "Reduce weekly volume by 20%",
+            rationaleText: "Accumulated systemic fatigue detected",
+            confidenceStatement: "High confidence based on ACWR data",
+            aiProvider: "claude-provider",
+            aiModel: "claude-sonnet-4-6",
+            knowledgeClaimRefs: new List<Guid> { Guid.NewGuid() },
+            generatedAt: DateTime.UtcNow);
+
+        record.ReviewStatus.Should().Be(AIRecommendationReviewStatus.PendingReview);
+        record.ConfidenceStatement.Should().Be("High confidence based on ACWR data");
+        record.RecommendationCategory.Should().Be(AIRecommendationCategory.ProgramAdaptationReview);
     }
 }

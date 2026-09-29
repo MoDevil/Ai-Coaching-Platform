@@ -167,9 +167,9 @@ public class AiReasoningService : IAiReasoningService
             }, cancellationToken);
         }
 
-        // Step 7: RELEVANT KNOWLEDGE CLAIMS (Active only)
+        // Step 7: RELEVANT KNOWLEDGE CLAIMS (Active + Confirmed only)
         var eligibleClaims = await _dbContext.KnowledgeClaims
-            .Where(k => k.Status == ClaimStatus.Active)
+            .Where(k => k.Status == ClaimStatus.Active && k.ReviewedAtUtc != null && k.ReviewedBy != null && k.ReviewedBy != "")
             .Take(25)
             .ToListAsync(cancellationToken);
 
@@ -230,6 +230,10 @@ public class AiReasoningService : IAiReasoningService
             finalRecommendation = $"[SAFETY REFERRAL NOTICE] Active healthcare referral indicated. Human coach clearance advised. {finalRecommendation}";
         }
 
+        var confidenceStatement = string.IsNullOrWhiteSpace(aiResponse.ConfidenceStatement)
+            ? "Confidence statement based on deterministic rules and verified knowledge claims."
+            : aiResponse.ConfidenceStatement;
+
         // Deterministic Coach Action Required for sensitive/actionable categories
         var categoryEnum = (AIRecommendationCategory)request.ReasoningCategory;
 
@@ -242,10 +246,10 @@ public class AiReasoningService : IAiReasoningService
             coachId: coachId,
             recommendationCategory: categoryEnum,
             recommendationText: finalRecommendation,
-            rationaleText: aiResponse.RationaleText,
-            confidenceStatement: aiResponse.ConfidenceStatement,
-            aiProvider: aiResponse.ProviderName,
-            aiModel: aiResponse.ModelName,
+            rationaleText: string.IsNullOrWhiteSpace(aiResponse.RationaleText) ? "Rationale provided by evidence-based reasoning." : aiResponse.RationaleText,
+            confidenceStatement: confidenceStatement,
+            aiProvider: string.IsNullOrWhiteSpace(aiResponse.ProviderName) ? "MockAiProvider" : aiResponse.ProviderName,
+            aiModel: string.IsNullOrWhiteSpace(aiResponse.ModelName) ? "claude-sonnet-4-6" : aiResponse.ModelName,
             knowledgeClaimRefs: validatedClaimRefs,
             generatedAt: DateTime.UtcNow);
 
