@@ -287,10 +287,16 @@ Your objective is to provide structured coaching decision support for human gym 
 CORE CONTRACT RULES:
 1. Always output valid JSON conforming exactly to the schema:
 {
-  "recommendation": "string (clear, actionable coaching recommendation)",
+  "summary": "string (concise coaching summary)",
+  "observations": ["string (key contextual observations)"],
+  "recommendations": ["string (actionable coaching recommendations)"],
   "rationale": "string (physiological, biomechanical, or behavioral reasoning)",
   "confidence_statement": "string (explicit statement of certainty and key limitations)",
-  "evidence_claim_ids": ["string GUIDs of relevant claims provided in context"]
+  "assumptions": ["string (assumptions made)"],
+  "missing_high_value_data": ["string (unresolved or missing data)"],
+  "evidence_refs": ["string GUIDs of relevant claims provided in context"],
+  "safety_summary": "string or null",
+  "coach_action_required": true
 }
 2. Never diagnose medical conditions and never prescribe medications or PEDs.
 3. Only cite evidence claim IDs provided in the scientific knowledge context.
@@ -358,7 +364,7 @@ CORE CONTRACT RULES:
     {
         var citedGuids = eligibleClaims.Take(1).Select(c => c.Id).ToList();
 
-        var recText = category switch
+        var summaryText = category switch
         {
             ReasoningCategory.ProgramAdaptationReview => "Review program volume and frequency relative to recovery signals and client progression.",
             ReasoningCategory.NutritionAdjustmentReview => "Evaluate energy balance and protein distribution based on bodyweight trends.",
@@ -370,8 +376,22 @@ CORE CONTRACT RULES:
 
         if (hasReferralUnacknowledged)
         {
-            recText = $"[SAFETY REFERRAL NOTICE] Conservative management advised. Healthcare evaluation recommended. {recText}";
+            summaryText = $"[SAFETY REFERRAL NOTICE] Conservative management advised. Healthcare evaluation recommended. {summaryText}";
         }
+
+        var structured = new StructuredRecommendation
+        {
+            Summary = summaryText,
+            Observations = new List<string> { $"Deterministic evaluation executed for category {category}." },
+            Recommendations = new List<string> { summaryText },
+            Rationale = "Deterministic evidence-backed baseline applied based on client constraints and recovery boundaries.",
+            ConfidenceStatement = "Baseline confidence based on deterministic rules and structured knowledge claims.",
+            Assumptions = new List<string> { "Standard recovery capacity under progressive loading." },
+            MissingHighValueData = new List<string>(),
+            EvidenceRefs = citedGuids,
+            SafetySummary = hasReferralUnacknowledged ? "Active healthcare referral indicated." : null,
+            CoachActionRequired = true
+        };
 
         return new AiCompletionResponse
         {
@@ -379,9 +399,10 @@ CORE CONTRACT RULES:
             ProviderName = "DeterministicEngine",
             ModelName = "deterministic-fallback-v1",
             TokensUsed = 100,
-            RecommendationText = recText,
-            RationaleText = "Deterministic evidence-backed baseline applied based on client constraints and recovery boundaries.",
-            ConfidenceStatement = "Baseline confidence based on deterministic rules and structured knowledge claims.",
+            StructuredRecommendation = structured,
+            RecommendationText = structured.Summary,
+            RationaleText = structured.Rationale,
+            ConfidenceStatement = structured.ConfidenceStatement,
             EvidenceClaimRefs = citedGuids
         };
     }

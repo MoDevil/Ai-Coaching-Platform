@@ -127,28 +127,41 @@ public class AiReasoningServiceUnitTests
     }
 
     [Fact]
-    public void StructuredAiRecommendationJson_DeserializesProperly()
+    public void StructuredRecommendation_DeserializesWithAllTenLockedFields()
     {
-        var claimId = Guid.NewGuid().ToString();
+        var claimId = Guid.NewGuid();
         var json = $$"""
         {
-            "recommendation": "Adjust daily protein target to 2.0 g/kg",
+            "summary": "Adjust daily protein target to 2.0 g/kg",
+            "observations": ["Client is in resistance training phase", "Bodyweight trending slightly downwards"],
+            "recommendations": ["Distribute protein across 4 meals", "Maintain 2.0 g/kg minimum daily intake"],
             "rationale": "Supported by evidence in resistance trained populations",
             "confidence_statement": "High certainty based on meta-analyses",
-            "evidence_claim_ids": ["{{claimId}}"]
+            "assumptions": ["Client is meeting caloric requirements"],
+            "missing_high_value_data": ["Accurate dietary adherence logs"],
+            "evidence_refs": ["{{claimId}}"],
+            "safety_summary": null,
+            "coach_action_required": true
         }
         """;
 
-        var payload = JsonSerializer.Deserialize<StructuredAiRecommendationJson>(json, new JsonSerializerOptions
+        var payload = JsonSerializer.Deserialize<StructuredRecommendation>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
 
         payload.Should().NotBeNull();
-        payload!.Recommendation.Should().Be("Adjust daily protein target to 2.0 g/kg");
+        payload!.Summary.Should().Be("Adjust daily protein target to 2.0 g/kg");
+        payload.Observations.Should().HaveCount(2);
+        payload.Observations.Should().Contain("Client is in resistance training phase");
+        payload.Recommendations.Should().HaveCount(2);
         payload.Rationale.Should().Be("Supported by evidence in resistance trained populations");
         payload.ConfidenceStatement.Should().Be("High certainty based on meta-analyses");
-        payload.EvidenceClaimIds.Should().Contain(claimId);
+        payload.Assumptions.Should().Contain("Client is meeting caloric requirements");
+        payload.MissingHighValueData.Should().Contain("Accurate dietary adherence logs");
+        payload.EvidenceRefs.Should().Contain(claimId);
+        payload.SafetySummary.Should().BeNull();
+        payload.CoachActionRequired.Should().BeTrue();
     }
 
     [Fact]

@@ -183,12 +183,13 @@ public class AnthropicAiProvider : IAiProvider
                 PropertyNameCaseInsensitive = true
             });
 
-            if (structured != null && !string.IsNullOrWhiteSpace(structured.Recommendation))
+            if (structured != null)
             {
                 var evidenceGuids = new List<Guid>();
-                if (structured.EvidenceClaimIds != null)
+                var rawIds = structured.EvidenceRefs ?? structured.EvidenceClaimIds;
+                if (rawIds != null)
                 {
-                    foreach (var idStr in structured.EvidenceClaimIds)
+                    foreach (var idStr in rawIds)
                     {
                         if (Guid.TryParse(idStr, out var parsedGuid))
                         {
@@ -197,15 +198,42 @@ public class AnthropicAiProvider : IAiProvider
                     }
                 }
 
+                var summary = !string.IsNullOrWhiteSpace(structured.Summary)
+                    ? structured.Summary.Trim()
+                    : (!string.IsNullOrWhiteSpace(structured.LegacyRecommendation) ? structured.LegacyRecommendation.Trim() : text.Trim());
+
+                var rationale = !string.IsNullOrWhiteSpace(structured.Rationale)
+                    ? structured.Rationale.Trim()
+                    : "Extracted from AI response";
+
+                var confidence = !string.IsNullOrWhiteSpace(structured.ConfidenceStatement)
+                    ? structured.ConfidenceStatement.Trim()
+                    : "Evaluated by AI reasoning provider";
+
+                var structuredRec = new StructuredRecommendation
+                {
+                    Summary = summary,
+                    Observations = structured.Observations ?? new List<string>(),
+                    Recommendations = structured.Recommendations ?? new List<string>(),
+                    Rationale = rationale,
+                    ConfidenceStatement = confidence,
+                    Assumptions = structured.Assumptions ?? new List<string>(),
+                    MissingHighValueData = structured.MissingHighValueData ?? new List<string>(),
+                    EvidenceRefs = evidenceGuids,
+                    SafetySummary = structured.SafetySummary,
+                    CoachActionRequired = structured.CoachActionRequired ?? true
+                };
+
                 return new AiCompletionResponse
                 {
                     IsSuccess = true,
                     ProviderName = ProviderName,
                     ModelName = model,
                     TokensUsed = tokens,
-                    RecommendationText = structured.Recommendation.Trim(),
-                    RationaleText = structured.Rationale.Trim(),
-                    ConfidenceStatement = structured.ConfidenceStatement?.Trim() ?? string.Empty,
+                    StructuredRecommendation = structuredRec,
+                    RecommendationText = summary,
+                    RationaleText = rationale,
+                    ConfidenceStatement = confidence,
                     EvidenceClaimRefs = evidenceGuids
                 };
             }

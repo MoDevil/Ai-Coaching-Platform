@@ -24,9 +24,43 @@ public class AiCompletionRequest
     public int? MaxTokens { get; set; }
 }
 
+public class StructuredRecommendation
+{
+    [JsonPropertyName("summary")]
+    public string Summary { get; set; } = string.Empty;
+
+    [JsonPropertyName("observations")]
+    public List<string> Observations { get; set; } = new();
+
+    [JsonPropertyName("recommendations")]
+    public List<string> Recommendations { get; set; } = new();
+
+    [JsonPropertyName("rationale")]
+    public string Rationale { get; set; } = string.Empty;
+
+    [JsonPropertyName("confidence_statement")]
+    public string ConfidenceStatement { get; set; } = string.Empty;
+
+    [JsonPropertyName("assumptions")]
+    public List<string> Assumptions { get; set; } = new();
+
+    [JsonPropertyName("missing_high_value_data")]
+    public List<string> MissingHighValueData { get; set; } = new();
+
+    [JsonPropertyName("evidence_refs")]
+    public List<Guid> EvidenceRefs { get; set; } = new();
+
+    [JsonPropertyName("safety_summary")]
+    public string? SafetySummary { get; set; }
+
+    [JsonPropertyName("coach_action_required")]
+    public bool CoachActionRequired { get; set; } = true;
+}
+
 public class AiCompletionResponse
 {
     public bool IsSuccess { get; set; }
+    public StructuredRecommendation? StructuredRecommendation { get; set; }
     public string RecommendationText { get; set; } = string.Empty;
     public string RationaleText { get; set; } = string.Empty;
     public string ConfidenceStatement { get; set; } = string.Empty;
@@ -39,15 +73,39 @@ public class AiCompletionResponse
 
 public class StructuredAiRecommendationJson
 {
+    [JsonPropertyName("summary")]
+    public string? Summary { get; set; }
+
+    [JsonPropertyName("observations")]
+    public List<string>? Observations { get; set; }
+
+    [JsonPropertyName("recommendations")]
+    public List<string>? Recommendations { get; set; }
+
     [JsonPropertyName("recommendation")]
-    public string Recommendation { get; set; } = string.Empty;
+    public string? LegacyRecommendation { get; set; }
 
     [JsonPropertyName("rationale")]
-    public string Rationale { get; set; } = string.Empty;
+    public string? Rationale { get; set; }
 
     [JsonPropertyName("confidence_statement")]
-    public string ConfidenceStatement { get; set; } = string.Empty;
+    public string? ConfidenceStatement { get; set; }
+
+    [JsonPropertyName("assumptions")]
+    public List<string>? Assumptions { get; set; }
+
+    [JsonPropertyName("missing_high_value_data")]
+    public List<string>? MissingHighValueData { get; set; }
+
+    [JsonPropertyName("evidence_refs")]
+    public List<string>? EvidenceRefs { get; set; }
 
     [JsonPropertyName("evidence_claim_ids")]
-    public List<string> EvidenceClaimIds { get; set; } = new();
+    public List<string>? EvidenceClaimIds { get; set; }
+
+    [JsonPropertyName("safety_summary")]
+    public string? SafetySummary { get; set; }
+
+    [JsonPropertyName("coach_action_required")]
+    public bool? CoachActionRequired { get; set; }
 }

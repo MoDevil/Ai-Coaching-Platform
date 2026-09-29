@@ -18,15 +18,30 @@ public class MockAiProvider : IAiProvider
         var matches = guidRegex.Matches(request.UserPrompt);
         var citedGuids = matches.Take(2).Select(m => Guid.Parse(m.Value)).ToList();
 
+        var structured = new StructuredRecommendation
+        {
+            Summary = "Recommended coaching review based on client constraints and active deterministic profile.",
+            Observations = new List<string> { "Client training profile and recent session performance evaluated against recovery markers." },
+            Recommendations = new List<string> { "Maintain consistent progressive overload while adhering to programmed volume boundaries." },
+            Rationale = "Evidence demonstrates that individualizing stimulus and managing recovery boundaries optimizes progressive adaptation.",
+            ConfidenceStatement = "High confidence based on structured scientific knowledge base and verified client memory snapshot.",
+            Assumptions = new List<string> { "Adequate recovery and nutrition support baseline targets." },
+            MissingHighValueData = new List<string>(),
+            EvidenceRefs = citedGuids,
+            SafetySummary = null,
+            CoachActionRequired = true
+        };
+
         var response = new AiCompletionResponse
         {
             IsSuccess = true,
             ProviderName = ProviderName,
             ModelName = DefaultModelName,
             TokensUsed = 350,
-            RecommendationText = "Recommended coaching review based on client constraints and active deterministic profile.",
-            RationaleText = "Evidence demonstrates that individualizing stimulus and managing recovery boundaries optimizes progressive adaptation.",
-            ConfidenceStatement = "High confidence based on structured scientific knowledge base and verified client memory snapshot.",
+            StructuredRecommendation = structured,
+            RecommendationText = structured.Summary,
+            RationaleText = structured.Rationale,
+            ConfidenceStatement = structured.ConfidenceStatement,
             EvidenceClaimRefs = citedGuids
         };
 
