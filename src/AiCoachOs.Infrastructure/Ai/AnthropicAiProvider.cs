@@ -17,7 +17,7 @@ public class AnthropicAiProvider : IAiProvider
     private readonly ILogger<AnthropicAiProvider> _logger;
 
     public string ProviderName => "Anthropic";
-    public string DefaultModelName => string.IsNullOrWhiteSpace(_settings.Model) ? "claude-3-5-sonnet-20241022" : _settings.Model;
+    public string DefaultModelName => string.IsNullOrWhiteSpace(_settings.Model) ? "claude-sonnet-4-6" : _settings.Model;
 
     public AnthropicAiProvider(
         HttpClient httpClient,
@@ -31,7 +31,7 @@ public class AnthropicAiProvider : IAiProvider
         _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds > 0 ? _settings.TimeoutSeconds : 30);
     }
 
-    public async Task<AiCompletionResponse> GenerateCompletionAsync(
+    public async Task<AiCompletionResponse> GenerateStructuredAsync(
         AiCompletionRequest request, 
         CancellationToken cancellationToken = default)
     {
@@ -134,6 +134,22 @@ public class AnthropicAiProvider : IAiProvider
 
         var responseJson = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
         return ParseAnthropicResponse(responseJson, model);
+    }
+
+    public Task<AiCompletionResponse> AnalyzeImageAsync(
+        byte[] imageBytes, 
+        string prompt, 
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Image analysis is reserved for future milestones and not implemented in M14.");
+    }
+
+    public Task<AiCompletionResponse> AnalyzeVideoAsync(
+        byte[] videoBytes, 
+        string prompt, 
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Video analysis is reserved for future milestones and not implemented in M14.");
     }
 
     private AiCompletionResponse ParseAnthropicResponse(string responseJson, string model)

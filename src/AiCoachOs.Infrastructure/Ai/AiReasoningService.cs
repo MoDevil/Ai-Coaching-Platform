@@ -39,9 +39,9 @@ public class AiReasoningService : IAiReasoningService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (!Enum.IsDefined(typeof(AIRecommendationCategory), request.Category))
+        if (!Enum.IsDefined(typeof(ReasoningCategory), request.ReasoningCategory))
         {
-            throw new ArgumentException($"Invalid AI recommendation category: {request.Category}", nameof(request));
+            throw new ArgumentException($"Invalid reasoning category: {request.ReasoningCategory}", nameof(request));
         }
 
         var client = await _dbContext.Clients
@@ -57,24 +57,107 @@ public class AiReasoningService : IAiReasoningService
             throw new UnauthorizedAccessException("Coach does not own this client record.");
         }
 
-        // 1. Deterministic Safety Gate Check
+        // ==========================================
+        // 1. DETERMINISTIC SAFETY GATE (PRE-CHECK)
+        // ==========================================
         var safetyScreenings = await _dbContext.SafetyScreenings
             .Where(s => s.ClientId == client.Id)
             .OrderByDescending(s => s.GeneratedAtUtc)
-            .Take(5)
+            .Take(10)
             .ToListAsync(cancellationToken);
 
-        var hasActiveMedicalEscalation = safetyScreenings.Any(s =>
-            s.ScreeningResult == SafetyCategory.ReferToHealthcareProfessional ||
-            s.ScreeningResult == SafetyCategory.UrgentMedicalAttention ||
-            s.RecommendedAction == SafetyActionType.ReferToHealthcareProfessional ||
-            s.RecommendedAction == SafetyActionType.UrgentMedicalAttention);
+        // Urgent medical attention check (unacknowledged -> abort immediately, no provider call)
+        var hasUrgentUnacknowledgedSafety = safetyScreenings.Any(s =>
+            (s.ScreeningResult == SafetyCategory.UrgentMedicalAttention || s.RecommendedAction == SafetyActionType.UrgentMedicalAttention)
+            && !s.CoachAcknowledgedAtUtc.HasValue);
 
-        // Optional training profile for richer deterministic context
+        if (hasUrgentUnacknowledgedSafety)
+        {
+            _logger.LogWarning("Deterministic safety gate triggered: Urgent unacknowledged safety flags for client {ClientId}. Aborting AI reasoning.", client.Id);
+            throw new InvalidOperationException("Client has urgent unacknowledged medical safety flags requiring immediate clinical attention. AI reasoning cannot proceed until safety flags are resolved.");
+        }
+
+        // Referral check (unacknowledged -> reasoning proceeds, SafetySummary included, CoachActionRequired = true)
+        var hasReferralUnacknowledged = safetyScreenings.Any(s =>
+            (s.ScreeningResult == SafetyCategory.ReferToHealthcareProfessional || s.RecommendedAction == SafetyActionType.ReferToHealthcareProfessional)
+            && !s.CoachAcknowledgedAtUtc.HasValue);
+
+        // ==========================================
+        // 2. CONTEXT ASSEMBLY (LOCKED 9-STEP ORDERING)
+        // ==========================================
+        
+        // Step 1: CLIENT PROFILE
+        int? age = null;
+        if (client.DateOfBirth.HasValue)
+        {
+            var today = DateTime.UtcNow.Date;
+            var dob = client.DateOfBirth.Value.Date;
+            age = today.Year - dob.Year;
+            if (dob.Date > today.AddYears(-age.Value)) age--;
+        }
+
         var trainingProfile = await _dbContext.ClientTrainingProfiles
             .FirstOrDefaultAsync(tp => tp.ClientId == client.Id, cancellationToken);
 
-        // 2. Fetch or Generate Deterministic Memory Snapshot
+        // Step 2: ACTIVE SAFETY FLAGS
+        var activeSafetyFlags = safetyScreenings
+            .Where(s => s.ScreeningResult != SafetyCategory.NoSafetyConcern)
+            .Select(s => new
+            {
+                s.ScreeningResult,
+                s.RecommendedAction,
+                s.SummaryRationale,
+                Acknowledged = s.CoachAcknowledgedAtUtc.HasValue,
+                s.GeneratedAtUtc
+            })
+            .ToList();
+
+        // Step 3: CURRENT PROGRAM SUMMARY
+        var currentProgram = await _dbContext.Programs
+            .Include(p => p.Versions)
+            .Where(p => p.ClientId == client.Id && p.Status == Domain.Programs.ProgramStatus.Active)
+            .OrderByDescending(p => p.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        object? programSummary = currentProgram == null ? null : new
+        {
+            currentProgram.Id,
+            currentProgram.Name,
+            currentProgram.RationaleSummary,
+            Status = currentProgram.Status.ToString(),
+            currentProgram.CreatedAtUtc
+        };
+
+        // Step 4: RECENT PERFORMANCE
+        var recentWorkouts = await _dbContext.WorkoutSessions
+            .Where(w => w.ClientId == client.Id && w.CompletedAtUtc.HasValue)
+            .OrderByDescending(w => w.CompletedAtUtc)
+            .Take(3)
+            .Select(w => new
+            {
+                w.Id,
+                w.StartedAtUtc,
+                w.CompletedAtUtc,
+                Status = w.Status.ToString(),
+                w.Notes
+            })
+            .ToListAsync(cancellationToken);
+
+        // Step 5: NUTRITION CONTEXT
+        var nutritionProfile = await _dbContext.ClientNutritionProfiles
+            .FirstOrDefaultAsync(n => n.ClientId == client.Id, cancellationToken);
+
+        object? nutritionContext = nutritionProfile == null ? null : new
+        {
+            BudgetTier = nutritionProfile.BudgetTier.ToString(),
+            nutritionProfile.MealsPerDay,
+            nutritionProfile.CurrentCalorieTarget,
+            nutritionProfile.CurrentProteinTargetGrams,
+            DietaryPreferences = nutritionProfile.DietaryPreferences.ToList(),
+            FoodExclusions = nutritionProfile.FoodExclusions.ToList()
+        };
+
+        // Step 6: RELEVANT MEMORY (Snapshot)
         var snapshotDto = await _memoryService.GetLatestSnapshotAsync(client.Id, cancellationToken);
         if (snapshotDto == null)
         {
@@ -84,57 +167,80 @@ public class AiReasoningService : IAiReasoningService
             }, cancellationToken);
         }
 
-        // 3. Query Active, Eligible Knowledge Claims
+        // Step 7: RELEVANT KNOWLEDGE CLAIMS (Active only)
         var eligibleClaims = await _dbContext.KnowledgeClaims
             .Where(k => k.Status == ClaimStatus.Active)
-            .Take(20)
+            .Take(25)
             .ToListAsync(cancellationToken);
 
         var eligibleClaimIds = eligibleClaims.Select(c => c.Id).ToHashSet();
 
-        // 4. Assemble Prompts
-        var systemPrompt = BuildSystemPrompt(hasActiveMedicalEscalation);
-        var userPrompt = BuildUserPrompt(client, trainingProfile, request, snapshotDto, eligibleClaims, hasActiveMedicalEscalation);
+        // Step 8: ACTIVE UNRESOLVED QUESTIONS
+        var unresolvedQuestions = await _memoryService.GetUnresolvedQuestionsAsync(client.Id, cancellationToken);
 
-        // 5. Invoke AI Provider
+        // Step 9: REASONING INSTRUCTION & ASSEMBLED USER PROMPT
+        var systemPrompt = BuildSystemPrompt(hasReferralUnacknowledged);
+        var userPrompt = BuildLockedContextPrompt(
+            client,
+            age,
+            trainingProfile,
+            activeSafetyFlags,
+            programSummary,
+            recentWorkouts,
+            nutritionContext,
+            snapshotDto,
+            eligibleClaims,
+            unresolvedQuestions,
+            request,
+            hasReferralUnacknowledged);
+
+        // ==========================================
+        // 3. EXECUTE AI PROVIDER
+        // ==========================================
         var completionRequest = new AiCompletionRequest
         {
             SystemPrompt = systemPrompt,
             UserPrompt = userPrompt
         };
 
-        var aiResponse = await _aiProvider.GenerateCompletionAsync(completionRequest, cancellationToken);
+        var aiResponse = await _aiProvider.GenerateStructuredAsync(completionRequest, cancellationToken);
 
         if (!aiResponse.IsSuccess)
         {
             _logger.LogWarning("AI Provider failed: {ErrorMessage}. Applying deterministic fallback recommendation.", aiResponse.ErrorMessage);
-            aiResponse = BuildDeterministicFallback(request.Category, hasActiveMedicalEscalation, eligibleClaims);
+            aiResponse = BuildDeterministicFallback(request.ReasoningCategory, hasReferralUnacknowledged, eligibleClaims);
         }
 
-        // 6. Validate Evidence References against Eligible Claims
+        // ==========================================
+        // 4. EVIDENCE VALIDATION & PROVENANCE
+        // ==========================================
         var validatedClaimRefs = aiResponse.EvidenceClaimRefs
             .Where(id => eligibleClaimIds.Contains(id))
             .ToList();
 
-        // If no valid claims were cited by the model, provide the top matching eligible claim as baseline evidence
         if (validatedClaimRefs.Count == 0 && eligibleClaims.Count > 0)
         {
             validatedClaimRefs.Add(eligibleClaims[0].Id);
         }
 
-        // 7. Enforce Safety Disclaimer if Medical Escalation Active
+        // Enforce Safety Disclaimer if Healthcare Referral is active
         var finalRecommendation = aiResponse.RecommendationText;
-        if (hasActiveMedicalEscalation && !finalRecommendation.Contains("medical evaluation", StringComparison.OrdinalIgnoreCase))
+        if (hasReferralUnacknowledged && !finalRecommendation.Contains("healthcare professional", StringComparison.OrdinalIgnoreCase))
         {
-            finalRecommendation = $"[SAFETY ESCALATION] Client has active safety flags. Recommend medical clearance prior to progressing. {finalRecommendation}";
+            finalRecommendation = $"[SAFETY REFERRAL NOTICE] Active healthcare referral indicated. Human coach clearance advised. {finalRecommendation}";
         }
 
-        // 8. Persist AIRecommendationRecord in PendingReview Status
+        // Deterministic Coach Action Required for sensitive/actionable categories
+        var categoryEnum = (AIRecommendationCategory)request.ReasoningCategory;
+
+        // ==========================================
+        // 5. PERSIST IN M13 AIRecommendationRecord
+        // ==========================================
         var recommendationRecord = new AIRecommendationRecord(
             id: Guid.NewGuid(),
             clientId: client.Id,
             coachId: coachId,
-            recommendationCategory: request.Category,
+            recommendationCategory: categoryEnum,
             recommendationText: finalRecommendation,
             rationaleText: aiResponse.RationaleText,
             confidenceStatement: aiResponse.ConfidenceStatement,
@@ -168,33 +274,39 @@ public class AiReasoningService : IAiReasoningService
         return MapToDto(record);
     }
 
-    private static string BuildSystemPrompt(bool hasActiveMedicalEscalation)
+    private static string BuildSystemPrompt(bool hasReferralUnacknowledged)
     {
         return $$"""
 You are the evidence-based AI Coaching Reasoning Engine for AI Coach OS.
-Your objective is to provide structured, multidisciplinary coaching decision support for human gym coaches.
+Your objective is to provide structured coaching decision support for human gym coaches in Egypt.
 
-CORE RULES:
-1. Always output valid JSON conforming to the schema:
+CORE CONTRACT RULES:
+1. Always output valid JSON conforming exactly to the schema:
 {
   "recommendation": "string (clear, actionable coaching recommendation)",
   "rationale": "string (physiological, biomechanical, or behavioral reasoning)",
   "confidence_statement": "string (explicit statement of certainty and key limitations)",
   "evidence_claim_ids": ["string GUIDs of relevant claims provided in context"]
 }
-2. Never diagnose medical conditions or prescribe medications/PEDs.
+2. Never diagnose medical conditions and never prescribe medications or PEDs.
 3. Only cite evidence claim IDs provided in the scientific knowledge context.
-{{(hasActiveMedicalEscalation ? "4. CRITICAL: Client has active safety flags. Emphasize conservative modification and recommend formal medical evaluation." : "")}}
+{{(hasReferralUnacknowledged ? "4. CRITICAL: Client has unacknowledged healthcare referral signals. Emphasize conservative management and physician review." : "")}}
 """;
     }
 
-    private static string BuildUserPrompt(
+    private static string BuildLockedContextPrompt(
         Domain.Clients.Client client,
+        int? age,
         Domain.TrainingProfiles.ClientTrainingProfile? trainingProfile,
-        GenerateReasoningRequestDto request,
+        object activeSafetyFlags,
+        object? programSummary,
+        object recentWorkouts,
+        object? nutritionContext,
         ClientMemorySnapshotDto snapshot,
         List<KnowledgeClaim> eligibleClaims,
-        bool hasActiveMedicalEscalation)
+        IReadOnlyList<UnresolvedQuestionDto> unresolvedQuestions,
+        GenerateReasoningRequestDto request,
+        bool hasReferralUnacknowledged)
     {
         var claimsSummary = eligibleClaims.Select(c => new
         {
@@ -204,58 +316,57 @@ CORE RULES:
             EvidenceLevel = c.EvidenceLevel.ToString()
         });
 
-        int? age = null;
-        if (client.DateOfBirth.HasValue)
-        {
-            var today = DateTime.UtcNow.Date;
-            var dob = client.DateOfBirth.Value.Date;
-            age = today.Year - dob.Year;
-            if (dob.Date > today.AddYears(-age.Value)) age--;
-        }
-
         var payload = new
         {
-            ClientContext = new
+            Section1_ClientProfile = new
             {
                 client.Id,
                 client.FirstName,
                 client.LastName,
                 Age = age,
                 Gender = client.Gender?.ToString() ?? "NotSpecified",
-                TrainingExperience = trainingProfile?.ExperienceLevel.ToString() ?? "Intermediate",
                 Goal = client.Goal?.ToString() ?? "GeneralFitness",
-                AvailableSessionsPerWeek = trainingProfile?.WeeklyAvailability?.SessionsPerWeek
+                TrainingExperience = trainingProfile?.ExperienceLevel.ToString() ?? "Intermediate",
+                WeeklySessions = trainingProfile?.WeeklyAvailability?.SessionsPerWeek
             },
-            Category = request.Category.ToString(),
-            GuidanceNote = request.GuidanceNote,
-            HasActiveMedicalEscalation = hasActiveMedicalEscalation,
-            MemorySnapshot = snapshot.SnapshotContentJson,
-            EligibleKnowledgeClaims = claimsSummary
+            Section2_ActiveSafetyFlags = activeSafetyFlags,
+            Section3_CurrentProgramSummary = programSummary,
+            Section4_RecentPerformance = recentWorkouts,
+            Section5_NutritionContext = nutritionContext,
+            Section6_RelevantMemorySnapshot = snapshot.SnapshotContentJson,
+            Section7_RelevantKnowledgeClaims = claimsSummary,
+            Section8_ActiveUnresolvedQuestions = unresolvedQuestions.Select(q => new { q.RecordId, q.Content }),
+            Section9_ReasoningInstruction = new
+            {
+                ReasoningCategory = request.ReasoningCategory.ToString(),
+                AdditionalContext = request.AdditionalContext,
+                HealthcareReferralActive = hasReferralUnacknowledged
+            }
         };
 
         return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
     }
 
     private static AiCompletionResponse BuildDeterministicFallback(
-        AIRecommendationCategory category,
-        bool hasActiveMedicalEscalation,
+        ReasoningCategory category,
+        bool hasReferralUnacknowledged,
         List<KnowledgeClaim> eligibleClaims)
     {
         var citedGuids = eligibleClaims.Take(1).Select(c => c.Id).ToList();
 
         var recText = category switch
         {
-            AIRecommendationCategory.ProgramDesign => "Structure program with primary movement patterns balanced across available training days.",
-            AIRecommendationCategory.ExerciseSelection => "Select exercises providing stable resistance profile matching client joint comfort.",
-            AIRecommendationCategory.VolumeAdjustment => "Maintain current weekly set volume within recovery threshold.",
-            AIRecommendationCategory.NutritionTarget => "Calibrate caloric intake with adequate protein distribution across daily meals.",
-            AIRecommendationCategory.RecoveryStrategy => "Prioritize sleep hygiene and stress management to match training stimulus.",
+            ReasoningCategory.ProgramAdaptationReview => "Review program volume and frequency relative to recovery signals and client progression.",
+            ReasoningCategory.NutritionAdjustmentReview => "Evaluate energy balance and protein distribution based on bodyweight trends.",
+            ReasoningCategory.ExerciseModificationReview => "Select exercises providing stable mechanics matching joint comfort.",
+            ReasoningCategory.SafetyContextSummary => "Summarize reported physical signals and verify coach review requirements.",
+            ReasoningCategory.GeneralCoachingNote => "Synthesize client consistency, recovery markers, and upcoming phase goals.",
             _ => "Review client progress and adjust training variables progressively."
         };
 
-        if (hasActiveMedicalEscalation)
+        if (hasReferralUnacknowledged)
         {
-            recText = $"[SAFETY NOTICE] Conservative modification advised. Clinical evaluation recommended. {recText}";
+            recText = $"[SAFETY REFERRAL NOTICE] Conservative management advised. Healthcare evaluation recommended. {recText}";
         }
 
         return new AiCompletionResponse

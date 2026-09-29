@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using AiCoachOs.Application.Ai.Dtos;
 using AiCoachOs.Application.Ai.Models;
@@ -14,7 +13,7 @@ namespace AiCoachOs.UnitTests.Ai;
 public class AiReasoningServiceUnitTests
 {
     [Fact]
-    public async Task MockAiProvider_GeneratesDeterministicResponse_AndExtractsProvidedGuids()
+    public async Task MockAiProvider_GeneratesDeterministicStructuredResponse_AndExtractsProvidedGuids()
     {
         var provider = new MockAiProvider();
         provider.ProviderName.Should().Be("Mock");
@@ -29,7 +28,7 @@ public class AiReasoningServiceUnitTests
             UserPrompt = $"Please reason with Claim 1: {claimId1} and Claim 2: {claimId2}"
         };
 
-        var response = await provider.GenerateCompletionAsync(request);
+        var response = await provider.GenerateStructuredAsync(request);
 
         response.Should().NotBeNull();
         response.IsSuccess.Should().BeTrue();
@@ -42,16 +41,64 @@ public class AiReasoningServiceUnitTests
         response.EvidenceClaimRefs.Should().Contain(claimId2);
     }
 
-    [Theory]
-    [InlineData(AIRecommendationCategory.ProgramDesign)]
-    [InlineData(AIRecommendationCategory.ExerciseSelection)]
-    [InlineData(AIRecommendationCategory.VolumeAdjustment)]
-    [InlineData(AIRecommendationCategory.NutritionTarget)]
-    [InlineData(AIRecommendationCategory.RecoveryStrategy)]
-    public void AIRecommendationCategory_ContainsExactLockedFiveCategories(AIRecommendationCategory category)
+    [Fact]
+    public void MockAiProvider_ImageAndVideoStubs_ThrowNotImplementedException()
     {
-        Enum.IsDefined(typeof(AIRecommendationCategory), category).Should().BeTrue();
+        var provider = new MockAiProvider();
+        var actImage = () => provider.AnalyzeImageAsync(Array.Empty<byte>(), "prompt");
+        var actVideo = () => provider.AnalyzeVideoAsync(Array.Empty<byte>(), "prompt");
+
+        actImage.Should().ThrowAsync<NotImplementedException>();
+        actVideo.Should().ThrowAsync<NotImplementedException>();
+    }
+
+    [Theory]
+    [InlineData(ReasoningCategory.ProgramAdaptationReview)]
+    [InlineData(ReasoningCategory.NutritionAdjustmentReview)]
+    [InlineData(ReasoningCategory.ExerciseModificationReview)]
+    [InlineData(ReasoningCategory.SafetyContextSummary)]
+    [InlineData(ReasoningCategory.GeneralCoachingNote)]
+    public void ReasoningCategory_ContainsExactLockedFiveCategories(ReasoningCategory category)
+    {
+        Enum.IsDefined(typeof(ReasoningCategory), category).Should().BeTrue();
         ((int)category).Should().BeInRange(1, 5);
+    }
+
+    [Fact]
+    public void GenerateReasoningRequestDto_JsonSerialization_UsesLockedPropertyNames()
+    {
+        var clientId = Guid.NewGuid();
+        var json = $$"""
+        {
+            "clientId": "{{clientId}}",
+            "reasoningCategory": "ProgramAdaptationReview",
+            "additionalContext": "Client reports lower back fatigue"
+        }
+        """;
+
+        var dto = JsonSerializer.Deserialize<GenerateReasoningRequestDto>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        dto.Should().NotBeNull();
+        dto!.ClientId.Should().Be(clientId);
+        dto.ReasoningCategory.Should().Be(ReasoningCategory.ProgramAdaptationReview);
+        dto.AdditionalContext.Should().Be("Client reports lower back fatigue");
+    }
+
+    [Fact]
+    public void AnthropicModel_DefaultModelIsClaudeSonnet46()
+    {
+        var settings = new AiSettings();
+        settings.Model.Should().Be("claude-sonnet-4-6");
+
+        var provider = new AnthropicAiProvider(
+            new HttpClient(),
+            Options.Create(settings),
+            NullLogger<AnthropicAiProvider>.Instance);
+
+        provider.DefaultModelName.Should().Be("claude-sonnet-4-6");
     }
 
     [Fact]
@@ -72,7 +119,7 @@ public class AiReasoningServiceUnitTests
             UserPrompt = "User"
         };
 
-        var response = await provider.GenerateCompletionAsync(request);
+        var response = await provider.GenerateStructuredAsync(request);
 
         response.IsSuccess.Should().BeFalse();
         response.ErrorMessage.Should().Contain("API key is missing");

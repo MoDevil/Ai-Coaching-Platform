@@ -68,11 +68,20 @@ public enum SnapshotGenerationTrigger
 
 public enum AIRecommendationCategory
 {
-    ProgramDesign = 1,
-    ExerciseSelection = 2,
-    VolumeAdjustment = 3,
-    NutritionTarget = 4,
-    RecoveryStrategy = 5
+    ProgramAdaptationReview = 1,
+    NutritionAdjustmentReview = 2,
+    ExerciseModificationReview = 3,
+    SafetyContextSummary = 4,
+    GeneralCoachingNote = 5
+}
+
+public enum ReasoningCategory
+{
+    ProgramAdaptationReview = 1,
+    NutritionAdjustmentReview = 2,
+    ExerciseModificationReview = 3,
+    SafetyContextSummary = 4,
+    GeneralCoachingNote = 5
 }
 
 public enum AIRecommendationReviewStatus

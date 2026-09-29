@@ -5,9 +5,15 @@ namespace AiCoachOs.Application.Ai.Dtos;
 
 public class GenerateReasoningRequestDto
 {
+    [JsonPropertyName("clientId")]
     public Guid ClientId { get; set; }
-    public AIRecommendationCategory Category { get; set; }
-    public string? GuidanceNote { get; set; }
+
+    [JsonPropertyName("reasoningCategory")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ReasoningCategory ReasoningCategory { get; set; }
+
+    [JsonPropertyName("additionalContext")]
+    public string? AdditionalContext { get; set; }
 }
 
 public class AiCompletionRequest
