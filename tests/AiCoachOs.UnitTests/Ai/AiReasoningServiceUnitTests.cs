@@ -43,12 +43,20 @@ public class AiReasoningServiceUnitTests
     }
 
     [Fact]
-    public void MockAiProvider_VideoStub_ThrowsNotImplementedException()
+    public async Task MockAiProvider_AnalyzeVideoAsync_ReturnsSuccessfulObservation()
     {
         var provider = new MockAiProvider();
-        var actVideo = () => provider.AnalyzeVideoAsync(Array.Empty<byte>(), "prompt");
+        var response = await provider.AnalyzeVideoAsync(new AiCoachOs.Application.Ai.Dtos.AiVideoRequest
+        {
+            Frames = new List<AiCoachOs.Application.Ai.Dtos.VideoFrame>
+            {
+                new() { FrameIndex = 1, TimestampSeconds = 1.0m, ImageData = new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, MimeType = "image/jpeg" }
+            },
+            UserPrompt = "Analyze squat technique"
+        });
 
-        actVideo.Should().ThrowAsync<NotImplementedException>();
+        response.IsSuccess.Should().BeTrue();
+        response.RecommendationText.Should().Contain("movement_execution_notes");
     }
 
     [Theory]

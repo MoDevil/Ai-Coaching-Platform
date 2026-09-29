@@ -30,6 +30,9 @@
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a [routerLink]="['/programs']" [queryParams]="{ clientId: client.id }" class="btn btn-primary">Program Designer</a>
         <a [routerLink]="['/clients', client.id, 'training-profile']" class="btn btn-secondary">Training Profile</a>
+        <a [routerLink]="['/clients', client.id, 'photos']" class="btn btn-secondary">Photos</a>
+        <a [routerLink]="['/clients', client.id, 'videos']" class="btn btn-secondary">Technique Videos</a>
+        <a [routerLink]="['/clients', client.id, 'memory']" class="btn btn-secondary">Memory</a>
         <a [routerLink]="['/clients', client.id, 'edit']" class="btn btn-secondary">Edit Profile</a>
         <button
           *ngIf="client.status === ClientStatus.Active"

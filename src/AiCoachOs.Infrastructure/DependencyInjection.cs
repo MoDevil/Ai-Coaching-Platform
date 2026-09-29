@@ -148,6 +148,11 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Photos.Interfaces.IPhotoStorageService, AiCoachOs.Infrastructure.Photos.LocalStorageService>();
         services.AddScoped<AiCoachOs.Application.Photos.Interfaces.IPhotoVisionService, AiCoachOs.Infrastructure.Photos.PhotoVisionService>();
 
+        // M16 Video Analysis Architecture Services
+        services.AddScoped<AiCoachOs.Application.Videos.Interfaces.IVideoProcessingService, AiCoachOs.Infrastructure.Videos.FFmpegVideoProcessingService>();
+        services.AddSingleton<AiCoachOs.Application.Videos.Interfaces.IVideoAnalysisJobService, AiCoachOs.Infrastructure.Videos.VideoAnalysisJobService>();
+        services.AddScoped<AiCoachOs.Application.Videos.Interfaces.IVideoAnalysisService, AiCoachOs.Infrastructure.Videos.VideoAnalysisService>();
+
         return services;
     }
 }

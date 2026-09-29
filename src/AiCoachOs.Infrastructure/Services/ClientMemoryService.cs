@@ -555,6 +555,51 @@ public class ClientMemoryService : IClientMemoryService
             }
         }
 
+        // Video Anonymization: Purge video & frame object storage files and mark ClientVideo shells as anonymized
+        var videoIds = await _dbContext.ClientVideos
+            .Where(v => v.ClientId == clientId && v.CoachId == coachId && !v.IsAnonymized)
+            .Select(v => v.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var videoId in videoIds)
+        {
+            var trackedVideo = await _dbContext.FindClientVideoByIdAsync(videoId, cancellationToken);
+            if (trackedVideo != null && !trackedVideo.IsAnonymized)
+            {
+                if (_photoStorageService != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(trackedVideo.StorageKey) && trackedVideo.StorageKey != "ANONYMIZED")
+                    {
+                        await _photoStorageService.DeletePhotoAsync(trackedVideo.StorageKey, cancellationToken);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(trackedVideo.FrameStorageKeys) && trackedVideo.FrameStorageKeys != "[]")
+                    {
+                        try
+                        {
+                            var frames = System.Text.Json.JsonSerializer.Deserialize<List<AiCoachOs.Application.Videos.Dtos.StoredFrameMetadata>>(trackedVideo.FrameStorageKeys);
+                            if (frames != null)
+                            {
+                                foreach (var f in frames)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(f.StorageKey) && f.StorageKey != "ANONYMIZED")
+                                    {
+                                        await _photoStorageService.DeletePhotoAsync(f.StorageKey, cancellationToken);
+                                    }
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore frame parsing errors during anonymization
+                        }
+                    }
+                }
+
+                trackedVideo.MarkAnonymized();
+            }
+        }
+
         var log = new ClientAnonymizationLog(
             id: Guid.NewGuid(),
             clientId: clientId,

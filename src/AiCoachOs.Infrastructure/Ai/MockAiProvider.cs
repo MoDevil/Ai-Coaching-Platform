@@ -84,10 +84,31 @@ public class MockAiProvider : IAiProvider
     }
 
     public Task<AiCompletionResponse> AnalyzeVideoAsync(
-        byte[] videoBytes, 
-        string prompt, 
+        AiVideoRequest request, 
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("Video analysis is reserved for future milestones (M16) and not implemented in M15.");
+        var techniqueResult = new AiCoachOs.Application.Videos.Dtos.VideoObservationResult
+        {
+            MovementExecutionNotes = "Bar path remains visual and balanced throughout the movement sequence.",
+            JointAlignmentNotes = "Knee tracking and hip hinge visual alignment observed across frames.",
+            RangeOfMotionNotes = "Full movement excursion observable across extracted sequential frames.",
+            TempoAndControlNotes = "Controlled eccentric tempo and stable concentric turnaround visual across frames.",
+            LimitationsStatement = "Visual observations from video frames are qualitative movement cues and do not constitute biomechanical lab measurement or medical diagnosis.",
+            CoachActionRequired = true,
+            ConfidenceStatement = "Qualitative technique observation completed based on available 2D video frames."
+        };
+
+        var response = new AiCompletionResponse
+        {
+            IsSuccess = true,
+            ProviderName = ProviderName,
+            ModelName = DefaultModelName,
+            TokensUsed = 450,
+            RecommendationText = System.Text.Json.JsonSerializer.Serialize(techniqueResult),
+            RationaleText = "Deterministic mock technique observation completed across video frames.",
+            ConfidenceStatement = techniqueResult.ConfidenceStatement
+        };
+
+        return Task.FromResult(response);
     }
 }

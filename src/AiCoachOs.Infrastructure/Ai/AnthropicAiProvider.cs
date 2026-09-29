@@ -227,12 +227,104 @@ public class AnthropicAiProvider : IAiProvider
         }
     }
 
-    public Task<AiCompletionResponse> AnalyzeVideoAsync(
-        byte[] videoBytes, 
-        string prompt, 
+    public async Task<AiCompletionResponse> AnalyzeVideoAsync(
+        AiVideoRequest request, 
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("Video analysis is reserved for future milestones (M16) and not implemented in M15.");
+        if (string.IsNullOrWhiteSpace(_settings.AnthropicApiKey))
+        {
+            _logger.LogError("Anthropic API key is not configured for video frame analysis.");
+            return new AiCompletionResponse
+            {
+                IsSuccess = false,
+                ProviderName = ProviderName,
+                ModelName = DefaultModelName,
+                ErrorMessage = "Anthropic API key is missing or not configured."
+            };
+        }
+
+        var model = request.Model ?? DefaultModelName;
+        var maxTokens = request.MaxTokens ?? _settings.MaxTokens;
+
+        var contentBlocks = new List<object>();
+
+        foreach (var frame in request.Frames.OrderBy(f => f.FrameIndex))
+        {
+            contentBlocks.Add(new
+            {
+                type = "image",
+                source = new
+                {
+                    type = "base64",
+                    media_type = frame.MimeType,
+                    data = Convert.ToBase64String(frame.ImageData)
+                }
+            });
+
+            contentBlocks.Add(new
+            {
+                type = "text",
+                text = $"[Frame {frame.FrameIndex} at {frame.TimestampSeconds:F2}s]"
+            });
+        }
+
+        contentBlocks.Add(new
+        {
+            type = "text",
+            text = request.UserPrompt
+        });
+
+        var requestBody = new
+        {
+            model,
+            max_tokens = maxTokens,
+            temperature = 0.2,
+            system = request.SystemPrompt,
+            messages = new[]
+            {
+                new
+                {
+                    role = "user",
+                    content = contentBlocks
+                }
+            }
+        };
+
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
+            httpRequest.Headers.Add("x-api-key", _settings.AnthropicApiKey);
+            httpRequest.Headers.Add("anthropic-version", "2023-06-01");
+            httpRequest.Content = JsonContent.Create(requestBody);
+
+            using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Anthropic Vision API returned {StatusCode}: {ResponseJson}", response.StatusCode, responseJson);
+                return new AiCompletionResponse
+                {
+                    IsSuccess = false,
+                    ProviderName = ProviderName,
+                    ModelName = model,
+                    ErrorMessage = $"Anthropic Vision API returned error: {response.StatusCode} - {responseJson}"
+                };
+            }
+
+            return ParseAnthropicResponse(responseJson, model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling Anthropic Vision API for video analysis.");
+            return new AiCompletionResponse
+            {
+                IsSuccess = false,
+                ProviderName = ProviderName,
+                ModelName = model,
+                ErrorMessage = $"Anthropic Vision API connection error: {ex.Message}"
+            };
+        }
     }
 
     private AiCompletionResponse ParseAnthropicResponse(string responseJson, string model)

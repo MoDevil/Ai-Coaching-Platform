@@ -73,6 +73,7 @@ public interface IApplicationDbContext
     IQueryable<AiCoachOs.Domain.Memory.ClientAnonymizationLog> ClientAnonymizationLogs { get; }
 
     IQueryable<AiCoachOs.Domain.Photos.ClientPhoto> ClientPhotos { get; }
+    IQueryable<AiCoachOs.Domain.Videos.ClientVideo> ClientVideos { get; }
 
     Task AddCoachAsync(Coach coach, CancellationToken cancellationToken = default);
     Task AddClientAsync(Client client, CancellationToken cancellationToken = default);
@@ -111,6 +112,9 @@ public interface IApplicationDbContext
     Task AddClientPhotoAsync(AiCoachOs.Domain.Photos.ClientPhoto photo, CancellationToken cancellationToken = default);
     void RemoveClientPhoto(AiCoachOs.Domain.Photos.ClientPhoto photo);
 
+    Task AddClientVideoAsync(AiCoachOs.Domain.Videos.ClientVideo video, CancellationToken cancellationToken = default);
+    void RemoveClientVideo(AiCoachOs.Domain.Videos.ClientVideo video);
+
     Task<Coach?> FindCoachByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Coach?> FindCoachByIdentityUserIdAsync(string identityUserId, CancellationToken cancellationToken = default);
     Task<Client?> FindClientByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -144,6 +148,7 @@ public interface IApplicationDbContext
     Task<AiCoachOs.Domain.Memory.AIRecommendationRecord?> FindAIRecommendationRecordByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<AiCoachOs.Domain.Photos.ClientPhoto?> FindClientPhotoByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AiCoachOs.Domain.Videos.ClientVideo?> FindClientVideoByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

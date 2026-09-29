@@ -14,7 +14,8 @@ public enum MemoryCategory
     RecoveryNote = 10,
     GeneralNote = 11,
     UnresolvedQuestion = 12,
-    PhysiqueObservation = 13
+    PhysiqueObservation = 13,
+    ExerciseTechniqueObservation = 14
 }
 
 public enum MemorySourceType
@@ -73,7 +74,8 @@ public enum AIRecommendationCategory
     NutritionAdjustmentReview = 2,
     ExerciseModificationReview = 3,
     SafetyContextSummary = 4,
-    GeneralCoachingNote = 5
+    GeneralCoachingNote = 5,
+    ExerciseTechniqueObservation = 6
 }
 
 public enum ReasoningCategory
@@ -82,7 +84,8 @@ public enum ReasoningCategory
     NutritionAdjustmentReview = 2,
     ExerciseModificationReview = 3,
     SafetyContextSummary = 4,
-    GeneralCoachingNote = 5
+    GeneralCoachingNote = 5,
+    ExerciseTechniqueObservation = 6
 }
 
 public enum AIRecommendationReviewStatus

@@ -81,6 +81,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<AiCoachOs.Domain.Memory.ClientAnonymizationLog> ClientAnonymizationLogsDbSet => Set<AiCoachOs.Domain.Memory.ClientAnonymizationLog>();
 
     public DbSet<AiCoachOs.Domain.Photos.ClientPhoto> ClientPhotosDbSet => Set<AiCoachOs.Domain.Photos.ClientPhoto>();
+    public DbSet<AiCoachOs.Domain.Videos.ClientVideo> ClientVideosDbSet => Set<AiCoachOs.Domain.Videos.ClientVideo>();
 
     // Explicit implementation of IApplicationDbContext
     IQueryable<Coach> IApplicationDbContext.Coaches => CoachesDbSet.AsNoTracking();
@@ -94,6 +95,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     IQueryable<AiCoachOs.Domain.Memory.ClientAnonymizationLog> IApplicationDbContext.ClientAnonymizationLogs => ClientAnonymizationLogsDbSet.AsNoTracking();
 
     IQueryable<AiCoachOs.Domain.Photos.ClientPhoto> IApplicationDbContext.ClientPhotos => ClientPhotosDbSet.AsNoTracking();
+    IQueryable<AiCoachOs.Domain.Videos.ClientVideo> IApplicationDbContext.ClientVideos => ClientVideosDbSet.AsNoTracking();
 
     IQueryable<Exercise> IApplicationDbContext.Exercises => ExercisesDbSet.AsNoTracking();
     IQueryable<Muscle> IApplicationDbContext.Muscles => MusclesDbSet.AsNoTracking();
@@ -576,6 +578,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         return await ClientPhotosDbSet
             .Include(p => p.ObservationRecord)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+    }
+
+    public async Task AddClientVideoAsync(AiCoachOs.Domain.Videos.ClientVideo video, CancellationToken cancellationToken = default)
+    {
+        await ClientVideosDbSet.AddAsync(video, cancellationToken);
+    }
+
+    public void RemoveClientVideo(AiCoachOs.Domain.Videos.ClientVideo video)
+    {
+        ClientVideosDbSet.Remove(video);
+    }
+
+    public async Task<AiCoachOs.Domain.Videos.ClientVideo?> FindClientVideoByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await ClientVideosDbSet
+            .Include(v => v.ObservationRecord)
+            .Include(v => v.Exercise)
+            .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

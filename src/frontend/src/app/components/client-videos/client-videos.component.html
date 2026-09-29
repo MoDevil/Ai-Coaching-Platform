@@ -1,0 +1,187 @@
+<div class="video-container">
+  <div class="header-section">
+    <div>
+      <h2 class="title">Exercise Technique Videos</h2>
+      <p class="subtitle">Upload, review normalized movement recordings, and run AI biomechanical technique analysis.</p>
+    </div>
+    <button class="btn btn-primary" (click)="showUploadModal = true">
+      <i class="icon-upload"></i> Upload Video
+    </button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+
+  <div class="main-layout">
+    <!-- Sidebar: Video List -->
+    <div class="video-list-panel">
+      <div class="panel-header">
+        <h3>Recordings ({{ videos.length }})</h3>
+      </div>
+      <div *ngIf="isLoading && videos.length === 0" class="loading-state">Loading videos...</div>
+      <div *ngIf="!isLoading && videos.length === 0" class="empty-state">
+        <p>No exercise videos uploaded yet.</p>
+      </div>
+      <div class="video-list" *ngIf="videos.length > 0">
+        <div
+          *ngFor="let vid of videos"
+          class="video-card"
+          [class.selected]="selectedVideo?.id === vid.id"
+          (click)="selectVideo(vid)"
+        >
+          <div class="video-info">
+            <span class="exercise-name">{{ vid.exerciseName }}</span>
+            <span class="duration-badge">{{ vid.durationSeconds }}s ({{ vid.frameCount }} frames)</span>
+          </div>
+          <div class="video-meta">
+            <span>{{ vid.uploadedAtUtc | date:'shortDate' }}</span>
+            <span *ngIf="vid.observationRecordId" class="badge badge-success">Analyzed</span>
+            <span *ngIf="!vid.observationRecordId" class="badge badge-secondary">Pending Analysis</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main View: Video Detail & Observations -->
+    <div class="video-detail-panel" *ngIf="selectedVideo">
+      <div class="detail-header">
+        <div>
+          <h3>{{ selectedVideo.exerciseName }}</h3>
+          <p class="meta-line">
+            Duration: {{ selectedVideo.durationSeconds }}s | Size: {{ (selectedVideo.fileSizeBytes / (1024 * 1024)) | number:'1.1-2' }} MB | Uploaded: {{ selectedVideo.uploadedAtUtc | date:'medium' }}
+          </p>
+        </div>
+        <div class="action-buttons">
+          <button
+            class="btn btn-primary"
+            (click)="triggerAnalysis()"
+            [disabled]="isAnalyzing || selectedVideo.isAnonymized"
+          >
+            {{ isAnalyzing ? 'Analyzing (' + jobProgress + '%)...' : 'Run AI Technique Analysis' }}
+          </button>
+          <button class="btn btn-danger-outline" (click)="deleteSelectedVideo()">
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- Async Job Progress Bar -->
+      <div *ngIf="isAnalyzing" class="job-progress-container">
+        <div class="progress-info">
+          <span>Status: <strong>{{ jobStatusText }}</strong></span>
+          <span>{{ jobProgress }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-bar-fill" [style.width.%]="jobProgress"></div>
+        </div>
+      </div>
+
+      <!-- Video Player -->
+      <div class="video-player-container" *ngIf="selectedVideoUrl">
+        <video [src]="selectedVideoUrl" controls class="video-player"></video>
+      </div>
+
+      <!-- Frames Gallery -->
+      <div class="frames-section" *ngIf="selectedFrames.length > 0">
+        <h4>Extracted Biomechanical Frames ({{ selectedFrames.length }})</h4>
+        <div class="frames-grid">
+          <div *ngFor="let frame of selectedFrames" class="frame-card">
+            <img [src]="frame.signedUrl" [alt]="'Frame ' + frame.frameIndex" class="frame-img" />
+            <span class="frame-caption">#{{ frame.frameIndex }} @ {{ frame.timestampSeconds | number:'1.1-1' }}s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Observation Details -->
+      <div class="observation-section" *ngIf="selectedObservation">
+        <div class="observation-card">
+          <div class="obs-header">
+            <h4>AI Technique Analysis Findings</h4>
+            <span class="confidence-badge">Confidence: {{ (selectedObservation.confidenceScore * 100) | number:'1.0-0' }}%</span>
+          </div>
+          <p class="obs-summary">{{ selectedObservation.summary }}</p>
+
+          <div class="obs-grid">
+            <div class="obs-block" *ngIf="selectedObservation.keyObservations?.length">
+              <h5>Key Observations</h5>
+              <ul>
+                <li *ngFor="let obs of selectedObservation.keyObservations">{{ obs }}</li>
+              </ul>
+            </div>
+
+            <div class="obs-block" *ngIf="selectedObservation.recommendations?.length">
+              <h5>Coaching Recommendations</h5>
+              <ul>
+                <li *ngFor="let rec of selectedObservation.recommendations">{{ rec }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div *ngIf="selectedObservation.safetyFlags?.length" class="safety-box">
+            <h5>Safety Flags & Observations</h5>
+            <ul>
+              <li *ngFor="let flag of selectedObservation.safetyFlags">{{ flag }}</li>
+            </ul>
+          </div>
+
+          <div class="limitations-box" *ngIf="selectedObservation.limitations">
+            <strong>Analysis Limitations & Safeguards:</strong>
+            <p>{{ selectedObservation.limitations }}</p>
+          </div>
+        </div>
+
+        <!-- Historical Observations (M16-C1) -->
+        <div class="history-section" *ngIf="observationHistory.length > 1">
+          <h4>Analysis History ({{ observationHistory.length }} runs)</h4>
+          <div class="history-list">
+            <div *ngFor="let hist of observationHistory; let i = index" class="history-item">
+              <span class="history-idx">Run #{{ observationHistory.length - i }} ({{ hist.analysisDateUtc | date:'short' }}):</span>
+              <span class="history-summary">{{ hist.summary }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modal-backdrop" *ngIf="showUploadModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Upload Exercise Technique Video</h3>
+        <button class="close-btn" (click)="showUploadModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Exercise Name *</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="uploadExerciseName"
+            placeholder="e.g., Barbell Back Squat, Conventional Deadlift"
+          />
+        </div>
+        <div class="form-group">
+          <label>Video File (MP4/MOV, 2–180s, &lt;= 100MB) *</label>
+          <input type="file" accept="video/mp4,video/quicktime,video/webm" (change)="onFileSelected($event)" class="form-control" />
+          <small class="form-hint">Videos are normalized to H.264, audio is stripped for privacy, and metadata is wiped.</small>
+        </div>
+        <div class="form-group">
+          <label>Coach Notes (Optional)</label>
+          <textarea
+            class="form-control"
+            rows="2"
+            [(ngModel)]="uploadNotes"
+            placeholder="Optional context for this set or angle"
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showUploadModal = false">Cancel</button>
+        <button class="btn btn-primary" (click)="submitUpload()" [disabled]="isLoading || !selectedFile || !uploadExerciseName">
+          {{ isLoading ? 'Processing & Normalizing...' : 'Upload & Process' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

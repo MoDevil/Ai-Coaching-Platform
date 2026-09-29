@@ -15,9 +15,7 @@ public interface IAiProvider
         AiImageRequest request, 
         CancellationToken cancellationToken = default);
 
-    // Interface stub for M16 Video Analysis
     Task<AiCompletionResponse> AnalyzeVideoAsync(
-        byte[] videoBytes, 
-        string prompt, 
+        AiVideoRequest request, 
         CancellationToken cancellationToken = default);
 }
