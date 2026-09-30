@@ -26,6 +26,7 @@ public class AIRecommendationRecord : Entity<Guid>
     public DateTime? CoachDecisionAt { get; private set; }
     public string? FinalImplementedPlan { get; private set; }
     public Guid? LinkedMemoryRecordId { get; private set; }
+    public Guid? ImplementedProgramVersionId { get; private set; }
 
     public IReadOnlyCollection<Guid> KnowledgeClaimRefs => _knowledgeClaimRefs;
 
@@ -43,7 +44,8 @@ public class AIRecommendationRecord : Entity<Guid>
         string aiModel,
         IEnumerable<Guid>? knowledgeClaimRefs = null,
         DateTime? generatedAt = null,
-        Guid? linkedMemoryRecordId = null) : base(id)
+        Guid? linkedMemoryRecordId = null,
+        Guid? implementedProgramVersionId = null) : base(id)
     {
         if (clientId == Guid.Empty)
             throw new ArgumentException("ClientId cannot be empty.", nameof(clientId));
@@ -163,5 +165,21 @@ public class AIRecommendationRecord : Entity<Guid>
         };
 
         ApplyReview(targetStatus, string.IsNullOrWhiteSpace(decisionNote) ? decision.ToString() : decisionNote, finalImplementedPlan);
+    }
+
+    public void LinkProgramVersion(Guid programVersionId)
+    {
+        if (ReviewStatus != AIRecommendationReviewStatus.Accepted)
+        {
+            throw new InvalidOperationException("A program version can only be linked to an Accepted recommendation.");
+        }
+
+        if (programVersionId == Guid.Empty)
+        {
+            throw new ArgumentException("ProgramVersionId cannot be empty.", nameof(programVersionId));
+        }
+
+        ImplementedProgramVersionId = programVersionId;
+        MarkUpdated();
     }
 }

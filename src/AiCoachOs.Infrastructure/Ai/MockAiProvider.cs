@@ -17,7 +17,7 @@ public class MockAiProvider : IAiProvider
         // Extract any GUIDs present in the user prompt (representing eligible knowledge claim IDs)
         var guidRegex = new Regex(@"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
         var matches = guidRegex.Matches(request.UserPrompt);
-        var citedGuids = matches.Take(2).Select(m => Guid.Parse(m.Value)).ToList();
+        var citedGuids = matches.Select(m => Guid.Parse(m.Value)).Distinct().ToList();
 
         var structured = new StructuredRecommendation
         {

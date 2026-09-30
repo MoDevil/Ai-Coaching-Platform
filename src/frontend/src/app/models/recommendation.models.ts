@@ -86,12 +86,18 @@ export interface AIRecommendationDetail {
   coachDecision?: string | null;
   coachDecisionAt?: string | null;
   finalImplementedPlan?: string | null;
+  implementedProgramVersionId?: string | null;
+  implementedProgramVersionLabel?: string | null;
 }
 
 export interface ReviewAIRecommendationRequest {
   reviewStatus: AIRecommendationReviewStatus | string;
   coachDecision?: string | null;
   finalImplementedPlan?: string | null;
+}
+
+export interface LinkProgramVersionRequest {
+  programVersionId: string;
 }
 
 export interface GenerateReasoningRequest {

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AiCoachOs.Application.Ai.Dtos;
 using AiCoachOs.Application.Ai.Interfaces;
+using AiCoachOs.Application.Common.Exceptions;
 using AiCoachOs.Application.Common.Interfaces;
 using AiCoachOs.Application.Memory.Dtos;
 using AiCoachOs.Application.Memory.Interfaces;
@@ -433,6 +434,51 @@ CORE CONTRACT RULES:
         return MapToDto(record);
     }
 
+    public async Task<AIRecommendationRecordDto> LinkProgramVersionAsync(
+        Guid coachId,
+        Guid recommendationId,
+        Guid programVersionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (programVersionId == Guid.Empty)
+            throw new ValidationException("ProgramVersionId", "ProgramVersionId cannot be empty.");
+
+        var record = await _dbContext.FindAIRecommendationRecordByIdAsync(recommendationId, cancellationToken);
+        if (record == null)
+        {
+            throw new KeyNotFoundException($"Recommendation record {recommendationId} not found.");
+        }
+
+        if (record.CoachId != coachId)
+        {
+            throw new UnauthorizedAccessException("Coach does not own this recommendation record.");
+        }
+
+        if (record.ReviewStatus != AIRecommendationReviewStatus.Accepted)
+        {
+            throw new ValidationException("ReviewStatus", "A program version can only be linked to an Accepted recommendation.");
+        }
+
+        var programVersion = await _dbContext.ProgramVersions
+            .Include(pv => pv.Program)
+            .FirstOrDefaultAsync(pv => pv.Id == programVersionId, cancellationToken);
+
+        if (programVersion == null)
+        {
+            throw new KeyNotFoundException($"Program version {programVersionId} not found.");
+        }
+
+        if (programVersion.Program == null || programVersion.Program.ClientId != record.ClientId || programVersion.Program.CoachId != coachId)
+        {
+            throw new ValidationException("ProgramVersionId", "Program version does not belong to the recommendation's client or coach.");
+        }
+
+        record.LinkProgramVersion(programVersionId);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(record);
+    }
+
     public async Task<IReadOnlyList<AIRecommendationSummaryDto>> GetClientRecommendationsAsync(
         Guid coachId,
         Guid clientId,
@@ -530,6 +576,19 @@ CORE CONTRACT RULES:
         var hasSafetyNotice = record.RecommendationText.Contains("[SAFETY REFERRAL NOTICE]");
         var safetySummary = hasSafetyNotice ? "Active healthcare referral indicated." : null;
 
+        string? versionLabel = null;
+        if (record.ImplementedProgramVersionId.HasValue)
+        {
+            var version = await _dbContext.ProgramVersions
+                .Include(pv => pv.Program)
+                .FirstOrDefaultAsync(pv => pv.Id == record.ImplementedProgramVersionId.Value, cancellationToken);
+
+            if (version != null && version.Program != null)
+            {
+                versionLabel = $"v{version.VersionNumber} - {version.Program.Name}";
+            }
+        }
+
         return new AIRecommendationDetailDto
         {
             Id = record.Id,
@@ -552,7 +611,9 @@ CORE CONTRACT RULES:
             ReviewStatus = record.ReviewStatus,
             CoachDecision = record.CoachDecisionNote,
             CoachDecisionAt = record.CoachDecisionAt,
-            FinalImplementedPlan = record.FinalImplementedPlan
+            FinalImplementedPlan = record.FinalImplementedPlan,
+            ImplementedProgramVersionId = record.ImplementedProgramVersionId,
+            ImplementedProgramVersionLabel = versionLabel
         };
     }
 
@@ -576,6 +637,7 @@ CORE CONTRACT RULES:
             CoachDecisionAt = r.CoachDecisionAt,
             FinalImplementedPlan = r.FinalImplementedPlan,
             LinkedMemoryRecordId = r.LinkedMemoryRecordId,
+            ImplementedProgramVersionId = r.ImplementedProgramVersionId,
             KnowledgeClaimRefs = r.KnowledgeClaimRefs.ToList()
         };
     }

@@ -131,6 +131,7 @@ public class AIRecommendationRecordDto
     public DateTime? CoachDecisionAt { get; set; }
     public string? FinalImplementedPlan { get; set; }
     public Guid? LinkedMemoryRecordId { get; set; }
+    public Guid? ImplementedProgramVersionId { get; set; }
     public IReadOnlyList<Guid> KnowledgeClaimRefs { get; set; } = new List<Guid>();
 }
 

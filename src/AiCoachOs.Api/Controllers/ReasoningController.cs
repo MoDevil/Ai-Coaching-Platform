@@ -64,4 +64,19 @@ public class ReasoningController : ControllerBase
         var result = await _reasoningService.ReviewRecommendationAsync(coachId, recommendationId, request, cancellationToken);
         return Ok(result);
     }
+
+    [HttpPatch("{recommendationId:guid}/link-program-version")]
+    [ProducesResponseType(typeof(AIRecommendationRecordDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AIRecommendationRecordDto>> LinkProgramVersion(
+        [FromRoute] Guid recommendationId,
+        [FromBody] LinkProgramVersionRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var coachId = await _currentCoachService.GetRequiredCoachIdAsync(cancellationToken);
+        var result = await _reasoningService.LinkProgramVersionAsync(coachId, recommendationId, request.ProgramVersionId, cancellationToken);
+        return Ok(result);
+    }
 }

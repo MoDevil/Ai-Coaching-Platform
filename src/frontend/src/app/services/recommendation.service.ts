@@ -43,6 +43,13 @@ export class RecommendationService {
     return this.http.patch(`/api/reasoning/${recommendationId}/review`, request);
   }
 
+  linkProgramVersion(
+    recommendationId: string,
+    request: { programVersionId: string }
+  ): Observable<any> {
+    return this.http.patch(`/api/reasoning/${recommendationId}/link-program-version`, request);
+  }
+
   generateReasoning(request: GenerateReasoningRequest): Observable<any> {
     return this.http.post(`/api/reasoning/generate`, request);
   }

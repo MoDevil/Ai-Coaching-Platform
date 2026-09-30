@@ -42,6 +42,7 @@ public class ExceptionHandlingMiddleware
             ForbiddenException => HttpStatusCode.Forbidden,
             UnauthorizedAccessException => HttpStatusCode.Forbidden,
             NotFoundException => HttpStatusCode.NotFound,
+            KeyNotFoundException => HttpStatusCode.NotFound,
             ConflictException => HttpStatusCode.Conflict,
             ArgumentException => HttpStatusCode.BadRequest,
             InvalidOperationException => HttpStatusCode.BadRequest,

@@ -270,6 +270,8 @@ public class AIRecommendationRecordConfiguration : IEntityTypeConfiguration<AIRe
         builder.Property(r => r.FinalImplementedPlan)
             .HasMaxLength(4000);
 
+        builder.Property(r => r.ImplementedProgramVersionId);
+
         var guidsComparer = new ValueComparer<IReadOnlyCollection<Guid>>(
             (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
             c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
@@ -290,7 +292,13 @@ public class AIRecommendationRecordConfiguration : IEntityTypeConfiguration<AIRe
             .HasForeignKey(r => r.ClientId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<AiCoachOs.Domain.Programs.ProgramVersion>()
+            .WithMany()
+            .HasForeignKey(r => r.ImplementedProgramVersionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(r => new { r.ClientId, r.ReviewStatus });
+        builder.HasIndex(r => r.ImplementedProgramVersionId);
     }
 }
 

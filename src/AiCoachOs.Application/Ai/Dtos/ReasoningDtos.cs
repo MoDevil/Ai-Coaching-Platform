@@ -150,6 +150,12 @@ public class AIRecommendationSummaryDto
     public int KnowledgeClaimCount { get; set; }
 }
 
+public class LinkProgramVersionRequestDto
+{
+    [JsonPropertyName("programVersionId")]
+    public Guid ProgramVersionId { get; set; }
+}
+
 public class AIRecommendationDetailDto
 {
     public Guid Id { get; set; }
@@ -175,5 +181,7 @@ public class AIRecommendationDetailDto
     public string? CoachDecision { get; set; }
     public DateTime? CoachDecisionAt { get; set; }
     public string? FinalImplementedPlan { get; set; }
+    public Guid? ImplementedProgramVersionId { get; set; }
+    public string? ImplementedProgramVersionLabel { get; set; }
 }
 

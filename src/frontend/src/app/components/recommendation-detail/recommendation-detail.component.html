@@ -343,5 +343,64 @@
       </div>
     </div>
 
+    <!-- ======================================================== -->
+    <!-- SECTION L: Linked Program Version (Accepted Only)        -->
+    <!-- ======================================================== -->
+    <div *ngIf="detail.reviewStatus === 'Accepted' || detail.reviewStatus === '3'" class="card section-card" style="border-left: 4px solid var(--accent-primary);">
+      <div class="card-header">
+        <h3 class="section-title">Implemented Program Version</h3>
+        <span *ngIf="detail.implementedProgramVersionId" class="badge badge-success">
+          Linked
+        </span>
+        <span *ngIf="!detail.implementedProgramVersionId" class="badge badge-warning">
+          Unlinked
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div *ngIf="linkVersionError" class="alert alert-danger">
+          {{ linkVersionError }}
+        </div>
+        <div *ngIf="linkVersionSuccess" class="alert alert-success">
+          {{ linkVersionSuccess }}
+        </div>
+
+        <div *ngIf="detail.implementedProgramVersionLabel" style="margin-bottom: 1rem;">
+          <p style="margin: 0; font-size: 0.9375rem;">
+            Currently linked to: <strong>{{ detail.implementedProgramVersionLabel }}</strong>
+          </p>
+          <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Version ID: <code>{{ detail.implementedProgramVersionId }}</code>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 0.75rem;">
+          <label class="form-label" style="font-weight: 600;">
+            {{ detail.implementedProgramVersionId ? 'Change Linked Program Version:' : 'Select Program Version to Link:' }}
+          </label>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <select class="form-control" [(ngModel)]="selectedProgramVersionId" style="max-width: 400px;">
+              <option value="">-- Select a Program Version --</option>
+              <option *ngFor="let pv of availableProgramVersions" [value]="pv.id">
+                {{ pv.label }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="isLinkingVersion || !selectedProgramVersionId"
+              (click)="onLinkProgramVersion()"
+            >
+              <span *ngIf="isLinkingVersion" class="spinner"></span>
+              {{ isLinkingVersion ? 'Linking...' : 'Link Version' }}
+            </button>
+          </div>
+          <p *ngIf="availableProgramVersions.length === 0" style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">
+            No program versions found for this client. Generate a program first in the Program Designer.
+          </p>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>

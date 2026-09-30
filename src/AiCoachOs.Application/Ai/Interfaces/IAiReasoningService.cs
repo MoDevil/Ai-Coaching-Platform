@@ -21,6 +21,12 @@ public interface IAiReasoningService
         ReviewAIRecommendationRequestDto request,
         CancellationToken cancellationToken = default);
 
+    Task<AIRecommendationRecordDto> LinkProgramVersionAsync(
+        Guid coachId,
+        Guid recommendationId,
+        Guid programVersionId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<AIRecommendationSummaryDto>> GetClientRecommendationsAsync(
         Guid coachId,
         Guid clientId,
