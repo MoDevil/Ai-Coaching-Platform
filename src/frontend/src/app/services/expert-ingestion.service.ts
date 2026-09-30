@@ -8,7 +8,8 @@ import {
   CreateExpertSourceDto,
   SubmitIngestionRequestDto,
   ReviewClaimRequestDto,
-  ExpertClaimDto
+  ExpertClaimDto,
+  IngestionStatus
 } from '../models/expert-ingestion.models';
 
 @Injectable({
@@ -20,8 +21,9 @@ export class ExpertIngestionService {
 
   constructor(private http: HttpClient) {}
 
-  getIngestions(): Observable<ExpertContentIngestionSummaryDto[]> {
-    return this.http.get<ExpertContentIngestionSummaryDto[]>(this.ingestionsUrl);
+  getIngestions(status?: IngestionStatus): Observable<ExpertContentIngestionSummaryDto[]> {
+    const url = status ? `${this.ingestionsUrl}?status=${status}` : this.ingestionsUrl;
+    return this.http.get<ExpertContentIngestionSummaryDto[]>(url);
   }
 
   getIngestionById(ingestionId: string): Observable<ExpertContentIngestionDto> {

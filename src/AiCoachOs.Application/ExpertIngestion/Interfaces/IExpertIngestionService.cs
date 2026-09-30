@@ -11,6 +11,7 @@ public interface IExpertIngestionService
 
     Task<IReadOnlyList<ExpertContentIngestionSummaryDto>> GetIngestionsAsync(
         Guid coachId, 
+        AiCoachOs.Domain.ExpertIngestion.IngestionStatus? status = null,
         CancellationToken cancellationToken = default);
 
     Task<ExpertContentIngestionDto> GetIngestionByIdAsync(

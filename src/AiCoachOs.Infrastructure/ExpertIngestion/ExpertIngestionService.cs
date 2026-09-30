@@ -204,12 +204,20 @@ public class ExpertIngestionService : IExpertIngestionService
 
     public async Task<IReadOnlyList<ExpertContentIngestionSummaryDto>> GetIngestionsAsync(
         Guid coachId,
+        IngestionStatus? status = null,
         CancellationToken cancellationToken = default)
     {
-        var ingestions = await _context.ExpertContentIngestions
+        var query = _context.ExpertContentIngestions
             .Include(i => i.ExpertSource)
             .Include(i => i.Claims)
-            .Where(i => i.CoachId == coachId)
+            .Where(i => i.CoachId == coachId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(i => i.Status == status.Value);
+        }
+
+        var ingestions = await query
             .OrderByDescending(i => i.SubmittedAtUtc)
             .ToListAsync(cancellationToken);
 
@@ -382,6 +390,34 @@ public class ExpertIngestionService : IExpertIngestionService
                         practitionerNotes: request.PractitionerNotes,
                         egyptSpecificNotes: request.EgyptSpecificNotes);
                 }
+            }
+
+            // Ensure M3 KnowledgeSource provenance is linked
+            var sourceUrl = ingestion.SourceUrl;
+            var existingKnowledgeSource = await _context.KnowledgeSources
+                .FirstOrDefaultAsync(s => s.Url == sourceUrl, cancellationToken);
+
+            if (existingKnowledgeSource == null)
+            {
+                var authorName = ingestion.ExpertSource?.Name ?? "Expert Content Creator";
+                var pubYear = ingestion.PublishedAt?.Year ?? DateTime.UtcNow.Year;
+                existingKnowledgeSource = new KnowledgeSource(
+                    Guid.NewGuid(),
+                    KnowledgeSourceType.ExpertConsensus,
+                    ingestion.SourceTitle,
+                    authorName,
+                    pubYear,
+                    EvidenceLevel.ExpertConsensus,
+                    doi: null,
+                    url: sourceUrl,
+                    notes: $"Ingested via AI Coach OS Expert Content Ingestion (ID: {ingestion.Id})");
+
+                await _context.AddKnowledgeSourceAsync(existingKnowledgeSource, cancellationToken);
+            }
+
+            if (targetKnowledgeClaim != null)
+            {
+                targetKnowledgeClaim.AddSource(existingKnowledgeSource.Id, $"Ingested claim (ID: {claim.Id})");
             }
 
             var targetClaimId = targetKnowledgeClaim?.Id ?? Guid.NewGuid();

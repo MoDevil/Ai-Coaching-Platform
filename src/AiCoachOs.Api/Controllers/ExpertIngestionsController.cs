@@ -40,10 +40,11 @@ public class ExpertIngestionsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<ExpertContentIngestionSummaryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IReadOnlyList<ExpertContentIngestionSummaryDto>>> GetIngestions(
+        [FromQuery] AiCoachOs.Domain.ExpertIngestion.IngestionStatus? status = null,
         CancellationToken cancellationToken = default)
     {
         var coachId = await _currentCoachService.GetRequiredCoachIdAsync(cancellationToken);
-        var list = await _ingestionService.GetIngestionsAsync(coachId, cancellationToken);
+        var list = await _ingestionService.GetIngestionsAsync(coachId, status, cancellationToken);
         return Ok(list);
     }
 
