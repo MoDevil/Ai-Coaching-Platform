@@ -4,48 +4,85 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace AiCoachOs.IntegrationTests.Infrastructure;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly string _connectionString;
+    /// <summary>
+    /// Integration tests run the real EF Core migrations against a real PostgreSQL instance.
+    /// There is deliberately no in-memory provider in this solution, so there is nothing to fall
+    /// back to when no connection string can be resolved.
+    /// </summary>
+    public const string NoConnectionStringMessage =
+        "No PostgreSQL connection string available for integration tests. Set the " +
+        "ConnectionStrings__DefaultConnection environment variable, or start PostgreSQL via " +
+        "'docker compose -f docker/docker-compose.dev.yml up -d' and point " +
+        "ConnectionStrings__DefaultConnection at that instance.";
 
-    public CustomWebApplicationFactory()
+    // A fresh random key per test run. Never reuse the development or production signing key here:
+    // tokens minted by the fixture must not be forgeable with a value that exists in the repository.
+    private static readonly string TestJwtSecretKey =
+        Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(64));
+
+    private static readonly Lazy<string> ConnectionString = new(ResolveConnectionString);
+    private static readonly object MigrationGate = new();
+
+    private static string ResolveConnectionString()
     {
-        _connectionString = "Host=localhost;Port=5432;Database=aicoachos;Username=postgres;Password=;";
-    }
+        var fromEnvironment = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (!string.IsNullOrWhiteSpace(fromEnvironment))
+            return fromEnvironment;
 
-    private static readonly object _migrationLock = new();
+        var localSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.IntegrationTests.json");
+        if (File.Exists(localSettingsPath))
+        {
+            var local = new ConfigurationBuilder()
+                .AddJsonFile(localSettingsPath, optional: false)
+                .Build()
+                .GetConnectionString("DefaultConnection");
+            if (!string.IsNullOrWhiteSpace(local))
+                return local;
+        }
+
+        throw new InvalidOperationException(NoConnectionStringMessage);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment(Environments.Development);
+
         builder.ConfigureAppConfiguration((context, config) =>
         {
-            var inMemorySettings = new Dictionary<string, string?>
+            config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                { "ConnectionStrings:DefaultConnection", _connectionString },
+                { "ConnectionStrings:DefaultConnection", ConnectionString.Value },
                 { "Jwt:Issuer", "AiCoachOs" },
                 { "Jwt:Audience", "AiCoachOsApp" },
-                { "Jwt:SecretKey", "AiCoachOs_Secure_JWT_Key_Egypt_Coaching_System_2026_Secret!" },
-                { "Jwt:ExpirationMinutes", "60" }
-            };
-
-            config.AddInMemoryCollection(inMemorySettings);
+                { "Jwt:SecretKey", TestJwtSecretKey },
+                { "Jwt:ExpirationMinutes", "60" },
+                { "AiSettings:Provider", "Mock" },
+                { "AiSettings:AllowMockProvider", "true" }
+            });
         });
+    }
 
-        builder.ConfigureServices(services =>
+    /// <summary>
+    /// Migrations run against the host's real service provider rather than a throwaway container
+    /// built from the service collection, so singletons registered here see a migrated database.
+    /// </summary>
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+
+        lock (MigrationGate)
         {
-            // Ensure database is migrated safely across parallel test fixture instantiations
-            lock (_migrationLock)
-            {
-                var sp = services.BuildServiceProvider();
-                using var scope = sp.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
-            }
-        });
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Database.Migrate();
+        }
 
-        builder.UseEnvironment("Development");
+        return host;
     }
 }

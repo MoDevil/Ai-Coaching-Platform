@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using AiCoachOs.Application.Ai.Dtos;
 using AiCoachOs.Application.Ai.Interfaces;
 using AiCoachOs.Application.Photos.Dtos;
@@ -14,22 +13,19 @@ public class MockAiProvider : IAiProvider
         AiCompletionRequest request, 
         CancellationToken cancellationToken = default)
     {
-        // Extract any GUIDs present in the user prompt (representing eligible knowledge claim IDs)
-        var guidRegex = new Regex(@"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
-        var matches = guidRegex.Matches(request.UserPrompt);
-        var citedGuids = matches.Select(m => Guid.Parse(m.Value)).Distinct().ToList();
-
+        // Deliberately does NOT scrape claim IDs out of the prompt. Echoing prompt-supplied GUIDs
+        // back as EvidenceRefs would present unverified claims as cited evidence.
         var structured = new StructuredRecommendation
         {
-            Summary = "Recommended coaching review based on client constraints and active deterministic profile.",
-            Observations = new List<string> { "Client training profile and recent session performance evaluated against recovery markers." },
-            Recommendations = new List<string> { "Maintain consistent progressive overload while adhering to programmed volume boundaries." },
-            Rationale = "Evidence demonstrates that individualizing stimulus and managing recovery boundaries optimizes progressive adaptation.",
-            ConfidenceStatement = "High confidence based on structured scientific knowledge base and verified client memory snapshot.",
-            Assumptions = new List<string> { "Adequate recovery and nutrition support baseline targets." },
-            MissingHighValueData = new List<string>(),
-            EvidenceRefs = citedGuids,
-            SafetySummary = null,
+            Summary = "MOCK PROVIDER - deterministic placeholder response. Not a real coaching recommendation.",
+            Observations = new List<string> { "No observations. This response was produced by MockAiProvider, not a language model." },
+            Recommendations = new List<string> { "No recommendations. Configure AiSettings:Provider to route to a real provider." },
+            Rationale = "Deterministic mock response for local development and tests only.",
+            ConfidenceStatement = "None. The mock provider performs no analysis and has no evidence to draw on.",
+            Assumptions = new List<string>(),
+            MissingHighValueData = new List<string> { "Everything - the mock provider does not read the request." },
+            EvidenceRefs = new List<Guid>(),
+            SafetySummary = "Not assessed. The mock provider performs no safety evaluation.",
             CoachActionRequired = true
         };
 
@@ -38,12 +34,12 @@ public class MockAiProvider : IAiProvider
             IsSuccess = true,
             ProviderName = ProviderName,
             ModelName = DefaultModelName,
-            TokensUsed = 350,
+            TokensUsed = 0,
             StructuredRecommendation = structured,
             RecommendationText = structured.Summary,
             RationaleText = structured.Rationale,
             ConfidenceStatement = structured.ConfidenceStatement,
-            EvidenceClaimRefs = citedGuids
+            EvidenceClaimRefs = new List<Guid>()
         };
 
         return Task.FromResult(response);
@@ -53,20 +49,16 @@ public class MockAiProvider : IAiProvider
         AiImageRequest request, 
         CancellationToken cancellationToken = default)
     {
-        var hasBaseline = request.Images.Count > 1;
-
         var observationResult = new PhysiqueObservationResult
         {
-            GeneralObservations = "Client presents consistent framing and standing posture under standard lighting.",
-            ApparentSymmetryNotes = "Bilateral shoulder and clavicle height appear visually aligned.",
-            PostureObservations = "Standing sagittal and frontal plane alignment visually observable.",
-            MuscularDevelopmentNotes = "Upper and lower torso musculature shows clear visual definition.",
-            ComparisonNotes = hasBaseline
-                ? "Qualitative comparison against baseline demonstrates visual progress in upper body development."
-                : "Baseline comparison was unavailable.",
-            LimitationsStatement = "Visual observations are qualitative estimates from 2D photos and do not constitute diagnostic or quantitative composition measurement.",
+            GeneralObservations = "MOCK PROVIDER - no image analysis performed.",
+            ApparentSymmetryNotes = "Not assessed.",
+            PostureObservations = "Not assessed.",
+            MuscularDevelopmentNotes = "Not assessed.",
+            ComparisonNotes = "Not assessed.",
+            LimitationsStatement = "MockAiProvider does not inspect images. Configure a vision-capable provider.",
             CoachActionRequired = true,
-            ConfidenceStatement = "Qualitative observational assessment based on available visual lighting and posture."
+            ConfidenceStatement = "None. The mock provider performs no analysis."
         };
 
         var response = new AiCompletionResponse
@@ -74,9 +66,9 @@ public class MockAiProvider : IAiProvider
             IsSuccess = true,
             ProviderName = ProviderName,
             ModelName = DefaultModelName,
-            TokensUsed = 400,
+            TokensUsed = 0,
             RecommendationText = System.Text.Json.JsonSerializer.Serialize(observationResult),
-            RationaleText = "Deterministic mock vision analysis completed.",
+            RationaleText = "Deterministic mock vision response for local development and tests only.",
             ConfidenceStatement = observationResult.ConfidenceStatement
         };
 
@@ -89,13 +81,13 @@ public class MockAiProvider : IAiProvider
     {
         var techniqueResult = new AiCoachOs.Application.Videos.Dtos.VideoObservationResult
         {
-            MovementExecutionNotes = "Bar path remains visual and balanced throughout the movement sequence.",
-            JointAlignmentNotes = "Knee tracking and hip hinge visual alignment observed across frames.",
-            RangeOfMotionNotes = "Full movement excursion observable across extracted sequential frames.",
-            TempoAndControlNotes = "Controlled eccentric tempo and stable concentric turnaround visual across frames.",
-            LimitationsStatement = "Visual observations from video frames are qualitative movement cues and do not constitute biomechanical lab measurement or medical diagnosis.",
+            MovementExecutionNotes = "MOCK PROVIDER - no video analysis performed.",
+            JointAlignmentNotes = "Not assessed.",
+            RangeOfMotionNotes = "Not assessed.",
+            TempoAndControlNotes = "Not assessed.",
+            LimitationsStatement = "MockAiProvider does not inspect video frames. Configure a vision-capable provider.",
             CoachActionRequired = true,
-            ConfidenceStatement = "Qualitative technique observation completed based on available 2D video frames."
+            ConfidenceStatement = "None. The mock provider performs no analysis."
         };
 
         var response = new AiCompletionResponse
@@ -103,9 +95,9 @@ public class MockAiProvider : IAiProvider
             IsSuccess = true,
             ProviderName = ProviderName,
             ModelName = DefaultModelName,
-            TokensUsed = 450,
+            TokensUsed = 0,
             RecommendationText = System.Text.Json.JsonSerializer.Serialize(techniqueResult),
-            RationaleText = "Deterministic mock technique observation completed across video frames.",
+            RationaleText = "Deterministic mock technique response for local development and tests only.",
             ConfidenceStatement = techniqueResult.ConfidenceStatement
         };
 

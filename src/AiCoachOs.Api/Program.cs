@@ -47,7 +47,7 @@ builder.Services.AddSwaggerGen(options =>
 
 // Layer Dependencies
 builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
 builder.Services.AddHealthChecks();
 
 // CORS for Angular frontend

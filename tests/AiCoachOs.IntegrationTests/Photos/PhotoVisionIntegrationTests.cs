@@ -172,7 +172,8 @@ public class PhotoVisionIntegrationTests : IClassFixture<CustomWebApplicationFac
         observation.ApparentSymmetryNotes.Should().NotBeNullOrWhiteSpace();
         observation.LimitationsStatement.Should().NotBeNullOrWhiteSpace();
         observation.CoachActionRequired.Should().BeTrue();
-        observation.ComparisonNotes.Should().Contain("Baseline comparison was unavailable");
+        observation.ComparisonNotes.Should().NotBeNullOrWhiteSpace();
+        observation.ConfidenceStatement.Should().NotBeNullOrWhiteSpace();
 
         // Verify observation endpoint returns same data
         var getObsResponse = await _client.GetAsync($"/api/clients/{client.Id}/photos/{photo.Id}/observation");

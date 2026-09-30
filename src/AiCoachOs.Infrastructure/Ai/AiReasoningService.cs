@@ -215,13 +215,29 @@ public class AiReasoningService : IAiReasoningService
         // ==========================================
         // 4. EVIDENCE VALIDATION & PROVENANCE
         // ==========================================
+        // Only claims the provider actually cited survive, and only if they are confirmed-eligible.
+        // Citing nothing is a valid, honest outcome: an uncited recommendation must reach the coach
+        // with no evidence attached rather than borrow an unrelated claim.
         var validatedClaimRefs = aiResponse.EvidenceClaimRefs
             .Where(id => eligibleClaimIds.Contains(id))
+            .Distinct()
             .ToList();
 
-        if (validatedClaimRefs.Count == 0 && eligibleClaims.Count > 0)
+        var uncitedRefs = aiResponse.EvidenceClaimRefs.Except(validatedClaimRefs).ToList();
+        if (uncitedRefs.Count > 0)
         {
-            validatedClaimRefs.Add(eligibleClaims[0].Id);
+            _logger.LogWarning(
+                "Dropped {Count} claim reference(s) cited by provider {Provider} that are not confirmed-eligible evidence.",
+                uncitedRefs.Count,
+                aiResponse.ProviderName);
+        }
+
+        if (validatedClaimRefs.Count == 0)
+        {
+            _logger.LogInformation(
+                "Recommendation for client {ClientId} carries no evidence citations from provider {Provider}. Coach review must not treat it as evidence-based.",
+                client.Id,
+                aiResponse.ProviderName);
         }
 
         // Enforce Safety Disclaimer if Healthcare Referral is active

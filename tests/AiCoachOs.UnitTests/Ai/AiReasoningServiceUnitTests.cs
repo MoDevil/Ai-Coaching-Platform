@@ -14,7 +14,7 @@ namespace AiCoachOs.UnitTests.Ai;
 public class AiReasoningServiceUnitTests
 {
     [Fact]
-    public async Task MockAiProvider_GeneratesDeterministicStructuredResponse_AndExtractsProvidedGuids()
+    public async Task MockAiProvider_ReturnsDeterministicStructuredResponse_WithoutFabricatingEvidenceRefs()
     {
         var provider = new MockAiProvider();
         provider.ProviderName.Should().Be("Mock");
@@ -38,8 +38,18 @@ public class AiReasoningServiceUnitTests
         response.RecommendationText.Should().NotBeNullOrWhiteSpace();
         response.RationaleText.Should().NotBeNullOrWhiteSpace();
         response.ConfidenceStatement.Should().NotBeNullOrWhiteSpace();
-        response.EvidenceClaimRefs.Should().Contain(claimId1);
-        response.EvidenceClaimRefs.Should().Contain(claimId2);
+
+        // The mock provider must not echo prompt-supplied GUIDs back as evidence citations.
+        // It never reads the underlying claims, so presenting them as verified evidence would
+        // put fabricated citations into the coach-facing decision package.
+        response.EvidenceClaimRefs.Should().BeEmpty();
+        response.StructuredRecommendation!.EvidenceRefs.Should().BeEmpty();
+        response.StructuredRecommendation.ConfidenceStatement.Should().Contain("None");
+
+        // Determinism: the same request yields the same response.
+        var repeated = await provider.GenerateStructuredAsync(request);
+        repeated.RecommendationText.Should().Be(response.RecommendationText);
+        repeated.TokensUsed.Should().Be(0);
     }
 
     [Fact]

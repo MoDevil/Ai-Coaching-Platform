@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace AiCoachOs.Infrastructure;
@@ -19,11 +21,14 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         // Database
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Host=localhost;Port=5432;Database=aicoachos;Username=postgres;Password=;";
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException(
+                "Connection string 'DefaultConnection' is not configured. Set it via " +
+                "ConnectionStrings__DefaultConnection (user-secrets, environment variable, or appsettings).");
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(connectionString, b =>
@@ -34,20 +39,28 @@ public static class DependencyInjection
         // Identity Core
         services.AddIdentityCore<ApplicationUser>(options =>
         {
-            options.Password.RequireDigit = false;
-            options.Password.RequireLowercase = false;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequireUppercase = false;
-            options.Password.RequiredLength = 6;
+            options.Password.RequireDigit = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequiredLength = 8;
             options.User.RequireUniqueEmail = true;
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
         // JWT Configuration
-        var jwtSettings = new JwtSettings();
-        configuration.GetSection(JwtSettings.SectionName).Bind(jwtSettings);
-        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        // Validated at startup so a missing or weak signing key fails the host rather than
+        // silently minting tokens that anybody holding the repository can forge.
+        services.AddOptions<JwtSettings>()
+            .Bind(configuration.GetSection(JwtSettings.SectionName))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.SecretKey),
+                "Jwt:SecretKey is not configured. Set it via user-secrets or the Jwt__SecretKey environment variable. " +
+                "Generate one with: openssl rand -base64 48")
+            .Validate(s => s.SecretKey.Length >= JwtSettings.MinimumSecretKeyLength,
+                $"Jwt:SecretKey must be at least {JwtSettings.MinimumSecretKeyLength} characters.")
+            .Validate(s => s.ExpirationMinutes > 0, "Jwt:ExpirationMinutes must be greater than zero.")
+            .ValidateOnStart();
 
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
@@ -56,22 +69,29 @@ public static class DependencyInjection
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
-        .AddJwtBearer(options =>
-        {
-            options.RequireHttpsMetadata = false;
-            options.SaveToken = true;
-            options.TokenValidationParameters = new TokenValidationParameters
+        .AddJwtBearer();
+
+        // Resolved lazily from IOptionsMonitor so configuration overrides applied after
+        // service registration (host builders, integration test factories) are honoured.
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptionsMonitor<JwtSettings>>((options, jwt) =>
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
-                ValidateIssuer = true,
-                ValidIssuer = jwtSettings.Issuer,
-                ValidateAudience = true,
-                ValidAudience = jwtSettings.Audience,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
-        });
+                var settings = jwt.CurrentValue;
+                options.RequireHttpsMetadata = environment.IsDevelopment() ? false : true;
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.SecretKey)),
+                    ValidateIssuer = true,
+                    ValidIssuer = settings.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = settings.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
 
         // Application & Domain Services
         services.AddHttpContextAccessor();
@@ -181,17 +201,51 @@ public static class DependencyInjection
             return new AiCoachOs.Infrastructure.Ai.AiProviderRouter(providers, options, logger);
         });
 
-        if (string.Equals(aiSettings.Provider, "Router", StringComparison.OrdinalIgnoreCase))
+        // Provider selection is explicit. An unrecognised name is a configuration error and
+        // must fail the host rather than silently downgrade to the mock provider, which
+        // returns fabricated, evidence-citing recommendations.
+        var configuredProvider = aiSettings.Provider?.Trim();
+        if (string.IsNullOrWhiteSpace(configuredProvider))
         {
-            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AiProviderRouter>());
+            throw new InvalidOperationException(
+                "AiSettings:Provider is not configured. Set it to Router, Anthropic, Gemini, Groq, OpenRouter, " +
+                "or Mock (Mock is permitted in Development only).");
         }
-        else if (string.Equals(aiSettings.Provider, "Anthropic", StringComparison.OrdinalIgnoreCase))
+
+        switch (configuredProvider.ToLowerInvariant())
         {
-            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>());
-        }
-        else
-        {
-            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.MockAiProvider>());
+            case "router":
+                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AiProviderRouter>());
+                break;
+            case "anthropic":
+                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>());
+                break;
+            case "gemini":
+                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>());
+                break;
+            case "groq":
+                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GroqAiProvider>());
+                break;
+            case "openrouter":
+                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>());
+                break;
+            case "mock":
+                var allowMock = configuration.GetValue("AiSettings:AllowMockProvider", false)
+                                || environment.IsDevelopment();
+                if (!allowMock)
+                {
+                    throw new InvalidOperationException(
+                        "AiSettings:Provider is 'Mock' but mock output is not permitted in this environment. " +
+                        "MockAiProvider fabricates coaching recommendations; it must only run in Development. " +
+                        "Set AiSettings:Provider to a real provider, or set AiSettings:AllowMockProvider=true " +
+                        "for an isolated test run.");
+                }
+                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.MockAiProvider>());
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"AiSettings:Provider '{configuredProvider}' is not a recognised provider. " +
+                    "Expected one of: Router, Anthropic, Gemini, Groq, OpenRouter, Mock.");
         }
 
         services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiReasoningService, AiCoachOs.Infrastructure.Ai.AiReasoningService>();
