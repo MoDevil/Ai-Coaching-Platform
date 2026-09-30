@@ -1,0 +1,95 @@
+<div class="history-container">
+  <!-- Filter Controls -->
+  <div class="card filter-card">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label class="filter-label">Status Filter:</label>
+        <select class="form-control form-control-sm" [(ngModel)]="selectedStatusFilter" (change)="onFilterChange()">
+          <option value="all">All Statuses</option>
+          <option *ngFor="let s of Statuses" [value]="s">
+            {{ StatusLabels[s] || s }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Category Filter:</label>
+        <select class="form-control form-control-sm" [(ngModel)]="selectedCategoryFilter" (change)="onFilterChange()">
+          <option value="all">All Categories</option>
+          <option *ngFor="let c of Categories" [value]="c">
+            {{ CategoryLabels[c] || c }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state card">
+    <p>Loading recommendation history timeline...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && recommendations.length === 0" class="empty-state card">
+    <p class="empty-title">No recommendations found</p>
+    <p class="empty-desc">
+      No AI recommendations match your filter criteria.
+    </p>
+  </div>
+
+  <!-- Timeline / History List -->
+  <div *ngIf="!isLoading && recommendations.length > 0" class="recommendations-list">
+    <div *ngFor="let rec of recommendations" class="recommendation-card card">
+      <!-- Card Header -->
+      <div class="rec-header">
+        <div class="rec-title-wrap">
+          <span class="badge" [ngClass]="getStatusBadgeClass(rec.status)">
+            {{ StatusLabels[rec.status] || rec.status }}
+          </span>
+          <span class="category-tag">
+            {{ CategoryLabels[rec.category] || rec.category }}
+          </span>
+          <span *ngIf="rec.coachActionRequired" class="badge badge-danger">
+            Action Required
+          </span>
+        </div>
+        <div class="rec-date">
+          {{ rec.generatedAt | date:'medium' }}
+        </div>
+      </div>
+
+      <!-- Safety Summary Banner (if present) -->
+      <div *ngIf="rec.safetySummary" class="rec-safety-alert">
+        <strong>⚠️ Safety Notice:</strong> {{ rec.safetySummary }}
+      </div>
+
+      <!-- Summary Text -->
+      <div class="rec-summary-body">
+        <p class="rec-summary-text">{{ rec.summary }}</p>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="rec-footer">
+        <div class="rec-meta">
+          <span class="evidence-badge" *ngIf="rec.knowledgeClaimCount > 0">
+            📚 {{ rec.knowledgeClaimCount }} Linked Scientific Claim{{ rec.knowledgeClaimCount > 1 ? 's' : '' }}
+          </span>
+          <span class="evidence-badge muted" *ngIf="rec.knowledgeClaimCount === 0">
+            No scientific claims linked
+          </span>
+        </div>
+
+        <a
+          [routerLink]="['/clients', clientId, 'recommendations', rec.id]"
+          class="btn btn-primary btn-sm"
+        >
+          Inspect & Review →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
