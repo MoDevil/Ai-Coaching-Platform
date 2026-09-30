@@ -126,20 +126,72 @@ public static class DependencyInjection
         services.AddScoped<AiCoachOs.Application.Memory.Engine.IClientMemoryConflictDetector, AiCoachOs.Application.Memory.Engine.ClientMemoryConflictDetector>();
         services.AddScoped<AiCoachOs.Application.Memory.Interfaces.IClientMemoryService, AiCoachOs.Infrastructure.Services.ClientMemoryService>();
 
-        // M14 AI Provider & Reasoning Layer
+        // M14 / M19 AI Provider & Reasoning Layer
         var aiSettings = new AiCoachOs.Application.Ai.Models.AiSettings();
         configuration.GetSection(AiCoachOs.Application.Ai.Models.AiSettings.SectionName).Bind(aiSettings);
         services.Configure<AiCoachOs.Application.Ai.Models.AiSettings>(configuration.GetSection(AiCoachOs.Application.Ai.Models.AiSettings.SectionName));
 
-        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
+        var aiProviderOptions = new AiCoachOs.Application.Ai.Models.AiProviderOptions();
+        configuration.GetSection(AiCoachOs.Application.Ai.Models.AiProviderOptions.SectionName).Bind(aiProviderOptions);
+        services.Configure<AiCoachOs.Application.Ai.Models.AiProviderOptions>(configuration.GetSection(AiCoachOs.Application.Ai.Models.AiProviderOptions.SectionName));
 
-        if (string.Equals(aiSettings.Provider, "Anthropic", StringComparison.OrdinalIgnoreCase))
+        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
+        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>();
+        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.GroqAiProvider>();
+        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>();
+
+        services.AddScoped<AiCoachOs.Infrastructure.Ai.MockAiProvider>();
+        services.AddScoped<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
+        services.AddScoped<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>(sp =>
         {
-            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider, AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
+            var http = sp.GetRequiredService<HttpClient>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>>();
+            var cfg = aiProviderOptions.Providers.FirstOrDefault(p => string.Equals(p.Name, "Gemini", StringComparison.OrdinalIgnoreCase));
+            var keySelector = new AiCoachOs.Infrastructure.Ai.RotatingKeySelector(cfg?.ApiKeysEnvVar ?? "GEMINI_API_KEYS");
+            return new AiCoachOs.Infrastructure.Ai.GeminiAiProvider(http, keySelector, logger, cfg?.Model);
+        });
+        services.AddScoped<AiCoachOs.Infrastructure.Ai.GroqAiProvider>(sp =>
+        {
+            var http = sp.GetRequiredService<HttpClient>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AiCoachOs.Infrastructure.Ai.GroqAiProvider>>();
+            var cfg = aiProviderOptions.Providers.FirstOrDefault(p => string.Equals(p.Name, "Groq", StringComparison.OrdinalIgnoreCase));
+            var keySelector = new AiCoachOs.Infrastructure.Ai.RotatingKeySelector(cfg?.ApiKeysEnvVar ?? "GROQ_API_KEYS");
+            return new AiCoachOs.Infrastructure.Ai.GroqAiProvider(http, keySelector, logger, cfg?.Model);
+        });
+        services.AddScoped<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>(sp =>
+        {
+            var http = sp.GetRequiredService<HttpClient>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>>();
+            var cfg = aiProviderOptions.Providers.FirstOrDefault(p => string.Equals(p.Name, "OpenRouter", StringComparison.OrdinalIgnoreCase));
+            var keySelector = new AiCoachOs.Infrastructure.Ai.RotatingKeySelector(cfg?.ApiKeysEnvVar ?? "OPENROUTER_API_KEYS");
+            return new AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider(http, keySelector, logger, cfg?.Model);
+        });
+
+        services.AddScoped<AiCoachOs.Infrastructure.Ai.AiProviderRouter>(sp =>
+        {
+            var providers = new List<AiCoachOs.Application.Ai.Interfaces.IAiProvider>
+            {
+                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>(),
+                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>(),
+                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GroqAiProvider>(),
+                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>()
+            };
+            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiCoachOs.Application.Ai.Models.AiProviderOptions>>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AiCoachOs.Infrastructure.Ai.AiProviderRouter>>();
+            return new AiCoachOs.Infrastructure.Ai.AiProviderRouter(providers, options, logger);
+        });
+
+        if (string.Equals(aiSettings.Provider, "Router", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AiProviderRouter>());
+        }
+        else if (string.Equals(aiSettings.Provider, "Anthropic", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>());
         }
         else
         {
-            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider, AiCoachOs.Infrastructure.Ai.MockAiProvider>();
+            services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.MockAiProvider>());
         }
 
         services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiReasoningService, AiCoachOs.Infrastructure.Ai.AiReasoningService>();

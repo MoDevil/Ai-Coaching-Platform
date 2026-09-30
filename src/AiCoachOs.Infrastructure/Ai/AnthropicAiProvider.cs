@@ -14,28 +14,56 @@ public class AnthropicAiProvider : IAiProvider
 {
     private readonly HttpClient _httpClient;
     private readonly AiSettings _settings;
+    private readonly RotatingKeySelector _keySelector;
     private readonly ILogger<AnthropicAiProvider> _logger;
+    private readonly string _model;
 
     public string ProviderName => "Anthropic";
-    public string DefaultModelName => string.IsNullOrWhiteSpace(_settings.Model) ? "claude-sonnet-4-6" : _settings.Model;
+    public string DefaultModelName => _model;
 
     public AnthropicAiProvider(
         HttpClient httpClient,
         IOptions<AiSettings> settings,
-        ILogger<AnthropicAiProvider> logger)
+        ILogger<AnthropicAiProvider> logger,
+        RotatingKeySelector? keySelector = null,
+        string? model = null)
     {
         _httpClient = httpClient;
         _settings = settings.Value;
         _logger = logger;
+        _keySelector = keySelector ?? new RotatingKeySelector("ANTHROPIC_API_KEYS");
+        _model = string.IsNullOrWhiteSpace(model) 
+            ? (string.IsNullOrWhiteSpace(_settings.Model) ? "claude-sonnet-4-6" : _settings.Model)
+            : model.Trim();
 
         _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds > 0 ? _settings.TimeoutSeconds : 30);
+    }
+
+    private string? GetApiKey()
+    {
+        var key = _keySelector.GetCurrentOrNextKey();
+        if (!string.IsNullOrWhiteSpace(key)) return key;
+        return string.IsNullOrWhiteSpace(_settings.AnthropicApiKey) ? null : _settings.AnthropicApiKey;
     }
 
     public async Task<AiCompletionResponse> GenerateStructuredAsync(
         AiCompletionRequest request, 
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_settings.AnthropicApiKey))
+        if (!_keySelector.IsAvailable())
+        {
+            _logger.LogWarning("Anthropic provider is temporarily unavailable (all keys exhausted).");
+            return new AiCompletionResponse
+            {
+                IsSuccess = false,
+                ProviderName = ProviderName,
+                ModelName = DefaultModelName,
+                ErrorMessage = "Anthropic provider temporarily unavailable."
+            };
+        }
+
+        var apiKey = GetApiKey();
+        if (string.IsNullOrWhiteSpace(apiKey))
         {
             _logger.LogError("Anthropic API key is not configured.");
             return new AiCompletionResponse
@@ -65,6 +93,7 @@ public class AnthropicAiProvider : IAiProvider
 
         const string endpoint = "https://api.anthropic.com/v1/messages";
         HttpResponseMessage? responseMessage = null;
+        var activeKey = apiKey;
 
         // Attempt request with 1 transient retry
         for (int attempt = 1; attempt <= 2; attempt++)
@@ -72,7 +101,7 @@ public class AnthropicAiProvider : IAiProvider
             try
             {
                 using var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
-                httpRequest.Headers.Add("x-api-key", _settings.AnthropicApiKey);
+                httpRequest.Headers.Add("x-api-key", activeKey);
                 httpRequest.Headers.Add("anthropic-version", "2023-06-01");
                 httpRequest.Content = JsonContent.Create(requestBody);
 
@@ -83,7 +112,30 @@ public class AnthropicAiProvider : IAiProvider
                     break;
                 }
 
-                if ((int)responseMessage.StatusCode < 500 && (int)responseMessage.StatusCode != 429)
+                if ((int)responseMessage.StatusCode == 429)
+                {
+                    _logger.LogWarning("Anthropic API returned 429 Rate Limit on attempt {Attempt}.", attempt);
+                    var nextKey = _keySelector.RotateToNextKey();
+
+                    if (attempt == 1 && !string.IsNullOrWhiteSpace(nextKey) && nextKey != activeKey)
+                    {
+                        activeKey = nextKey;
+                        continue;
+                    }
+
+                    _logger.LogWarning("All Anthropic API keys exhausted or rate limited. Marking unavailable for 60 seconds.");
+                    _keySelector.MarkTemporarilyUnavailable(TimeSpan.FromSeconds(60));
+
+                    return new AiCompletionResponse
+                    {
+                        IsSuccess = false,
+                        ProviderName = ProviderName,
+                        ModelName = model,
+                        ErrorMessage = "Anthropic API rate limit exceeded (429)."
+                    };
+                }
+
+                if ((int)responseMessage.StatusCode < 500)
                 {
                     // Non-retriable client error
                     var errorBody = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
