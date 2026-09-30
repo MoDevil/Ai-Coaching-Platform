@@ -16,6 +16,8 @@ import { ClientMemoryComponent } from './components/client-memory/client-memory.
 import { ClientPhotosComponent } from './components/client-photos/client-photos.component';
 import { ClientVideosComponent } from './components/client-videos/client-videos.component';
 import { ExpertIngestionComponent } from './components/expert-ingestion/expert-ingestion.component';
+import { ClientRecommendationsComponent } from './components/client-recommendations/client-recommendations.component';
+import { RecommendationDetailComponent } from './components/recommendation-detail/recommendation-detail.component';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
@@ -29,6 +31,8 @@ const routes: Routes = [
   { path: 'clients/:id/photos', component: ClientPhotosComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id/videos', component: ClientVideosComponent, canActivate: [AuthGuard] },
   { path: 'clients/:id/memory', component: ClientMemoryComponent, canActivate: [AuthGuard] },
+  { path: 'clients/:id/recommendations', component: ClientRecommendationsComponent, canActivate: [AuthGuard] },
+  { path: 'clients/:id/recommendations/:recommendationId', component: RecommendationDetailComponent, canActivate: [AuthGuard] },
   { path: 'programs/:id', component: ProgramDetailComponent, canActivate: [AuthGuard] },
   { path: 'programs', component: ProgramDetailComponent, canActivate: [AuthGuard] },
   { path: 'workouts/:id', component: WorkoutLoggerComponent, canActivate: [AuthGuard] },

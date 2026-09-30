@@ -33,6 +33,12 @@
         <a [routerLink]="['/clients', client.id, 'photos']" class="btn btn-secondary">Photos</a>
         <a [routerLink]="['/clients', client.id, 'videos']" class="btn btn-secondary">Technique Videos</a>
         <a [routerLink]="['/clients', client.id, 'memory']" class="btn btn-secondary">Memory</a>
+        <a [routerLink]="['/clients', client.id, 'recommendations']" class="btn btn-secondary">
+          AI Recommendations
+          <span *ngIf="client.pendingRecommendationCount && client.pendingRecommendationCount > 0" class="badge badge-danger" style="margin-left: 0.35rem; font-size: 0.75rem; padding: 0.15rem 0.4rem;">
+            {{ client.pendingRecommendationCount }}
+          </span>
+        </a>
         <a [routerLink]="['/clients', client.id, 'edit']" class="btn btn-secondary">Edit Profile</a>
         <button
           *ngIf="client.status === ClientStatus.Active"

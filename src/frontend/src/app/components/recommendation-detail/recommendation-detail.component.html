@@ -1,0 +1,347 @@
+<div class="container">
+  <!-- Top Navigation / Breadcrumbs -->
+  <div class="page-header">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <h1 class="page-title">
+          <span *ngIf="client">{{ client.firstName }} {{ client.lastName }} — </span>
+          Recommendation Package
+        </h1>
+        <span *ngIf="detail" class="badge" [ngClass]="getStatusBadgeClass(detail.reviewStatus)">
+          {{ StatusLabels[detail.reviewStatus] || detail.reviewStatus }}
+        </span>
+      </div>
+      <p class="page-subtitle" *ngIf="detail">
+        Generated on {{ detail.generatedAt | date:'medium' }} via {{ detail.aiProvider }} ({{ detail.aiModel }})
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <a [routerLink]="['/clients', clientId, 'recommendations']" class="btn btn-secondary">
+        ← Back to Client Recommendations
+      </a>
+      <a [routerLink]="['/clients', clientId]" class="btn btn-secondary">
+        Client Profile
+      </a>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state card">
+    <p>Loading recommendation details and resolving scientific evidence...</p>
+  </div>
+
+  <div *ngIf="!isLoading && detail" class="detail-layout">
+
+    <!-- ======================================================== -->
+    <!-- SECTION A: Safety Summary (Prominent & Non-Dismissible) -->
+    <!-- ======================================================== -->
+    <div *ngIf="detail.safetySummary" class="safety-summary-banner">
+      <div class="safety-icon">🚨</div>
+      <div class="safety-content">
+        <h3 class="safety-title">Safety Summary & Clinical Alert</h3>
+        <p class="safety-desc">{{ detail.safetySummary }}</p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION B: Coach Action Required Indicator               -->
+    <!-- ======================================================== -->
+    <div *ngIf="detail.coachActionRequired" class="action-required-banner">
+      <span class="action-icon">⚠️</span>
+      <div class="action-text">
+        <strong>Coach Action Required:</strong> This recommendation contains actionable advice requiring human coach clinical evaluation and approval before implementation.
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION C: Summary Card                                  -->
+    <!-- ======================================================== -->
+    <div class="card section-card">
+      <div class="card-header">
+        <h3 class="section-title">Summary</h3>
+        <span class="category-badge">
+          {{ CategoryLabels[detail.recommendationCategory] || detail.recommendationCategory }}
+        </span>
+      </div>
+      <div class="card-body">
+        <p class="summary-text">{{ detail.summary }}</p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION D: Recommendations List                          -->
+    <!-- ======================================================== -->
+    <div class="card section-card">
+      <div class="card-header">
+        <h3 class="section-title">Actionable Recommendations</h3>
+      </div>
+      <div class="card-body">
+        <ul class="rec-list" *ngIf="detail.recommendations && detail.recommendations.length > 0">
+          <li *ngFor="let recItem of detail.recommendations" class="rec-list-item">
+            <span class="bullet-point">▸</span>
+            <span>{{ recItem }}</span>
+          </li>
+        </ul>
+        <p *ngIf="!detail.recommendations || detail.recommendations.length === 0" class="text-muted">
+          {{ detail.summary }}
+        </p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION E: Observations ("What the system observed")     -->
+    <!-- ======================================================== -->
+    <div class="card section-card">
+      <div class="card-header">
+        <h3 class="section-title">What the system observed</h3>
+      </div>
+      <div class="card-body">
+        <ul class="observations-list" *ngIf="detail.observations && detail.observations.length > 0">
+          <li *ngFor="let obs of detail.observations">
+            {{ obs }}
+          </li>
+        </ul>
+        <p *ngIf="!detail.observations || detail.observations.length === 0" class="text-muted">
+          No specific observations recorded.
+        </p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION F: Rationale (Collapsible, Collapsed by default)  -->
+    <!-- ======================================================== -->
+    <div class="card section-card">
+      <div class="collapsible-header" (click)="showRationale = !showRationale">
+        <h3 class="section-title" style="margin: 0;">Rationale</h3>
+        <span class="toggle-icon">{{ showRationale ? '▲ Collapse' : '▼ Expand Rationale' }}</span>
+      </div>
+      <div class="card-body" *ngIf="showRationale">
+        <p class="rationale-text">{{ detail.rationale || 'No detailed rationale text provided.' }}</p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION G: Confidence Statement ("AI confidence note")   -->
+    <!-- ======================================================== -->
+    <div class="card section-card confidence-card">
+      <div class="card-header">
+        <h3 class="section-title">AI confidence note</h3>
+      </div>
+      <div class="card-body">
+        <p class="confidence-text">{{ detail.confidenceStatement }}</p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION H: Assumptions ("Assumptions made", Collapsible)  -->
+    <!-- ======================================================== -->
+    <div class="card section-card">
+      <div class="collapsible-header" (click)="showAssumptions = !showAssumptions">
+        <h3 class="section-title" style="margin: 0;">Assumptions made</h3>
+        <span class="toggle-icon">{{ showAssumptions ? '▲ Collapse' : '▼ Expand Assumptions' }}</span>
+      </div>
+      <div class="card-body" *ngIf="showAssumptions">
+        <ul class="assumptions-list" *ngIf="detail.assumptions && detail.assumptions.length > 0">
+          <li *ngFor="let assumption of detail.assumptions">
+            {{ assumption }}
+          </li>
+        </ul>
+        <p *ngIf="!detail.assumptions || detail.assumptions.length === 0" class="text-muted">
+          No explicit assumptions flagged by the engine.
+        </p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION I: Missing High-Value Data (Collapsible)         -->
+    <!-- ======================================================== -->
+    <div class="card section-card">
+      <div class="collapsible-header" (click)="showMissingData = !showMissingData">
+        <h3 class="section-title" style="margin: 0;">Data that would improve this</h3>
+        <span class="toggle-icon">{{ showMissingData ? '▲ Collapse' : '▼ Expand Missing Data' }}</span>
+      </div>
+      <div class="card-body" *ngIf="showMissingData">
+        <ul class="missing-data-list" *ngIf="detail.missingHighValueData && detail.missingHighValueData.length > 0">
+          <li *ngFor="let item of detail.missingHighValueData">
+            {{ item }}
+          </li>
+        </ul>
+        <p *ngIf="!detail.missingHighValueData || detail.missingHighValueData.length === 0" class="text-muted">
+          All high-value data parameters were available for this evaluation.
+        </p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION J: Evidence (Resolved M3 Scientific Claims)      -->
+    <!-- ======================================================== -->
+    <div class="card section-card evidence-section">
+      <div class="card-header">
+        <h3 class="section-title">
+          Linked Scientific Evidence (M3 Knowledge Base)
+        </h3>
+        <span class="badge badge-info">
+          {{ detail.resolvedKnowledgeClaims.length }} Claim{{ detail.resolvedKnowledgeClaims.length === 1 ? '' : 's' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div *ngIf="detail.resolvedKnowledgeClaims.length === 0" class="text-muted">
+          No direct M3 Knowledge Claims are linked to this recommendation.
+        </div>
+
+        <div *ngIf="detail.resolvedKnowledgeClaims.length > 0" class="claims-grid">
+          <div
+            *ngFor="let claim of detail.resolvedKnowledgeClaims"
+            class="claim-card"
+            [class.expanded]="expandedClaims.has(claim.id)"
+          >
+            <div class="claim-header" (click)="toggleClaim(claim.id)">
+              <div class="claim-title-row">
+                <span class="claim-topic">{{ claim.topic }}</span>
+                <span class="badge badge-secondary" style="font-size: 0.75rem;">
+                  {{ claim.evidenceLevel }}
+                </span>
+                <span class="badge" [ngClass]="claim.status === 'Accepted' || claim.status === '1' ? 'badge-success' : 'badge-warning'" style="font-size: 0.75rem;">
+                  {{ claim.status }}
+                </span>
+              </div>
+              <span class="toggle-icon-sm">
+                {{ expandedClaims.has(claim.id) ? '▲' : '▼' }}
+              </span>
+            </div>
+
+            <div class="claim-body" *ngIf="expandedClaims.has(claim.id)">
+              <p class="claim-text">{{ claim.claimText }}</p>
+              <div class="claim-id-label">Claim ID: {{ claim.id }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECTION K: Coach Decision Panel                          -->
+    <!-- ======================================================== -->
+    <div class="card section-card decision-card">
+      <div class="card-header">
+        <h3 class="section-title" style="color: var(--accent-primary);">Coach Decision Panel</h3>
+        <span class="badge" [ngClass]="getStatusBadgeClass(detail.reviewStatus)">
+          Current: {{ StatusLabels[detail.reviewStatus] || detail.reviewStatus }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div *ngIf="isArchived()" class="alert alert-secondary">
+          This recommendation is <strong>Archived</strong>. No further state transitions are permitted.
+        </div>
+
+        <div *ngIf="!isArchived()">
+          <div *ngIf="formError" class="alert alert-danger">
+            {{ formError }}
+          </div>
+
+          <!-- Decision Action Selection Buttons -->
+          <div class="decision-selector">
+            <label class="form-label" style="font-weight: 600;">Select Decision:</label>
+            <div class="btn-group-decision">
+              <button
+                type="button"
+                class="btn decision-btn"
+                [class.btn-success]="decisionStatus === ReviewStatusEnum.Accepted"
+                [class.btn-secondary]="decisionStatus !== ReviewStatusEnum.Accepted"
+                (click)="onSelectStatus(ReviewStatusEnum.Accepted)"
+              >
+                ✓ Accept Recommendation
+              </button>
+
+              <button
+                type="button"
+                class="btn decision-btn"
+                [class.btn-danger]="decisionStatus === ReviewStatusEnum.Rejected"
+                [class.btn-secondary]="decisionStatus !== ReviewStatusEnum.Rejected"
+                (click)="onSelectStatus(ReviewStatusEnum.Rejected)"
+              >
+                ✗ Reject Recommendation
+              </button>
+
+              <button
+                type="button"
+                class="btn decision-btn"
+                [class.btn-warning]="decisionStatus === ReviewStatusEnum.UnderReview"
+                [class.btn-secondary]="decisionStatus !== ReviewStatusEnum.UnderReview"
+                (click)="onSelectStatus(ReviewStatusEnum.UnderReview)"
+              >
+                ⏳ Mark Under Review
+              </button>
+
+              <button
+                type="button"
+                class="btn decision-btn"
+                [class.btn-dark]="decisionStatus === ReviewStatusEnum.Archived"
+                [class.btn-secondary]="decisionStatus !== ReviewStatusEnum.Archived"
+                (click)="onSelectStatus(ReviewStatusEnum.Archived)"
+              >
+                📦 Archive
+              </button>
+            </div>
+          </div>
+
+          <!-- Coach Decision Note Textarea (Mandatory for Accept) -->
+          <div class="form-group" style="margin-top: 1.25rem;">
+            <label class="form-label" style="font-weight: 600;">
+              Coach Decision / Notes
+              <span *ngIf="decisionStatus === ReviewStatusEnum.Accepted" class="text-danger">* (Required for Accept)</span>
+            </label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="Enter your clinical rationale or modifications to the plan..."
+              [(ngModel)]="coachDecision"
+            ></textarea>
+          </div>
+
+          <!-- Final Implemented Plan Textarea (Only editable/visible when Accepted) -->
+          <div *ngIf="decisionStatus === ReviewStatusEnum.Accepted" class="form-group" style="margin-top: 1rem;">
+            <label class="form-label" style="font-weight: 600;">
+              Final Implemented Plan (Optional Free Text)
+            </label>
+            <textarea
+              class="form-control"
+              rows="4"
+              placeholder="Describe the exact training or nutrition adjustments implemented for the client..."
+              [(ngModel)]="finalImplementedPlan"
+            ></textarea>
+          </div>
+
+          <!-- Decision History Info (if already decided) -->
+          <div *ngIf="detail.coachDecisionAt" class="decision-history-info">
+            Decision recorded on {{ detail.coachDecisionAt | date:'medium' }}
+          </div>
+
+          <!-- Submit Button -->
+          <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="isSubmitting"
+              (click)="onSubmitReview()"
+            >
+              <span *ngIf="isSubmitting" class="spinner"></span>
+              {{ isSubmitting ? 'Saving Decision...' : 'Submit Decision' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -109,3 +109,71 @@ public class StructuredAiRecommendationJson
     [JsonPropertyName("coach_action_required")]
     public bool? CoachActionRequired { get; set; }
 }
+
+public class ReviewAIRecommendationRequestDto
+{
+    [JsonPropertyName("reviewStatus")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public AIRecommendationReviewStatus ReviewStatus { get; set; }
+
+    [JsonPropertyName("coachDecision")]
+    public string? CoachDecision { get; set; }
+
+    [JsonPropertyName("finalImplementedPlan")]
+    public string? FinalImplementedPlan { get; set; }
+}
+
+public class ResolvedKnowledgeClaimDto
+{
+    public Guid Id { get; set; }
+    public string Topic { get; set; } = string.Empty;
+    public string ClaimText { get; set; } = string.Empty;
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public Domain.Knowledge.EvidenceLevel EvidenceLevel { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public Domain.Knowledge.ClaimStatus Status { get; set; }
+}
+
+public class AIRecommendationSummaryDto
+{
+    public Guid Id { get; set; }
+    public Guid ClientId { get; set; }
+    public Guid CoachId { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public AIRecommendationCategory Category { get; set; }
+    public string Summary { get; set; } = string.Empty;
+    public DateTime GeneratedAt { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public AIRecommendationReviewStatus Status { get; set; }
+    public bool CoachActionRequired { get; set; }
+    public string? SafetySummary { get; set; }
+    public int KnowledgeClaimCount { get; set; }
+}
+
+public class AIRecommendationDetailDto
+{
+    public Guid Id { get; set; }
+    public Guid ClientId { get; set; }
+    public Guid CoachId { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public AIRecommendationCategory RecommendationCategory { get; set; }
+    public string Summary { get; set; } = string.Empty;
+    public IReadOnlyList<string> Observations { get; set; } = new List<string>();
+    public IReadOnlyList<string> Recommendations { get; set; } = new List<string>();
+    public string Rationale { get; set; } = string.Empty;
+    public string ConfidenceStatement { get; set; } = string.Empty;
+    public IReadOnlyList<string> Assumptions { get; set; } = new List<string>();
+    public IReadOnlyList<string> MissingHighValueData { get; set; } = new List<string>();
+    public string? SafetySummary { get; set; }
+    public bool CoachActionRequired { get; set; } = true;
+    public IReadOnlyList<ResolvedKnowledgeClaimDto> ResolvedKnowledgeClaims { get; set; } = new List<ResolvedKnowledgeClaimDto>();
+    public string AIProvider { get; set; } = string.Empty;
+    public string AIModel { get; set; } = string.Empty;
+    public DateTime GeneratedAt { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public AIRecommendationReviewStatus ReviewStatus { get; set; }
+    public string? CoachDecision { get; set; }
+    public DateTime? CoachDecisionAt { get; set; }
+    public string? FinalImplementedPlan { get; set; }
+}
+

@@ -55,21 +55,27 @@ public class ClientService : IClientService
     {
         var coachId = await _currentCoachService.GetRequiredCoachIdAsync(cancellationToken);
 
+        var pendingCounts = await _dbContext.AIRecommendationRecords
+            .Where(r => r.CoachId == coachId && r.ReviewStatus == Domain.Memory.AIRecommendationReviewStatus.PendingReview)
+            .GroupBy(r => r.ClientId)
+            .Select(g => new { ClientId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClientId, x => x.Count, cancellationToken);
+
         var clients = await _dbContext.Clients
             .Where(c => c.CoachId == coachId)
             .OrderByDescending(c => c.CreatedAtUtc)
-            .Select(c => new ClientSummaryDto(
-                c.Id,
-                c.FirstName,
-                c.LastName,
-                c.Email,
-                c.Status,
-                c.Goal != null ? c.Goal.PrimaryGoal : null,
-                c.CreatedAtUtc
-            ))
             .ToListAsync(cancellationToken);
 
-        return clients;
+        return clients.Select(c => new ClientSummaryDto(
+            c.Id,
+            c.FirstName,
+            c.LastName,
+            c.Email,
+            c.Status,
+            c.Goal != null ? c.Goal.PrimaryGoal : null,
+            c.CreatedAtUtc,
+            pendingCounts.TryGetValue(c.Id, out var count) ? count : 0
+        )).ToList();
     }
 
     public async Task<ClientDto> GetClientByIdAsync(Guid clientId, CancellationToken cancellationToken = default)
@@ -83,7 +89,10 @@ public class ClientService : IClientService
             throw new NotFoundException("Client", clientId);
         }
 
-        return MapToDto(client);
+        var pendingCount = await _dbContext.AIRecommendationRecords
+            .CountAsync(r => r.ClientId == clientId && r.ReviewStatus == Domain.Memory.AIRecommendationReviewStatus.PendingReview, cancellationToken);
+
+        return MapToDto(client, pendingCount);
     }
 
     public async Task<ClientDto> UpdateClientAsync(Guid clientId, UpdateClientRequestDto request, CancellationToken cancellationToken = default)
@@ -205,7 +214,7 @@ public class ClientService : IClientService
         return consents;
     }
 
-    private static ClientDto MapToDto(Client client)
+    private static ClientDto MapToDto(Client client, int pendingRecommendationCount = 0)
     {
         ClientGoalDto? goalDto = null;
         if (client.Goal != null)
@@ -230,7 +239,8 @@ public class ClientService : IClientService
             goalDto,
             client.IntakeNotes,
             client.CreatedAtUtc,
-            client.UpdatedAtUtc
+            client.UpdatedAtUtc,
+            pendingRecommendationCount
         );
     }
 }

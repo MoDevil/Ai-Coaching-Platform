@@ -407,6 +407,155 @@ CORE CONTRACT RULES:
         };
     }
 
+    public async Task<AIRecommendationRecordDto> ReviewRecommendationAsync(
+        Guid coachId,
+        Guid recommendationId,
+        ReviewAIRecommendationRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        var record = await _dbContext.FindAIRecommendationRecordByIdAsync(recommendationId, cancellationToken);
+        if (record == null)
+        {
+            throw new KeyNotFoundException($"Recommendation record {recommendationId} not found.");
+        }
+
+        if (record.CoachId != coachId)
+        {
+            throw new UnauthorizedAccessException("Coach does not own this recommendation record.");
+        }
+
+        record.ApplyReview(request.ReviewStatus, request.CoachDecision, request.FinalImplementedPlan);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(record);
+    }
+
+    public async Task<IReadOnlyList<AIRecommendationSummaryDto>> GetClientRecommendationsAsync(
+        Guid coachId,
+        Guid clientId,
+        AIRecommendationReviewStatus? status = null,
+        AIRecommendationCategory? category = null,
+        CancellationToken cancellationToken = default)
+    {
+        var client = await _dbContext.Clients
+            .FirstOrDefaultAsync(c => c.Id == clientId, cancellationToken);
+
+        if (client == null || client.CoachId != coachId)
+        {
+            throw new KeyNotFoundException($"Client {clientId} not found.");
+        }
+
+        var query = _dbContext.AIRecommendationRecords
+            .Where(r => r.ClientId == clientId && r.CoachId == coachId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(r => r.ReviewStatus == status.Value);
+        }
+
+        if (category.HasValue)
+        {
+            query = query.Where(r => r.RecommendationCategory == category.Value);
+        }
+
+        var records = await query
+            .OrderByDescending(r => r.GeneratedAt)
+            .ToListAsync(cancellationToken);
+
+        return records.Select(r =>
+        {
+            var hasSafetyNotice = r.RecommendationText.Contains("[SAFETY REFERRAL NOTICE]");
+            return new AIRecommendationSummaryDto
+            {
+                Id = r.Id,
+                ClientId = r.ClientId,
+                CoachId = r.CoachId,
+                Category = r.RecommendationCategory,
+                Summary = r.RecommendationText,
+                GeneratedAt = r.GeneratedAt,
+                Status = r.ReviewStatus,
+                CoachActionRequired = r.ReviewStatus == AIRecommendationReviewStatus.PendingReview || r.ReviewStatus == AIRecommendationReviewStatus.UnderReview,
+                SafetySummary = hasSafetyNotice ? "Active healthcare referral indicated." : null,
+                KnowledgeClaimCount = r.KnowledgeClaimRefs.Count
+            };
+        }).ToList();
+    }
+
+    public async Task<AIRecommendationDetailDto> GetClientRecommendationDetailAsync(
+        Guid coachId,
+        Guid clientId,
+        Guid recommendationId,
+        CancellationToken cancellationToken = default)
+    {
+        var client = await _dbContext.Clients
+            .FirstOrDefaultAsync(c => c.Id == clientId, cancellationToken);
+
+        if (client == null || client.CoachId != coachId)
+        {
+            throw new KeyNotFoundException($"Client {clientId} not found.");
+        }
+
+        var record = await _dbContext.FindAIRecommendationRecordByIdAsync(recommendationId, cancellationToken);
+        if (record == null || record.ClientId != clientId || record.CoachId != coachId)
+        {
+            throw new KeyNotFoundException($"Recommendation {recommendationId} not found for client {clientId}.");
+        }
+
+        var claimGuids = record.KnowledgeClaimRefs.ToList();
+        var resolvedClaims = new List<ResolvedKnowledgeClaimDto>();
+        if (claimGuids.Count > 0)
+        {
+            var claims = await _dbContext.KnowledgeClaims
+                .Where(k => claimGuids.Contains(k.Id))
+                .ToListAsync(cancellationToken);
+
+            foreach (var claim in claims)
+            {
+                var text = claim.ClaimText ?? string.Empty;
+                var truncatedText = text.Length > 200 ? text.Substring(0, 197) + "..." : text;
+                resolvedClaims.Add(new ResolvedKnowledgeClaimDto
+                {
+                    Id = claim.Id,
+                    Topic = claim.Topic,
+                    ClaimText = truncatedText,
+                    EvidenceLevel = claim.EvidenceLevel,
+                    Status = claim.Status
+                });
+            }
+        }
+
+        var hasSafetyNotice = record.RecommendationText.Contains("[SAFETY REFERRAL NOTICE]");
+        var safetySummary = hasSafetyNotice ? "Active healthcare referral indicated." : null;
+
+        return new AIRecommendationDetailDto
+        {
+            Id = record.Id,
+            ClientId = record.ClientId,
+            CoachId = record.CoachId,
+            RecommendationCategory = record.RecommendationCategory,
+            Summary = record.RecommendationText,
+            Observations = new List<string> { "Client context evaluated against active baseline and recovery markers." },
+            Recommendations = new List<string> { record.RecommendationText },
+            Rationale = record.RationaleText,
+            ConfidenceStatement = record.ConfidenceStatement,
+            Assumptions = new List<string> { "Standard physiological response under progressive training load." },
+            MissingHighValueData = new List<string>(),
+            SafetySummary = safetySummary,
+            CoachActionRequired = record.ReviewStatus == AIRecommendationReviewStatus.PendingReview || record.ReviewStatus == AIRecommendationReviewStatus.UnderReview,
+            ResolvedKnowledgeClaims = resolvedClaims,
+            AIProvider = record.AIProvider,
+            AIModel = record.AIModel,
+            GeneratedAt = record.GeneratedAt,
+            ReviewStatus = record.ReviewStatus,
+            CoachDecision = record.CoachDecisionNote,
+            CoachDecisionAt = record.CoachDecisionAt,
+            FinalImplementedPlan = record.FinalImplementedPlan
+        };
+    }
+
     private static AIRecommendationRecordDto MapToDto(AIRecommendationRecord r)
     {
         return new AIRecommendationRecordDto

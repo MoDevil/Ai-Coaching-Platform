@@ -91,9 +91,10 @@ public enum ReasoningCategory
 public enum AIRecommendationReviewStatus
 {
     PendingReview = 1,
-    Approved = 2,
-    Modified = 3,
-    Rejected = 4
+    UnderReview = 2,
+    Accepted = 3,
+    Rejected = 4,
+    Archived = 5
 }
 
 public enum CoachDecisionOutcome

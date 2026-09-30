@@ -14,4 +14,23 @@ public interface IAiReasoningService
         Guid coachId, 
         Guid recommendationId, 
         CancellationToken cancellationToken = default);
+
+    Task<AIRecommendationRecordDto> ReviewRecommendationAsync(
+        Guid coachId,
+        Guid recommendationId,
+        ReviewAIRecommendationRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AIRecommendationSummaryDto>> GetClientRecommendationsAsync(
+        Guid coachId,
+        Guid clientId,
+        Domain.Memory.AIRecommendationReviewStatus? status = null,
+        Domain.Memory.AIRecommendationCategory? category = null,
+        CancellationToken cancellationToken = default);
+
+    Task<AIRecommendationDetailDto> GetClientRecommendationDetailAsync(
+        Guid coachId,
+        Guid clientId,
+        Guid recommendationId,
+        CancellationToken cancellationToken = default);
 }

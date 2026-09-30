@@ -85,6 +85,14 @@
           <tr *ngFor="let client of filteredClients">
             <td>
               <strong>{{ client.firstName }} {{ client.lastName }}</strong>
+              <span
+                *ngIf="client.pendingRecommendationCount && client.pendingRecommendationCount > 0"
+                class="badge badge-warning"
+                style="margin-left: 0.5rem; font-size: 0.75rem;"
+                title="Pending AI Recommendations"
+              >
+                {{ client.pendingRecommendationCount }} Review
+              </span>
             </td>
             <td>
               <div *ngIf="client.email">{{ client.email }}</div>

@@ -35,6 +35,7 @@ export interface ClientSummary {
   status: ClientStatus;
   primaryGoal?: string | null;
   createdAtUtc: string;
+  pendingRecommendationCount?: number;
 }
 
 export interface ConsentRecord {
@@ -59,6 +60,7 @@ export interface Client {
   createdAtUtc: string;
   updatedAtUtc?: string | null;
   consentRecords: ConsentRecord[];
+  pendingRecommendationCount?: number;
 }
 
 export interface CreateClientRequest {

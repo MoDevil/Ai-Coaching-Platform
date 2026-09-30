@@ -1,0 +1,179 @@
+<div class="container">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <h1 class="page-title">
+          <span *ngIf="client">{{ client.firstName }} {{ client.lastName }} — </span>
+          AI Decision Package
+        </h1>
+        <span class="badge" style="background: var(--bg-tertiary); color: var(--accent-primary); font-size: 0.8125rem;">
+          M18 Decision Support
+        </span>
+      </div>
+      <p class="page-subtitle">
+        Review, accept, reject, or archive AI-generated recommendations with linked scientific evidence.
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="showTriggerForm = !showTriggerForm"
+      >
+        {{ showTriggerForm ? 'Close Trigger Panel' : '+ Trigger AI Reasoning' }}
+      </button>
+      <a [routerLink]="['/clients', clientId]" class="btn btn-secondary">Back to Client Profile</a>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Trigger Reasoning Panel -->
+  <div *ngIf="showTriggerForm" class="card trigger-card">
+    <div class="card-header">
+      <h3 class="section-title" style="margin: 0;">Trigger Evidence-Based Reasoning</h3>
+    </div>
+    <div class="trigger-form">
+      <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Select an assessment category. The reasoning engine evaluates the client's training profile, active safety flags, memory snapshot, and scientific evidence claims.
+      </p>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label class="form-label" style="font-weight: 600;">Reasoning Category</label>
+        <select class="form-control" [(ngModel)]="selectedCategory">
+          <option *ngFor="let cat of Categories" [value]="cat">
+            {{ CategoryLabels[cat] || cat }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.25rem;">
+        <label class="form-label" style="font-weight: 600;">Additional Context / Specific Questions (Optional)</label>
+        <textarea
+          class="form-control"
+          rows="3"
+          placeholder="e.g. Focus on shoulder stability or adjust for lower training frequency..."
+          [(ngModel)]="additionalContext"
+        ></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="showTriggerForm = false"
+          [disabled]="isGenerating"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="onTriggerReasoning()"
+          [disabled]="isGenerating"
+        >
+          <span *ngIf="isGenerating" class="spinner"></span>
+          {{ isGenerating ? 'Generating Reasoning...' : 'Run Reasoning Engine' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="card filter-card">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label class="filter-label">Status Filter:</label>
+        <select class="form-control form-control-sm" [(ngModel)]="selectedStatusFilter" (change)="onFilterChange()">
+          <option value="all">All Statuses</option>
+          <option *ngFor="let s of Statuses" [value]="s">
+            {{ StatusLabels[s] || s }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Category Filter:</label>
+        <select class="form-control form-control-sm" [(ngModel)]="selectedCategoryFilter" (change)="onFilterChange()">
+          <option value="all">All Categories</option>
+          <option *ngFor="let c of Categories" [value]="c">
+            {{ CategoryLabels[c] || c }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state card">
+    <p>Loading recommendation package...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && recommendations.length === 0" class="empty-state card">
+    <p class="empty-title">No recommendations found</p>
+    <p class="empty-desc">
+      No AI recommendations have been generated for this client matching your filters. Trigger a new analysis using the button above.
+    </p>
+  </div>
+
+  <!-- Recommendations List -->
+  <div *ngIf="!isLoading && recommendations.length > 0" class="recommendations-list">
+    <div *ngFor="let rec of recommendations" class="recommendation-card card">
+      <!-- Card Header -->
+      <div class="rec-header">
+        <div class="rec-title-wrap">
+          <span class="badge" [ngClass]="getStatusBadgeClass(rec.status)">
+            {{ StatusLabels[rec.status] || rec.status }}
+          </span>
+          <span class="category-tag">
+            {{ CategoryLabels[rec.category] || rec.category }}
+          </span>
+          <span *ngIf="rec.coachActionRequired" class="badge badge-danger">
+            Action Required
+          </span>
+        </div>
+        <div class="rec-date">
+          {{ rec.generatedAt | date:'medium' }}
+        </div>
+      </div>
+
+      <!-- Safety Summary Banner (if present) -->
+      <div *ngIf="rec.safetySummary" class="rec-safety-alert">
+        <strong>⚠️ Safety Notice:</strong> {{ rec.safetySummary }}
+      </div>
+
+      <!-- Summary Text -->
+      <div class="rec-summary-body">
+        <p class="rec-summary-text">{{ rec.summary }}</p>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="rec-footer">
+        <div class="rec-meta">
+          <span class="evidence-badge" *ngIf="rec.knowledgeClaimCount > 0">
+            📚 {{ rec.knowledgeClaimCount }} Linked Scientific Claim{{ rec.knowledgeClaimCount > 1 ? 's' : '' }}
+          </span>
+          <span class="evidence-badge muted" *ngIf="rec.knowledgeClaimCount === 0">
+            No scientific claims linked
+          </span>
+        </div>
+
+        <a
+          [routerLink]="['/clients', clientId, 'recommendations', rec.id]"
+          class="btn btn-primary btn-sm"
+        >
+          Inspect & Review →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

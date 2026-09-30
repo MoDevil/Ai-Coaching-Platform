@@ -53,7 +53,8 @@ public record ClientDto(
     ClientGoalDto? Goal,
     string? IntakeNotes,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc
+    DateTime? UpdatedAtUtc,
+    int PendingRecommendationCount = 0
 );
 
 public record ClientSummaryDto(
@@ -63,5 +64,6 @@ public record ClientSummaryDto(
     string? Email,
     ClientStatus Status,
     string? PrimaryGoal,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    int PendingRecommendationCount = 0
 );
