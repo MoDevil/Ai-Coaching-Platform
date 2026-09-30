@@ -64,11 +64,15 @@ public class ExceptionHandlingMiddleware
         }
         else
         {
+            var detail = statusCode == HttpStatusCode.InternalServerError
+                ? "An unexpected error occurred while processing your request."
+                : exception.Message;
+
             responseBody = new ProblemDetails
             {
                 Status = (int)statusCode,
                 Title = GetTitle(statusCode),
-                Detail = exception.Message
+                Detail = detail
             };
         }
 
