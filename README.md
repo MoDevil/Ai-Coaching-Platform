@@ -85,8 +85,10 @@ dotnet test
 cd src/frontend
 npm run build
 
-# Frontend unit tests (headless, single run)
-npm test
+# Frontend unit tests
+cd src/frontend
+npm test                 # watch mode for local development
+npm run test:ci          # headless single run, as used by CI
 ```
 
 For detailed production configuration and operations guidelines, see [Production Hardening Guide](docs/production-hardening.md).

@@ -1,5 +1,8 @@
 export interface RegisterCoachRequest {
-  name: string;
+  // Must stay in step with RegisterCoachRequestDto.FullName on the API. ASP.NET serialises the
+  // record with camelCase naming, so the wire property is `fullName`; sending `name` left the
+  // field null on the server and registration was rejected.
+  fullName: string;
   email: string;
   password: string;
 }

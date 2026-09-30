@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { extractErrorMessage } from '../../core/api-error';
+import { LoginRequest } from '../../models/auth.models';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +22,9 @@ export class LoginComponent {
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      // No length rule here. The password policy applies at registration, and a minimum length
+      // here would only produce a misleading client-side error for a wrong password.
+      password: ['', [Validators.required]]
     });
   }
 
@@ -33,14 +37,19 @@ export class LoginComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.authService.login(this.loginForm.value).subscribe({
+    const request: LoginRequest = this.loginForm.getRawValue();
+
+    this.authService.login(request).subscribe({
       next: () => {
         this.isLoading = false;
         this.router.navigate(['/clients']);
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.message || err.error?.detail || 'Invalid email or password. Please try again.';
+        this.errorMessage = extractErrorMessage(
+          err?.error,
+          'Invalid email or password. Please try again.'
+        );
       }
     });
   }

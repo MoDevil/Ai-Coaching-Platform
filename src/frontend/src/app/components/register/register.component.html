@@ -11,17 +11,17 @@
 
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
-        <label class="form-label" for="name">Full Name</label>
+        <label class="form-label" for="fullName">Full Name</label>
         <input
-          id="name"
+          id="fullName"
           type="text"
-          formControlName="name"
+          formControlName="fullName"
           class="form-control"
           placeholder="Captain Ahmed Hassan"
           autocomplete="name"
         />
-        <div *ngIf="registerForm.get('name')?.touched && registerForm.get('name')?.invalid" class="form-error">
-          Full name is required (max 100 characters).
+        <div *ngIf="registerForm.get('fullName')?.touched && registerForm.get('fullName')?.invalid" class="form-error">
+          Full name is required (max 150 characters).
         </div>
       </div>
 
@@ -47,11 +47,11 @@
           type="password"
           formControlName="password"
           class="form-control"
-          placeholder="••••••••"
+          placeholder="Str0ng!Pass"
           autocomplete="new-password"
         />
         <div *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.invalid" class="form-error">
-          Password must be at least 8 characters.
+          Password must contain {{ passwordHints.join(', ') }}.
         </div>
       </div>
 

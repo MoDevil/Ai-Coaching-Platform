@@ -2,6 +2,9 @@ import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { extractErrorMessage } from '../../core/api-error';
+import { describePasswordFailures, passwordPolicyValidator } from '../../core/password-policy';
+import { RegisterCoachRequest } from '../../models/auth.models';
 
 @Component({
   selector: 'app-register',
@@ -19,10 +22,17 @@ export class RegisterComponent {
     private router: Router
   ) {
     this.registerForm = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(100)]],
+      // Control names are the wire contract. `name` was silently accepted here while the API
+      // expects `fullName`, so the request bound FullName to null and always failed.
+      fullName: ['', [Validators.required, Validators.maxLength(150)]],
       email: ['', [Validators.required, Validators.email, Validators.maxLength(256)]],
-      password: ['', [Validators.required, Validators.minLength(8)]]
+      password: ['', [Validators.required, passwordPolicyValidator()]]
     });
+  }
+
+  /** Password requirements the coach has not met yet, for inline guidance. */
+  get passwordHints(): string[] {
+    return describePasswordFailures(this.registerForm.get('password')?.errors ?? null);
   }
 
   onSubmit(): void {
@@ -34,14 +44,21 @@ export class RegisterComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.authService.register(this.registerForm.value).subscribe({
+    // getRawValue() is typed, unlike `value`, so renaming a control breaks the build instead of
+    // producing a request the API rejects.
+    const request: RegisterCoachRequest = this.registerForm.getRawValue();
+
+    this.authService.register(request).subscribe({
       next: () => {
         this.isLoading = false;
         this.router.navigate(['/clients']);
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.message || err.error?.detail || 'Registration failed. Please check your information.';
+        this.errorMessage = extractErrorMessage(
+          err?.error,
+          'Registration failed. Please check your information.'
+        );
       }
     });
   }
