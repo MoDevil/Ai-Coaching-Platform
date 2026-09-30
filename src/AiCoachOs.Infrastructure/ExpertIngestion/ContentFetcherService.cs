@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using AiCoachOs.Application.ExpertIngestion.Dtos;
@@ -12,7 +11,7 @@ namespace AiCoachOs.Infrastructure.ExpertIngestion;
 
 public class ContentFetcherService : IContentFetcherService
 {
-    private const int MaxWordLimit = 15000;
+    private const int MaxCharacterLimit = 75000;
     private readonly HttpClient _httpClient;
     private readonly ILogger<ContentFetcherService> _logger;
 
@@ -24,7 +23,7 @@ public class ContentFetcherService : IContentFetcherService
 
     public async Task<FetchedContentResult> FetchContentAsync(
         string sourceUrl,
-        IngestionContentType? overrideContentType = null,
+        IngestionSourceType? overrideSourceType = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(sourceUrl))
@@ -32,24 +31,24 @@ public class ContentFetcherService : IContentFetcherService
             return new FetchedContentResult(
                 RawText: string.Empty,
                 Title: string.Empty,
-                ContentType: overrideContentType ?? IngestionContentType.Article,
-                WordCount: 0,
+                SourceType: overrideSourceType ?? IngestionSourceType.Article,
+                ExtractedTextLength: 0,
                 WasTruncated: false,
                 IsSuccess: false,
                 ErrorMessage: "Source URL cannot be empty.");
         }
 
-        var determinedType = overrideContentType ?? DetermineContentType(sourceUrl);
+        var determinedType = overrideSourceType ?? DetermineSourceType(sourceUrl);
 
         try
         {
-            if (determinedType == IngestionContentType.YouTube)
+            if (determinedType == IngestionSourceType.YouTubeVideo)
             {
                 return await FetchYouTubeTranscriptAsync(sourceUrl, cancellationToken);
             }
             else
             {
-                return await FetchWebArticleAsync(sourceUrl, cancellationToken);
+                return await FetchWebArticleAsync(sourceUrl, determinedType, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -58,29 +57,29 @@ public class ContentFetcherService : IContentFetcherService
             return new FetchedContentResult(
                 RawText: string.Empty,
                 Title: string.Empty,
-                ContentType: determinedType,
-                WordCount: 0,
+                SourceType: determinedType,
+                ExtractedTextLength: 0,
                 WasTruncated: false,
                 IsSuccess: false,
                 ErrorMessage: $"Failed fetching content: {ex.Message}");
         }
     }
 
-    private static IngestionContentType DetermineContentType(string url)
+    private static IngestionSourceType DetermineSourceType(string url)
     {
         if (url.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) ||
             url.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
         {
-            return IngestionContentType.YouTube;
+            return IngestionSourceType.YouTubeVideo;
         }
 
         if (url.Contains("spotify.com", StringComparison.OrdinalIgnoreCase) ||
             url.Contains("apple.com/podcast", StringComparison.OrdinalIgnoreCase))
         {
-            return IngestionContentType.Podcast;
+            return IngestionSourceType.PodcastEpisode;
         }
 
-        return IngestionContentType.Article;
+        return IngestionSourceType.Article;
     }
 
     private async Task<FetchedContentResult> FetchYouTubeTranscriptAsync(string url, CancellationToken cancellationToken)
@@ -119,8 +118,8 @@ public class ContentFetcherService : IContentFetcherService
                 return new FetchedContentResult(
                     RawText: string.Empty,
                     Title: title,
-                    ContentType: IngestionContentType.YouTube,
-                    WordCount: 0,
+                    SourceType: IngestionSourceType.YouTubeVideo,
+                    ExtractedTextLength: 0,
                     WasTruncated: false,
                     IsSuccess: false,
                     ErrorMessage: "Timed out extracting YouTube subtitles using yt-dlp.");
@@ -132,14 +131,13 @@ public class ContentFetcherService : IContentFetcherService
                 return new FetchedContentResult(
                     RawText: string.Empty,
                     Title: title,
-                    ContentType: IngestionContentType.YouTube,
-                    WordCount: 0,
+                    SourceType: IngestionSourceType.YouTubeVideo,
+                    ExtractedTextLength: 0,
                     WasTruncated: false,
                     IsSuccess: false,
                     ErrorMessage: "No English or Arabic subtitles/captions found for this YouTube video.");
             }
 
-            // Prefer manual subtitles over auto-generated if multiple files exist
             var chosenFile = vttFiles.FirstOrDefault(f => !f.Contains(".auto.")) ?? vttFiles[0];
             var vttContent = await File.ReadAllTextAsync(chosenFile, cancellationToken);
             var cleanText = ParseVttContent(vttContent);
@@ -149,20 +147,20 @@ public class ContentFetcherService : IContentFetcherService
                 return new FetchedContentResult(
                     RawText: string.Empty,
                     Title: title,
-                    ContentType: IngestionContentType.YouTube,
-                    WordCount: 0,
+                    SourceType: IngestionSourceType.YouTubeVideo,
+                    ExtractedTextLength: 0,
                     WasTruncated: false,
                     IsSuccess: false,
                     ErrorMessage: "Subtitles were found but extracted text was empty.");
             }
 
-            var (processedText, wordCount, wasTruncated) = TruncateWordsIfExceeded(cleanText, MaxWordLimit);
+            var (processedText, textLength, wasTruncated) = TruncateIfExceeded(cleanText, MaxCharacterLimit);
 
             return new FetchedContentResult(
                 RawText: processedText,
                 Title: title,
-                ContentType: IngestionContentType.YouTube,
-                WordCount: wordCount,
+                SourceType: IngestionSourceType.YouTubeVideo,
+                ExtractedTextLength: textLength,
                 WasTruncated: wasTruncated,
                 IsSuccess: true);
         }
@@ -257,7 +255,7 @@ public class ContentFetcherService : IContentFetcherService
         return sb.ToString().Trim();
     }
 
-    private async Task<FetchedContentResult> FetchWebArticleAsync(string url, CancellationToken cancellationToken)
+    private async Task<FetchedContentResult> FetchWebArticleAsync(string url, IngestionSourceType sourceType, CancellationToken cancellationToken)
     {
         string html;
 
@@ -290,8 +288,8 @@ public class ContentFetcherService : IContentFetcherService
                         return new FetchedContentResult(
                             RawText: string.Empty,
                             Title: string.Empty,
-                            ContentType: IngestionContentType.Article,
-                            WordCount: 0,
+                            SourceType: sourceType,
+                            ExtractedTextLength: 0,
                             WasTruncated: false,
                             IsSuccess: false,
                             ErrorMessage: $"Web article fetch returned HTTP {(int)response.StatusCode} {response.ReasonPhrase}.");
@@ -319,20 +317,20 @@ public class ContentFetcherService : IContentFetcherService
             return new FetchedContentResult(
                 RawText: string.Empty,
                 Title: title,
-                ContentType: IngestionContentType.Article,
-                WordCount: 0,
+                SourceType: sourceType,
+                ExtractedTextLength: 0,
                 WasTruncated: false,
                 IsSuccess: false,
                 ErrorMessage: "Could not extract readable text content from the specified web page.");
         }
 
-        var (processedText, wordCount, wasTruncated) = TruncateWordsIfExceeded(bodyText, MaxWordLimit);
+        var (processedText, textLength, wasTruncated) = TruncateIfExceeded(bodyText, MaxCharacterLimit);
 
         return new FetchedContentResult(
             RawText: processedText,
             Title: title,
-            ContentType: IngestionContentType.Article,
-            WordCount: wordCount,
+            SourceType: sourceType,
+            ExtractedTextLength: textLength,
             WasTruncated: wasTruncated,
             IsSuccess: true);
     }
@@ -401,20 +399,18 @@ public class ContentFetcherService : IContentFetcherService
         return System.Net.WebUtility.HtmlDecode(articleNode.InnerText).Trim();
     }
 
-    private static (string ProcessedText, int WordCount, bool WasTruncated) TruncateWordsIfExceeded(string text, int maxWords)
+    private static (string ProcessedText, int TextLength, bool WasTruncated) TruncateIfExceeded(string text, int maxChars)
     {
         if (string.IsNullOrWhiteSpace(text)) return (string.Empty, 0, false);
 
-        var words = text.Split(new[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-        var count = words.Length;
-
-        if (count <= maxWords)
+        var length = text.Length;
+        if (length <= maxChars)
         {
-            return (text, count, false);
+            return (text, length, false);
         }
 
-        var truncatedText = string.Join(" ", words.Take(maxWords));
-        return (truncatedText, maxWords, true);
+        var truncated = text.Substring(0, maxChars);
+        return (truncated, length, true);
     }
 
     private static async Task<bool> WaitForProcessExitAsync(Process process, TimeSpan timeout, CancellationToken cancellationToken)

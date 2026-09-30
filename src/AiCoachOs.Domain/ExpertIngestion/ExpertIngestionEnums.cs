@@ -1,10 +1,20 @@
 namespace AiCoachOs.Domain.ExpertIngestion;
 
-public enum IngestionContentType
+public enum ExpertSourceType
 {
-    YouTube = 1,
+    YouTubeChannel = 1,
+    Podcast = 2,
+    Blog = 3,
+    ResearchGroup = 4,
+    Other = 5
+}
+
+public enum IngestionSourceType
+{
+    YouTubeVideo = 1,
     Article = 2,
-    Podcast = 3
+    PodcastEpisode = 3,
+    Other = 4
 }
 
 public enum IngestionStatus
@@ -12,38 +22,43 @@ public enum IngestionStatus
     Processing = 1,
     PendingReview = 2,
     PartiallyApproved = 3,
-    FullyApproved = 4,
-    Rejected = 5,
-    Failed = 6
+    Completed = 4,
+    Failed = 5
 }
 
-public enum ClaimNature
+public enum ClaimCategory
+{
+    TrainingVolume = 1,
+    Frequency = 2,
+    Intensity = 3,
+    Nutrition = 4,
+    Recovery = 5,
+    Supplementation = 6,
+    Biomechanics = 7,
+    General = 8
+}
+
+public enum EvidenceClassification
 {
     OpinionOnly = 1,
     InterpretationOfResearch = 2,
-    CitesConcreteSources = 3
+    CitesConcreteSources = 3,
+    ContradictsCurrentEvidence = 4,
+    AgreesWithCurrentEvidence = 5,
+    Uncertain = 6
 }
 
-public enum ExpertClaimReviewStatus
+public enum CoachReviewStatus
 {
-    Pending = 1,
+    PendingReview = 1,
     Approved = 2,
     Rejected = 3,
     Deferred = 4
 }
 
-public enum CredibilityTier
+public enum CreatorConfidence
 {
-    High = 1,
+    Low = 1,
     Medium = 2,
-    Low = 3,
-    Practitioner = 4
-}
-
-public enum ExpertPlatform
-{
-    YouTube = 1,
-    Article = 2,
-    Podcast = 3,
-    Book = 4
+    High = 3
 }

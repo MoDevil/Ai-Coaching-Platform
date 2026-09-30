@@ -8,59 +8,40 @@ namespace AiCoachOs.Domain.ExpertIngestion;
 public class ExpertSource : Entity<Guid>
 {
     public string Name { get; private set; } = null!;
-    public string ChannelOrPublication { get; private set; } = null!;
-    public ExpertPlatform Platform { get; private set; }
-    public string PrimaryDomain { get; private set; } = null!;
-    public CredibilityTier CredibilityTier { get; private set; }
-    public string? Bio { get; private set; }
+    public ExpertSourceType SourceType { get; private set; }
+    public string Url { get; private set; } = null!;
 
     private ExpertSource() { } // EF Core
 
     public ExpertSource(
         Guid id,
         string name,
-        string channelOrPublication,
-        ExpertPlatform platform,
-        string primaryDomain,
-        CredibilityTier credibilityTier,
-        string? bio = null) : base(id)
+        ExpertSourceType sourceType,
+        string url) : base(id)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Expert source name cannot be empty.", nameof(name));
-        if (string.IsNullOrWhiteSpace(channelOrPublication))
-            throw new ArgumentException("Channel or publication cannot be empty.", nameof(channelOrPublication));
-        if (string.IsNullOrWhiteSpace(primaryDomain))
-            throw new ArgumentException("Primary domain cannot be empty.", nameof(primaryDomain));
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("Expert source URL cannot be empty.", nameof(url));
 
         Name = name.Trim();
-        ChannelOrPublication = channelOrPublication.Trim();
-        Platform = platform;
-        PrimaryDomain = primaryDomain.Trim();
-        CredibilityTier = credibilityTier;
-        Bio = bio?.Trim();
+        SourceType = sourceType;
+        Url = url.Trim();
     }
 
     public void Update(
         string name,
-        string channelOrPublication,
-        ExpertPlatform platform,
-        string primaryDomain,
-        CredibilityTier credibilityTier,
-        string? bio)
+        ExpertSourceType sourceType,
+        string url)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Expert source name cannot be empty.", nameof(name));
-        if (string.IsNullOrWhiteSpace(channelOrPublication))
-            throw new ArgumentException("Channel or publication cannot be empty.", nameof(channelOrPublication));
-        if (string.IsNullOrWhiteSpace(primaryDomain))
-            throw new ArgumentException("Primary domain cannot be empty.", nameof(primaryDomain));
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("Expert source URL cannot be empty.", nameof(url));
 
         Name = name.Trim();
-        ChannelOrPublication = channelOrPublication.Trim();
-        Platform = platform;
-        PrimaryDomain = primaryDomain.Trim();
-        CredibilityTier = credibilityTier;
-        Bio = bio?.Trim();
+        SourceType = sourceType;
+        Url = url.Trim();
         MarkUpdated();
     }
 }

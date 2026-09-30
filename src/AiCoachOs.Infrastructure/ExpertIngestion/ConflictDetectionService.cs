@@ -51,8 +51,7 @@ public class ConflictDetectionService : IConflictDetectionService
             return (null, null);
         }
 
-        var candidateTopic = candidate.Topic.ToLowerInvariant();
-        var candidateSubTopic = (candidate.SubTopic ?? string.Empty).ToLowerInvariant();
+        var candidateCategoryStr = candidate.Category.ToString().ToLowerInvariant();
         var candidateText = candidate.ClaimText.ToLowerInvariant();
 
         KnowledgeClaim? bestSupporting = null;
@@ -66,9 +65,9 @@ public class ConflictDetectionService : IConflictDetectionService
             var claimQuestion = claim.Question.ToLowerInvariant();
             var claimText = claim.ClaimText.ToLowerInvariant();
 
-            // Check topic relevance
-            var topicOverlap = CalculateTopicOverlap(candidateTopic, candidateSubTopic, claimTopic, claimQuestion);
-            if (topicOverlap < 0.25)
+            // Check topic/category relevance
+            var topicOverlap = CalculateTopicOverlap(candidateCategoryStr, claimTopic, claimQuestion);
+            if (topicOverlap < 0.20)
             {
                 continue;
             }
@@ -79,7 +78,7 @@ public class ConflictDetectionService : IConflictDetectionService
             if (isOpposing)
             {
                 var conflictScore = (topicOverlap * 0.6) + (textOverlap * 0.4);
-                if (conflictScore > bestConflictScore && conflictScore > 0.3)
+                if (conflictScore > bestConflictScore && conflictScore > 0.25)
                 {
                     bestConflictScore = conflictScore;
                     bestConflicting = claim;
@@ -88,7 +87,7 @@ public class ConflictDetectionService : IConflictDetectionService
             else
             {
                 var supportScore = (topicOverlap * 0.5) + (textOverlap * 0.5);
-                if (supportScore > bestSupportScore && supportScore > 0.35)
+                if (supportScore > bestSupportScore && supportScore > 0.30)
                 {
                     bestSupportScore = supportScore;
                     bestSupporting = claim;
@@ -99,20 +98,23 @@ public class ConflictDetectionService : IConflictDetectionService
         return (bestSupporting?.Id, bestConflicting?.Id);
     }
 
-    private static double CalculateTopicOverlap(string candTopic, string candSub, string existingTopic, string existingQuestion)
+    private static double CalculateTopicOverlap(string candCategory, string existingTopic, string existingQuestion)
     {
-        var candTokens = candTopic.Split(new[] { ' ', '-', '/', '_' }, StringSplitOptions.RemoveEmptyEntries)
-            .Concat(candSub.Split(new[] { ' ', '-', '/', '_' }, StringSplitOptions.RemoveEmptyEntries))
-            .ToHashSet();
-
-        var existingTokens = existingTopic.Split(new[] { ' ', '-', '/', '_' }, StringSplitOptions.RemoveEmptyEntries)
-            .Concat(existingQuestion.Split(new[] { ' ', '-', '/', '_' }, StringSplitOptions.RemoveEmptyEntries))
-            .ToHashSet();
+        var candTokens = SplitTokens(candCategory);
+        var existingTokens = SplitTokens(existingTopic).Concat(SplitTokens(existingQuestion)).ToHashSet();
 
         if (candTokens.Count == 0 || existingTokens.Count == 0) return 0;
 
         var intersection = candTokens.Intersect(existingTokens).Count();
         return (double)intersection / Math.Min(candTokens.Count, existingTokens.Count);
+    }
+
+    private static HashSet<string> SplitTokens(string input)
+    {
+        return input.Split(new[] { ' ', '-', '/', '_', ',', '.' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.ToLowerInvariant())
+            .Where(t => t.Length > 2)
+            .ToHashSet();
     }
 
     private static double CalculateWordOverlap(string text1, string text2)
@@ -135,7 +137,6 @@ public class ConflictDetectionService : IConflictDetectionService
 
     private static bool DetectContradictoryPolarity(string text1, string text2)
     {
-        // Polarity indicators
         var positiveTerms = new[] { "increases", "effective", "optimal", "superior", "beneficial", "necessary", "required", "improves", "essential", "high volume" };
         var negativeTerms = new[] { "reduces", "ineffective", "suboptimal", "inferior", "harmful", "unnecessary", "impairs", "detrimental", "myth", "false", "low volume", "not required" };
 
@@ -145,13 +146,11 @@ public class ConflictDetectionService : IConflictDetectionService
         var text2HasPositive = positiveTerms.Any(text2.Contains);
         var text2HasNegative = negativeTerms.Any(text2.Contains);
 
-        // One text asserts positive benefit while the other asserts negative/unnecessary
         if ((text1HasPositive && text2HasNegative) || (text1HasNegative && text2HasPositive))
         {
             return true;
         }
 
-        // Explicit negation check
         if ((text1.Contains("never") || text1.Contains("avoid") || text1.Contains("do not")) &&
             (text2.Contains("always") || text2.Contains("prioritize") || text2.Contains("should")))
         {

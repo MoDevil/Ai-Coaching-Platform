@@ -10,23 +10,21 @@ public class ExpertContentIngestion : Entity<Guid>
     private readonly List<ExpertClaim> _claims = new();
 
     public Guid CoachId { get; private set; }
-    public Guid? SourceId { get; private set; }
-    public ExpertSource? Source { get; private set; }
+    public Guid? ExpertSourceId { get; private set; }
+    public ExpertSource? ExpertSource { get; private set; }
 
     public string SourceUrl { get; private set; } = null!;
-    public IngestionContentType ContentType { get; private set; }
-    public string Title { get; private set; } = null!;
-    public string? RawExtractedTextSnippet { get; private set; }
-    public int WordCount { get; private set; }
+    public string SourceTitle { get; private set; } = null!;
+    public IngestionSourceType SourceType { get; private set; }
+    public DateTime? PublishedAt { get; private set; }
+    public int ExtractedTextLength { get; private set; }
     public bool WasTruncated { get; private set; }
 
     public IngestionStatus Status { get; private set; }
     public string? FailureReason { get; private set; }
-    public bool ContainsMedicalClaims { get; private set; }
-    public bool MedicalWarningAcknowledged { get; private set; }
-
     public DateTime SubmittedAtUtc { get; private set; }
-    public DateTime? CompletedAtUtc { get; private set; }
+    public DateTime? ProcessedAtUtc { get; private set; }
+    public bool ContainsMedicalClaims { get; private set; }
 
     public IReadOnlyCollection<ExpertClaim> Claims => _claims;
 
@@ -36,30 +34,31 @@ public class ExpertContentIngestion : Entity<Guid>
         Guid id,
         Guid coachId,
         string sourceUrl,
-        IngestionContentType contentType,
-        string title,
-        Guid? sourceId = null) : base(id)
+        string sourceTitle,
+        IngestionSourceType sourceType,
+        Guid? expertSourceId = null,
+        DateTime? publishedAt = null) : base(id)
     {
         if (coachId == Guid.Empty)
             throw new ArgumentException("CoachId cannot be empty.", nameof(coachId));
         if (string.IsNullOrWhiteSpace(sourceUrl))
             throw new ArgumentException("SourceUrl cannot be empty.", nameof(sourceUrl));
-        if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Title cannot be empty.", nameof(title));
+        if (string.IsNullOrWhiteSpace(sourceTitle))
+            throw new ArgumentException("SourceTitle cannot be empty.", nameof(sourceTitle));
 
         CoachId = coachId;
         SourceUrl = sourceUrl.Trim();
-        ContentType = contentType;
-        Title = title.Trim();
-        SourceId = sourceId;
+        SourceTitle = sourceTitle.Trim();
+        SourceType = sourceType;
+        ExpertSourceId = expertSourceId;
+        PublishedAt = publishedAt;
         Status = IngestionStatus.Processing;
         SubmittedAtUtc = DateTime.UtcNow;
     }
 
-    public void SetExtractedContent(string snippet, int wordCount, bool wasTruncated)
+    public void SetExtractedStats(int extractedTextLength, bool wasTruncated)
     {
-        RawExtractedTextSnippet = snippet?.Trim();
-        WordCount = wordCount;
+        ExtractedTextLength = extractedTextLength;
         WasTruncated = wasTruncated;
         MarkUpdated();
     }
@@ -75,7 +74,7 @@ public class ExpertContentIngestion : Entity<Guid>
     {
         ContainsMedicalClaims = containsMedicalClaims;
         Status = IngestionStatus.PendingReview;
-        CompletedAtUtc = DateTime.UtcNow;
+        ProcessedAtUtc = DateTime.UtcNow;
         FailureReason = null;
         MarkUpdated();
     }
@@ -84,13 +83,7 @@ public class ExpertContentIngestion : Entity<Guid>
     {
         Status = IngestionStatus.Failed;
         FailureReason = reason?.Trim();
-        CompletedAtUtc = DateTime.UtcNow;
-        MarkUpdated();
-    }
-
-    public void AcknowledgeMedicalWarning()
-    {
-        MedicalWarningAcknowledged = true;
+        ProcessedAtUtc = DateTime.UtcNow;
         MarkUpdated();
     }
 
@@ -105,21 +98,16 @@ public class ExpertContentIngestion : Entity<Guid>
             return;
         }
 
-        var allApproved = _claims.All(c => c.ReviewStatus == ExpertClaimReviewStatus.Approved);
-        var anyApproved = _claims.Any(c => c.ReviewStatus == ExpertClaimReviewStatus.Approved);
-        var allDecided = _claims.All(c => c.ReviewStatus != ExpertClaimReviewStatus.Pending);
+        var allDecided = _claims.All(c => c.CoachReviewStatus != CoachReviewStatus.PendingReview);
+        var anyApproved = _claims.Any(c => c.CoachReviewStatus == CoachReviewStatus.Approved);
 
-        if (allApproved)
+        if (allDecided)
         {
-            Status = IngestionStatus.FullyApproved;
+            Status = IngestionStatus.Completed;
         }
         else if (anyApproved)
         {
             Status = IngestionStatus.PartiallyApproved;
-        }
-        else if (allDecided && _claims.All(c => c.ReviewStatus == ExpertClaimReviewStatus.Rejected))
-        {
-            Status = IngestionStatus.Rejected;
         }
         else
         {

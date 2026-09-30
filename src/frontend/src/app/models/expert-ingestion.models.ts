@@ -1,176 +1,198 @@
-export enum IngestionContentType {
-  YouTube = 1,
-  Article = 2,
-  Podcast = 3
+export enum ExpertSourceType {
+  YouTubeChannel = 1,
+  Podcast = 2,
+  Blog = 3,
+  ResearchGroup = 4,
+  Other = 5
 }
 
-export const IngestionContentTypeLabels: Record<IngestionContentType, string> = {
-  [IngestionContentType.YouTube]: 'YouTube Video',
-  [IngestionContentType.Article]: 'Web Article / Transcript',
-  [IngestionContentType.Podcast]: 'Podcast Transcript'
+export const ExpertSourceTypeLabels: Record<ExpertSourceType, string> = {
+  [ExpertSourceType.YouTubeChannel]: 'YouTube Channel',
+  [ExpertSourceType.Podcast]: 'Podcast',
+  [ExpertSourceType.Blog]: 'Blog',
+  [ExpertSourceType.ResearchGroup]: 'Research Group',
+  [ExpertSourceType.Other]: 'Other'
+};
+
+export enum IngestionSourceType {
+  YouTubeVideo = 1,
+  Article = 2,
+  PodcastEpisode = 3,
+  Other = 4
+}
+
+export const IngestionSourceTypeLabels: Record<IngestionSourceType, string> = {
+  [IngestionSourceType.YouTubeVideo]: 'YouTube Video',
+  [IngestionSourceType.Article]: 'Web Article / Blog',
+  [IngestionSourceType.PodcastEpisode]: 'Podcast Episode',
+  [IngestionSourceType.Other]: 'Other'
 };
 
 export enum IngestionStatus {
   Processing = 1,
   PendingReview = 2,
   PartiallyApproved = 3,
-  FullyApproved = 4,
-  Rejected = 5,
-  Failed = 6
+  Completed = 4,
+  Failed = 5
 }
 
 export const IngestionStatusLabels: Record<IngestionStatus, string> = {
   [IngestionStatus.Processing]: 'Processing',
   [IngestionStatus.PendingReview]: 'Pending Review',
   [IngestionStatus.PartiallyApproved]: 'Partially Approved',
-  [IngestionStatus.FullyApproved]: 'Fully Approved',
-  [IngestionStatus.Rejected]: 'Rejected',
+  [IngestionStatus.Completed]: 'Completed',
   [IngestionStatus.Failed]: 'Failed'
 };
 
-export enum ClaimNature {
-  OpinionOnly = 1,
-  InterpretationOfResearch = 2,
-  CitesConcreteSources = 3
+export enum ClaimCategory {
+  TrainingVolume = 1,
+  Frequency = 2,
+  Intensity = 3,
+  Nutrition = 4,
+  Recovery = 5,
+  Supplementation = 6,
+  Biomechanics = 7,
+  General = 8
 }
 
-export const ClaimNatureLabels: Record<ClaimNature, string> = {
-  [ClaimNature.OpinionOnly]: 'Opinion Only',
-  [ClaimNature.InterpretationOfResearch]: 'Interpretation of Research',
-  [ClaimNature.CitesConcreteSources]: 'Cites Concrete Sources'
+export const ClaimCategoryLabels: Record<ClaimCategory, string> = {
+  [ClaimCategory.TrainingVolume]: 'Training Volume',
+  [ClaimCategory.Frequency]: 'Frequency',
+  [ClaimCategory.Intensity]: 'Intensity',
+  [ClaimCategory.Nutrition]: 'Nutrition',
+  [ClaimCategory.Recovery]: 'Recovery',
+  [ClaimCategory.Supplementation]: 'Supplementation',
+  [ClaimCategory.Biomechanics]: 'Biomechanics',
+  [ClaimCategory.General]: 'General'
 };
 
-export enum ExpertClaimReviewStatus {
-  Pending = 1,
+export enum EvidenceClassification {
+  OpinionOnly = 1,
+  InterpretationOfResearch = 2,
+  CitesConcreteSources = 3,
+  ContradictsCurrentEvidence = 4,
+  AgreesWithCurrentEvidence = 5,
+  Uncertain = 6
+}
+
+export const EvidenceClassificationLabels: Record<EvidenceClassification, string> = {
+  [EvidenceClassification.OpinionOnly]: 'Opinion Only',
+  [EvidenceClassification.InterpretationOfResearch]: 'Interpretation of Research',
+  [EvidenceClassification.CitesConcreteSources]: 'Cites Concrete Sources',
+  [EvidenceClassification.ContradictsCurrentEvidence]: 'Contradicts Current Evidence',
+  [EvidenceClassification.AgreesWithCurrentEvidence]: 'Agrees with Current Evidence',
+  [EvidenceClassification.Uncertain]: 'Uncertain'
+};
+
+export enum CoachReviewStatus {
+  PendingReview = 1,
   Approved = 2,
   Rejected = 3,
   Deferred = 4
 }
 
-export const ExpertClaimReviewStatusLabels: Record<ExpertClaimReviewStatus, string> = {
-  [ExpertClaimReviewStatus.Pending]: 'Pending',
-  [ExpertClaimReviewStatus.Approved]: 'Approved',
-  [ExpertClaimReviewStatus.Rejected]: 'Rejected',
-  [ExpertClaimReviewStatus.Deferred]: 'Deferred'
+export const CoachReviewStatusLabels: Record<CoachReviewStatus, string> = {
+  [CoachReviewStatus.PendingReview]: 'Pending Review',
+  [CoachReviewStatus.Approved]: 'Approved',
+  [CoachReviewStatus.Rejected]: 'Rejected',
+  [CoachReviewStatus.Deferred]: 'Deferred'
 };
 
-export enum CredibilityTier {
-  High = 1,
+export enum CreatorConfidence {
+  Low = 1,
   Medium = 2,
-  Low = 3,
-  Practitioner = 4
+  High = 3
 }
 
-export const CredibilityTierLabels: Record<CredibilityTier, string> = {
-  [CredibilityTier.High]: 'High (Peer-Reviewed / Elite)',
-  [CredibilityTier.Medium]: 'Medium (Established Coach)',
-  [CredibilityTier.Low]: 'Low / Unverified',
-  [CredibilityTier.Practitioner]: 'Practitioner / Field Expert'
-};
-
-export enum ExpertPlatform {
-  YouTube = 1,
-  Article = 2,
-  Podcast = 3,
-  Book = 4
-}
-
-export const ExpertPlatformLabels: Record<ExpertPlatform, string> = {
-  [ExpertPlatform.YouTube]: 'YouTube',
-  [ExpertPlatform.Article]: 'Web Article',
-  [ExpertPlatform.Podcast]: 'Podcast',
-  [ExpertPlatform.Book]: 'Book'
+export const CreatorConfidenceLabels: Record<CreatorConfidence, string> = {
+  [CreatorConfidence.Low]: 'Low',
+  [CreatorConfidence.Medium]: 'Medium',
+  [CreatorConfidence.High]: 'High'
 };
 
 export interface ExpertSourceDto {
   id: string;
   name: string;
-  channelOrPublication: string;
-  platform: ExpertPlatform;
-  primaryDomain: string;
-  credibilityTier: CredibilityTier;
-  bio?: string | null;
+  sourceType: ExpertSourceType;
+  url: string;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
 }
 
 export interface CreateExpertSourceDto {
   name: string;
-  channelOrPublication: string;
-  platform: ExpertPlatform;
-  primaryDomain: string;
-  credibilityTier: CredibilityTier;
-  bio?: string | null;
+  sourceType: ExpertSourceType;
+  url: string;
 }
 
 export interface SubmitIngestionRequestDto {
   sourceUrl: string;
-  sourceId?: string | null;
-  title?: string | null;
-  contentType?: IngestionContentType | null;
+  expertSourceId?: string | null;
+  sourceTitle?: string | null;
+  sourceType?: IngestionSourceType | null;
+  publishedAt?: string | null;
 }
 
 export interface ExpertClaimDto {
   id: string;
   ingestionId: string;
-  topic: string;
-  subTopic?: string | null;
   claimText: string;
-  contextOrTimestamp?: string | null;
+  claimCategory: ClaimCategory;
+  evidenceClassification: EvidenceClassification;
+  creatorConfidence: CreatorConfidence;
   directQuote: boolean;
-  natureOfClaim: ClaimNature;
+  sourceContext?: string | null;
   supportingClaimId?: string | null;
   supportingClaimText?: string | null;
   conflictingClaimId?: string | null;
   conflictingClaimText?: string | null;
-  reviewStatus: ExpertClaimReviewStatus;
-  coachNotes?: string | null;
+  coachReviewStatus: CoachReviewStatus;
+  coachReviewedAt?: string | null;
+  coachNote?: string | null;
   approvedKnowledgeClaimId?: string | null;
-  reviewedAtUtc?: string | null;
   reviewedByCoachId?: string | null;
 }
 
 export interface ExpertContentIngestionSummaryDto {
   id: string;
   coachId: string;
-  sourceId?: string | null;
+  expertSourceId?: string | null;
   sourceName?: string | null;
   sourceUrl: string;
-  contentType: IngestionContentType;
-  title: string;
-  wordCount: number;
+  sourceTitle: string;
+  sourceType: IngestionSourceType;
+  publishedAt?: string | null;
+  extractedTextLength: number;
   wasTruncated: boolean;
   status: IngestionStatus;
   failureReason?: string | null;
   containsMedicalClaims: boolean;
-  medicalWarningAcknowledged: boolean;
   claimCount: number;
   submittedAtUtc: string;
-  completedAtUtc?: string | null;
+  processedAtUtc?: string | null;
 }
 
 export interface ExpertContentIngestionDto {
   id: string;
   coachId: string;
-  sourceId?: string | null;
+  expertSourceId?: string | null;
   sourceName?: string | null;
   sourceUrl: string;
-  contentType: IngestionContentType;
-  title: string;
-  rawExtractedTextSnippet?: string | null;
-  wordCount: number;
+  sourceTitle: string;
+  sourceType: IngestionSourceType;
+  publishedAt?: string | null;
+  extractedTextLength: number;
   wasTruncated: boolean;
   status: IngestionStatus;
   failureReason?: string | null;
   containsMedicalClaims: boolean;
-  medicalWarningAcknowledged: boolean;
   claims: ExpertClaimDto[];
   submittedAtUtc: string;
-  completedAtUtc?: string | null;
+  processedAtUtc?: string | null;
 }
 
 export interface ReviewClaimRequestDto {
-  decision: ExpertClaimReviewStatus;
+  decision: CoachReviewStatus;
   notes?: string | null;
   existingKnowledgeClaimIdToLink?: string | null;
   createNewKnowledgeClaim?: boolean;

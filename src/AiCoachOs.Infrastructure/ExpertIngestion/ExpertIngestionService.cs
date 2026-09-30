@@ -48,41 +48,42 @@ public class ExpertIngestionService : IExpertIngestionService
         var normalizedUrl = request.SourceUrl.Trim();
 
         // Duplicate prevention per coach
-        var exists = await _context.ExpertContentIngestions
-            .AnyAsync(i => i.CoachId == coachId && i.SourceUrl == normalizedUrl, cancellationToken);
+        var existing = await _context.ExpertContentIngestions
+            .FirstOrDefaultAsync(i => i.CoachId == coachId && i.SourceUrl == normalizedUrl, cancellationToken);
 
-        if (exists)
+        if (existing != null)
         {
-            throw new ConflictException($"An ingestion for URL '{normalizedUrl}' already exists for this coach.");
+            throw new ConflictException($"An ingestion for URL '{normalizedUrl}' already exists for this coach (Id: {existing.Id}).");
         }
 
         ExpertSource? expertSource = null;
-        if (request.SourceId.HasValue && request.SourceId.Value != Guid.Empty)
+        if (request.ExpertSourceId.HasValue && request.ExpertSourceId.Value != Guid.Empty)
         {
-            expertSource = await _context.FindExpertSourceByIdAsync(request.SourceId.Value, cancellationToken);
+            expertSource = await _context.FindExpertSourceByIdAsync(request.ExpertSourceId.Value, cancellationToken);
             if (expertSource == null)
             {
-                throw new NotFoundException(nameof(ExpertSource), request.SourceId.Value);
+                throw new NotFoundException(nameof(ExpertSource), request.ExpertSourceId.Value);
             }
         }
 
-        var determinedType = request.ContentType ?? (
+        var determinedType = request.SourceType ?? (
             normalizedUrl.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) ||
             normalizedUrl.Contains("youtu.be", StringComparison.OrdinalIgnoreCase)
-                ? IngestionContentType.YouTube
-                : IngestionContentType.Article);
+                ? IngestionSourceType.YouTubeVideo
+                : IngestionSourceType.Article);
 
-        var title = !string.IsNullOrWhiteSpace(request.Title)
-            ? request.Title.Trim()
+        var title = !string.IsNullOrWhiteSpace(request.SourceTitle)
+            ? request.SourceTitle.Trim()
             : $"Pending Extraction: {normalizedUrl}";
 
         var ingestion = new ExpertContentIngestion(
             Guid.NewGuid(),
             coachId,
             normalizedUrl,
-            determinedType,
             title,
-            request.SourceId);
+            determinedType,
+            request.ExpertSourceId,
+            request.PublishedAt);
 
         await _context.AddExpertContentIngestionAsync(ingestion, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
@@ -107,20 +108,20 @@ public class ExpertIngestionService : IExpertIngestionService
         return new ExpertContentIngestionSummaryDto(
             Id: ingestion.Id,
             CoachId: ingestion.CoachId,
-            SourceId: ingestion.SourceId,
+            ExpertSourceId: ingestion.ExpertSourceId,
             SourceName: expertSource?.Name,
             SourceUrl: ingestion.SourceUrl,
-            ContentType: ingestion.ContentType,
-            Title: ingestion.Title,
-            WordCount: ingestion.WordCount,
+            SourceTitle: ingestion.SourceTitle,
+            SourceType: ingestion.SourceType,
+            PublishedAt: ingestion.PublishedAt,
+            ExtractedTextLength: ingestion.ExtractedTextLength,
             WasTruncated: ingestion.WasTruncated,
             Status: ingestion.Status,
             FailureReason: ingestion.FailureReason,
             ContainsMedicalClaims: ingestion.ContainsMedicalClaims,
-            MedicalWarningAcknowledged: ingestion.MedicalWarningAcknowledged,
             ClaimCount: 0,
             SubmittedAtUtc: ingestion.SubmittedAtUtc,
-            CompletedAtUtc: ingestion.CompletedAtUtc);
+            ProcessedAtUtc: ingestion.ProcessedAtUtc);
     }
 
     public async Task ExecuteIngestionPipelineAsync(
@@ -139,7 +140,7 @@ public class ExpertIngestionService : IExpertIngestionService
             // 1. Fetch content
             var fetchResult = await _contentFetcherService.FetchContentAsync(
                 ingestion.SourceUrl,
-                ingestion.ContentType,
+                ingestion.SourceType,
                 cancellationToken);
 
             if (!fetchResult.IsSuccess)
@@ -149,14 +150,11 @@ public class ExpertIngestionService : IExpertIngestionService
                 return;
             }
 
-            var textSnippet = fetchResult.RawText.Length > 1500
-                ? fetchResult.RawText.Substring(0, 1500) + "..."
-                : fetchResult.RawText;
-
-            ingestion.SetExtractedContent(textSnippet, fetchResult.WordCount, fetchResult.WasTruncated);
+            // Record transient stats (no raw text persisted to DB)
+            ingestion.SetExtractedStats(fetchResult.ExtractedTextLength, fetchResult.WasTruncated);
 
             // 2. Extract claims
-            var expertName = ingestion.Source?.Name;
+            var expertName = ingestion.ExpertSource?.Name;
             var extractionResult = await _claimExtractionService.ExtractClaimsAsync(
                 fetchResult.RawText,
                 fetchResult.Title,
@@ -180,12 +178,12 @@ public class ExpertIngestionService : IExpertIngestionService
                 var expertClaim = new ExpertClaim(
                     Guid.NewGuid(),
                     ingestion.Id,
-                    match.Candidate.Topic,
                     match.Candidate.ClaimText,
-                    match.Candidate.NatureOfClaim,
-                    match.Candidate.SubTopic,
-                    match.Candidate.ContextOrTimestamp,
-                    match.Candidate.DirectQuote);
+                    match.Candidate.Category,
+                    match.Candidate.EvidenceClassification,
+                    match.Candidate.CreatorConfidence,
+                    match.Candidate.DirectQuote,
+                    match.Candidate.SourceContext);
 
                 expertClaim.SetDeterministicM3Comparison(match.SupportingClaimId, match.ConflictingClaimId);
                 await _context.AddExpertClaimAsync(expertClaim, cancellationToken);
@@ -209,7 +207,7 @@ public class ExpertIngestionService : IExpertIngestionService
         CancellationToken cancellationToken = default)
     {
         var ingestions = await _context.ExpertContentIngestions
-            .Include(i => i.Source)
+            .Include(i => i.ExpertSource)
             .Include(i => i.Claims)
             .Where(i => i.CoachId == coachId)
             .OrderByDescending(i => i.SubmittedAtUtc)
@@ -218,20 +216,20 @@ public class ExpertIngestionService : IExpertIngestionService
         return ingestions.Select(i => new ExpertContentIngestionSummaryDto(
             Id: i.Id,
             CoachId: i.CoachId,
-            SourceId: i.SourceId,
-            SourceName: i.Source?.Name,
+            ExpertSourceId: i.ExpertSourceId,
+            SourceName: i.ExpertSource?.Name,
             SourceUrl: i.SourceUrl,
-            ContentType: i.ContentType,
-            Title: i.Title,
-            WordCount: i.WordCount,
+            SourceTitle: i.SourceTitle,
+            SourceType: i.SourceType,
+            PublishedAt: i.PublishedAt,
+            ExtractedTextLength: i.ExtractedTextLength,
             WasTruncated: i.WasTruncated,
             Status: i.Status,
             FailureReason: i.FailureReason,
             ContainsMedicalClaims: i.ContainsMedicalClaims,
-            MedicalWarningAcknowledged: i.MedicalWarningAcknowledged,
             ClaimCount: i.Claims.Count,
             SubmittedAtUtc: i.SubmittedAtUtc,
-            CompletedAtUtc: i.CompletedAtUtc)).ToList();
+            ProcessedAtUtc: i.ProcessedAtUtc)).ToList();
     }
 
     public async Task<ExpertContentIngestionDto> GetIngestionByIdAsync(
@@ -260,40 +258,39 @@ public class ExpertIngestionService : IExpertIngestionService
         var claimDtos = claims.Select(c => new ExpertClaimDto(
             Id: c.Id,
             IngestionId: c.IngestionId,
-            Topic: c.Topic,
-            SubTopic: c.SubTopic,
             ClaimText: c.ClaimText,
-            ContextOrTimestamp: c.ContextOrTimestamp,
+            ClaimCategory: c.ClaimCategory,
+            EvidenceClassification: c.EvidenceClassification,
+            CreatorConfidence: c.CreatorConfidence,
             DirectQuote: c.DirectQuote,
-            NatureOfClaim: c.NatureOfClaim,
+            SourceContext: c.SourceContext,
             SupportingClaimId: c.SupportingClaimId,
             SupportingClaimText: c.SupportingClaim?.ClaimText,
             ConflictingClaimId: c.ConflictingClaimId,
             ConflictingClaimText: c.ConflictingClaim?.ClaimText,
-            ReviewStatus: c.ReviewStatus,
-            CoachNotes: c.CoachNotes,
+            CoachReviewStatus: c.CoachReviewStatus,
+            CoachReviewedAt: c.CoachReviewedAt,
+            CoachNote: c.CoachNote,
             ApprovedKnowledgeClaimId: c.ApprovedKnowledgeClaimId,
-            ReviewedAtUtc: c.ReviewedAtUtc,
             ReviewedByCoachId: c.ReviewedByCoachId)).ToList();
 
         return new ExpertContentIngestionDto(
             Id: ingestion.Id,
             CoachId: ingestion.CoachId,
-            SourceId: ingestion.SourceId,
-            SourceName: ingestion.Source?.Name,
+            ExpertSourceId: ingestion.ExpertSourceId,
+            SourceName: ingestion.ExpertSource?.Name,
             SourceUrl: ingestion.SourceUrl,
-            ContentType: ingestion.ContentType,
-            Title: ingestion.Title,
-            RawExtractedTextSnippet: ingestion.RawExtractedTextSnippet,
-            WordCount: ingestion.WordCount,
+            SourceTitle: ingestion.SourceTitle,
+            SourceType: ingestion.SourceType,
+            PublishedAt: ingestion.PublishedAt,
+            ExtractedTextLength: ingestion.ExtractedTextLength,
             WasTruncated: ingestion.WasTruncated,
             Status: ingestion.Status,
             FailureReason: ingestion.FailureReason,
             ContainsMedicalClaims: ingestion.ContainsMedicalClaims,
-            MedicalWarningAcknowledged: ingestion.MedicalWarningAcknowledged,
             Claims: claimDtos,
             SubmittedAtUtc: ingestion.SubmittedAtUtc,
-            CompletedAtUtc: ingestion.CompletedAtUtc);
+            ProcessedAtUtc: ingestion.ProcessedAtUtc);
     }
 
     public async Task<ExpertClaimDto> ReviewClaimAsync(
@@ -320,7 +317,7 @@ public class ExpertIngestionService : IExpertIngestionService
             throw new ForbiddenException("You do not have access to review this claim.");
         }
 
-        if (request.Decision == ExpertClaimReviewStatus.Approved)
+        if (request.Decision == CoachReviewStatus.Approved)
         {
             KnowledgeClaim? targetKnowledgeClaim = null;
 
@@ -345,14 +342,14 @@ public class ExpertIngestionService : IExpertIngestionService
             }
             else if (request.CreateNewKnowledgeClaim || claim.SupportingClaimId == null)
             {
-                // Create new KnowledgeClaim in Provisional status
+                // Create new KnowledgeClaim in Provisional status (zero automatic activation)
                 var question = !string.IsNullOrWhiteSpace(request.NewClaimQuestion)
                     ? request.NewClaimQuestion.Trim()
-                    : $"What does expert consensus assert regarding {claim.Topic}?";
+                    : $"What does expert consensus assert regarding {claim.ClaimCategory}?";
 
                 targetKnowledgeClaim = new KnowledgeClaim(
                     Guid.NewGuid(),
-                    claim.Topic,
+                    claim.ClaimCategory.ToString(),
                     question,
                     claim.ClaimText,
                     EvidenceLevel.ExpertConsensus,
@@ -390,11 +387,11 @@ public class ExpertIngestionService : IExpertIngestionService
             var targetClaimId = targetKnowledgeClaim?.Id ?? Guid.NewGuid();
             claim.Approve(targetClaimId, coachId, request.Notes);
         }
-        else if (request.Decision == ExpertClaimReviewStatus.Rejected)
+        else if (request.Decision == CoachReviewStatus.Rejected)
         {
             claim.Reject(coachId, request.Notes);
         }
-        else if (request.Decision == ExpertClaimReviewStatus.Deferred)
+        else if (request.Decision == CoachReviewStatus.Deferred)
         {
             claim.Defer(coachId, request.Notes);
         }
@@ -405,20 +402,20 @@ public class ExpertIngestionService : IExpertIngestionService
         return new ExpertClaimDto(
             Id: claim.Id,
             IngestionId: claim.IngestionId,
-            Topic: claim.Topic,
-            SubTopic: claim.SubTopic,
             ClaimText: claim.ClaimText,
-            ContextOrTimestamp: claim.ContextOrTimestamp,
+            ClaimCategory: claim.ClaimCategory,
+            EvidenceClassification: claim.EvidenceClassification,
+            CreatorConfidence: claim.CreatorConfidence,
             DirectQuote: claim.DirectQuote,
-            NatureOfClaim: claim.NatureOfClaim,
+            SourceContext: claim.SourceContext,
             SupportingClaimId: claim.SupportingClaimId,
             SupportingClaimText: claim.SupportingClaim?.ClaimText,
             ConflictingClaimId: claim.ConflictingClaimId,
             ConflictingClaimText: claim.ConflictingClaim?.ClaimText,
-            ReviewStatus: claim.ReviewStatus,
-            CoachNotes: claim.CoachNotes,
+            CoachReviewStatus: claim.CoachReviewStatus,
+            CoachReviewedAt: claim.CoachReviewedAt,
+            CoachNote: claim.CoachNote,
             ApprovedKnowledgeClaimId: claim.ApprovedKnowledgeClaimId,
-            ReviewedAtUtc: claim.ReviewedAtUtc,
             ReviewedByCoachId: claim.ReviewedByCoachId);
     }
 
@@ -431,11 +428,8 @@ public class ExpertIngestionService : IExpertIngestionService
         return sources.Select(s => new ExpertSourceDto(
             Id: s.Id,
             Name: s.Name,
-            ChannelOrPublication: s.ChannelOrPublication,
-            Platform: s.Platform,
-            PrimaryDomain: s.PrimaryDomain,
-            CredibilityTier: s.CredibilityTier,
-            Bio: s.Bio,
+            SourceType: s.SourceType,
+            Url: s.Url,
             CreatedAtUtc: s.CreatedAtUtc,
             UpdatedAtUtc: s.UpdatedAtUtc)).ToList();
     }
@@ -446,19 +440,14 @@ public class ExpertIngestionService : IExpertIngestionService
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ValidationException("Name", "Expert source name is required.");
-        if (string.IsNullOrWhiteSpace(request.ChannelOrPublication))
-            throw new ValidationException("ChannelOrPublication", "Channel or publication is required.");
-        if (string.IsNullOrWhiteSpace(request.PrimaryDomain))
-            throw new ValidationException("PrimaryDomain", "Primary domain is required.");
+        if (string.IsNullOrWhiteSpace(request.Url))
+            throw new ValidationException("Url", "Expert source URL is required.");
 
         var source = new ExpertSource(
             Guid.NewGuid(),
             request.Name,
-            request.ChannelOrPublication,
-            request.Platform,
-            request.PrimaryDomain,
-            request.CredibilityTier,
-            request.Bio);
+            request.SourceType,
+            request.Url);
 
         await _context.AddExpertSourceAsync(source, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
@@ -466,11 +455,8 @@ public class ExpertIngestionService : IExpertIngestionService
         return new ExpertSourceDto(
             Id: source.Id,
             Name: source.Name,
-            ChannelOrPublication: source.ChannelOrPublication,
-            Platform: source.Platform,
-            PrimaryDomain: source.PrimaryDomain,
-            CredibilityTier: source.CredibilityTier,
-            Bio: source.Bio,
+            SourceType: source.SourceType,
+            Url: source.Url,
             CreatedAtUtc: source.CreatedAtUtc,
             UpdatedAtUtc: source.UpdatedAtUtc);
     }

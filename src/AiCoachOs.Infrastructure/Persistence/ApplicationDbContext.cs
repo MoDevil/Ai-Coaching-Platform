@@ -627,7 +627,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public async Task<AiCoachOs.Domain.ExpertIngestion.ExpertContentIngestion?> FindExpertContentIngestionByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await ExpertContentIngestionsDbSet
-            .Include(i => i.Source)
+            .Include(i => i.ExpertSource)
             .Include(i => i.Claims)
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }

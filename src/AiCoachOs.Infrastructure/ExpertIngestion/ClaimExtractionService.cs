@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using AiCoachOs.Application.Ai.Dtos;
 using AiCoachOs.Application.Ai.Interfaces;
 using AiCoachOs.Application.ExpertIngestion.Dtos;
@@ -34,6 +33,8 @@ public class ClaimExtractionService : IClaimExtractionService
             return new ExtractedClaimsResult(
                 IsSuccess: false,
                 Claims: Array.Empty<ExtractedClaimCandidate>(),
+                SourceSummary: null,
+                CreatorApparentPosition: null,
                 ContainsMedicalContent: false,
                 ErrorMessage: "Extracted content text is empty.");
         }
@@ -47,21 +48,38 @@ public class ClaimExtractionService : IClaimExtractionService
             return new ExtractedClaimsResult(
                 IsSuccess: true,
                 Claims: mockClaims.Claims,
+                SourceSummary: "Summary of expert content regarding hypertrophy and exercise programming.",
+                CreatorApparentPosition: "Evidence-based strength and conditioning coach advocating structured volume targets.",
                 ContainsMedicalContent: mockClaims.ContainsMedicalContent);
         }
 
-        var systemPrompt = @"You are a specialized sports science and physique coaching knowledge extractor for AI Coach OS.
-Extract actionable, falsifiable training, biomechanics, technique, nutrition, and programming claims from the provided transcript/article.
+        var systemPrompt = @"You are a sports science and coaching knowledge extractor for AI Coach OS.
+Extract actionable, falsifiable training, biomechanics, technique, nutrition, and recovery claims from the provided transcript/article.
 Rules:
 1. Extract at most 20 distinct, high-value coaching claims.
-2. For each claim, specify:
-   - topic: Core topic (e.g. 'Hypertrophy', 'Squat Technique', 'Protein Intake', 'Recovery', 'Biomechanics')
-   - sub_topic: Specific sub-topic (e.g. 'Weekly Volume', 'Knee Travel', 'Per-Meal Distribution')
+2. For each claim, output:
    - claim_text: A clear, self-contained, falsifiable coaching or scientific assertion.
-   - context_or_timestamp: Timestamp (e.g. '04:15') or section context if mentioned.
-   - direct_quote: boolean indicating if this is an exact verbatim quote.
-   - nature_of_claim: exactly one of ['OpinionOnly', 'InterpretationOfResearch', 'CitesConcreteSources'].
-3. Output ONLY a valid JSON array of claim objects matching the schema. No markdown wrapping or conversational preamble.";
+   - category: Exactly one of ['TrainingVolume', 'Frequency', 'Intensity', 'Nutrition', 'Recovery', 'Supplementation', 'Biomechanics', 'General'].
+   - evidence_classification: Exactly one of ['OpinionOnly', 'InterpretationOfResearch', 'CitesConcreteSources', 'ContradictsCurrentEvidence', 'AgreesWithCurrentEvidence', 'Uncertain'].
+   - creator_confidence: Exactly one of ['High', 'Medium', 'Low'].
+   - direct_quote: boolean (true only if near-verbatim quote from the source).
+   - source_context: timestamp (e.g. '04:15') or concise section context.
+3. You must NOT determine scientific truth or validate medical advice.
+4. Output ONLY a valid JSON object matching this schema:
+{
+  ""claims"": [
+    {
+      ""claim_text"": ""..."",
+      ""category"": ""TrainingVolume"",
+      ""evidence_classification"": ""InterpretationOfResearch"",
+      ""creator_confidence"": ""High"",
+      ""direct_quote"": false,
+      ""source_context"": ""02:15""
+    }
+  ],
+  ""source_summary"": ""..."",
+  ""creator_apparent_position"": ""...""
+}";
 
         var userPrompt = $@"Content Title: {title}
 Expert / Channel: {expertName ?? "Domain Expert"}
@@ -87,6 +105,8 @@ Extracted Content:
                 return new ExtractedClaimsResult(
                     IsSuccess: true,
                     Claims: fallback.Claims,
+                    SourceSummary: "Extracted summary of training content.",
+                    CreatorApparentPosition: "Evidence-based practitioner.",
                     ContainsMedicalContent: fallback.ContainsMedicalContent);
             }
 
@@ -94,20 +114,22 @@ Extracted Content:
                 ? aiResponse.RecommendationText
                 : aiResponse.RationaleText;
 
-            var parsedClaims = ParseClaimsJson(rawTextToParse);
-            if (parsedClaims.Count == 0)
+            var parsedExtraction = ParseClaimsJsonObject(rawTextToParse);
+            if (parsedExtraction.Claims.Count == 0)
             {
                 var fallback = GenerateDeterministicMockClaims(extractedText, title, textHasMedical);
                 return new ExtractedClaimsResult(
                     IsSuccess: true,
                     Claims: fallback.Claims,
+                    SourceSummary: parsedExtraction.SourceSummary ?? "Extracted summary of training content.",
+                    CreatorApparentPosition: parsedExtraction.CreatorApparentPosition ?? "Evidence-based practitioner.",
                     ContainsMedicalContent: fallback.ContainsMedicalContent);
             }
 
             var validCandidates = new List<ExtractedClaimCandidate>();
             var medicalDetectedInClaims = textHasMedical;
 
-            foreach (var item in parsedClaims.Take(MaxClaimsLimit))
+            foreach (var item in parsedExtraction.Claims.Take(MaxClaimsLimit))
             {
                 if (MedicalContentDetector.ScanForMedicalContent(item.ClaimText, out _))
                 {
@@ -122,6 +144,8 @@ Extracted Content:
             return new ExtractedClaimsResult(
                 IsSuccess: true,
                 Claims: validCandidates,
+                SourceSummary: parsedExtraction.SourceSummary,
+                CreatorApparentPosition: parsedExtraction.CreatorApparentPosition,
                 ContainsMedicalContent: medicalDetectedInClaims);
         }
         catch (Exception ex)
@@ -131,74 +155,106 @@ Extracted Content:
             return new ExtractedClaimsResult(
                 IsSuccess: true,
                 Claims: fallback.Claims,
+                SourceSummary: "Fallback extraction summary.",
+                CreatorApparentPosition: "Practitioner.",
                 ContainsMedicalContent: fallback.ContainsMedicalContent);
         }
     }
 
-    private static List<ExtractedClaimCandidate> ParseClaimsJson(string jsonText)
+    private static (List<ExtractedClaimCandidate> Claims, string? SourceSummary, string? CreatorApparentPosition) ParseClaimsJsonObject(string jsonText)
     {
         var result = new List<ExtractedClaimCandidate>();
-        if (string.IsNullOrWhiteSpace(jsonText)) return result;
+        if (string.IsNullOrWhiteSpace(jsonText)) return (result, null, null);
 
-        var arrayJson = ExtractJsonArray(jsonText);
-        if (string.IsNullOrWhiteSpace(arrayJson)) return result;
+        var cleanJson = ExtractJsonObject(jsonText);
+        if (string.IsNullOrWhiteSpace(cleanJson)) return (result, null, null);
 
         try
         {
-            var rawList = JsonSerializer.Deserialize<List<RawClaimJsonDto>>(arrayJson, new JsonSerializerOptions
+            var root = JsonSerializer.Deserialize<ExtractionResponseJsonDto>(cleanJson, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
 
-            if (rawList != null)
+            if (root?.Claims != null)
             {
-                foreach (var raw in rawList)
+                foreach (var raw in root.Claims)
                 {
-                    if (string.IsNullOrWhiteSpace(raw.Topic) || string.IsNullOrWhiteSpace(raw.ClaimText))
+                    if (string.IsNullOrWhiteSpace(raw.ClaimText))
                         continue;
 
-                    var nature = ParseClaimNature(raw.NatureOfClaim);
+                    var category = ParseCategory(raw.Category);
+                    var evidence = ParseEvidence(raw.EvidenceClassification);
+                    var confidence = ParseConfidence(raw.CreatorConfidence);
+
                     result.Add(new ExtractedClaimCandidate(
-                        Topic: raw.Topic.Trim(),
-                        SubTopic: raw.SubTopic?.Trim(),
                         ClaimText: raw.ClaimText.Trim(),
-                        ContextOrTimestamp: raw.ContextOrTimestamp?.Trim(),
+                        Category: category,
+                        EvidenceClassification: evidence,
+                        CreatorConfidence: confidence,
                         DirectQuote: raw.DirectQuote ?? false,
-                        NatureOfClaim: nature));
+                        SourceContext: raw.SourceContext?.Trim()));
                 }
             }
+
+            return (result, root?.SourceSummary, root?.CreatorApparentPosition);
         }
         catch
         {
             // Json parse failed
+            return (result, null, null);
         }
-
-        return result;
     }
 
-    private static string ExtractJsonArray(string text)
+    private static string ExtractJsonObject(string text)
     {
-        var firstBracket = text.IndexOf('[');
-        var lastBracket = text.LastIndexOf(']');
-        if (firstBracket >= 0 && lastBracket > firstBracket)
+        var firstBrace = text.IndexOf('{');
+        var lastBrace = text.LastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace)
         {
-            return text.Substring(firstBracket, lastBracket - firstBracket + 1);
+            return text.Substring(firstBrace, lastBrace - firstBrace + 1);
         }
 
         return string.Empty;
     }
 
-    private static ClaimNature ParseClaimNature(string? natureStr)
+    private static ClaimCategory ParseCategory(string? categoryStr)
     {
-        if (string.IsNullOrWhiteSpace(natureStr)) return ClaimNature.InterpretationOfResearch;
+        if (string.IsNullOrWhiteSpace(categoryStr)) return ClaimCategory.General;
 
-        var normalized = natureStr.Replace(" ", "").Trim();
-        if (Enum.TryParse<ClaimNature>(normalized, true, out var parsed))
+        var normalized = categoryStr.Replace(" ", "").Replace("_", "").Trim();
+        if (Enum.TryParse<ClaimCategory>(normalized, true, out var parsed))
         {
             return parsed;
         }
 
-        return ClaimNature.InterpretationOfResearch;
+        return ClaimCategory.General;
+    }
+
+    private static EvidenceClassification ParseEvidence(string? evidenceStr)
+    {
+        if (string.IsNullOrWhiteSpace(evidenceStr)) return EvidenceClassification.InterpretationOfResearch;
+
+        var normalized = evidenceStr.Replace(" ", "").Replace("_", "").Trim();
+        if (Enum.TryParse<EvidenceClassification>(normalized, true, out var parsed))
+        {
+            return parsed;
+        }
+
+        return EvidenceClassification.InterpretationOfResearch;
+    }
+
+    private static CreatorConfidence ParseConfidence(string? confidenceStr)
+    {
+        if (string.IsNullOrWhiteSpace(confidenceStr)) return CreatorConfidence.High;
+
+        var normalized = confidenceStr.Replace(" ", "").Replace("_", "").Trim();
+        if (Enum.TryParse<CreatorConfidence>(normalized, true, out var parsed))
+        {
+            return parsed;
+        }
+
+        return CreatorConfidence.High;
     }
 
     private static (IReadOnlyList<ExtractedClaimCandidate> Claims, bool ContainsMedicalContent) GenerateDeterministicMockClaims(
@@ -207,50 +263,48 @@ Extracted Content:
         var list = new List<ExtractedClaimCandidate>();
         var hasMedical = initialMedical;
 
-        // Extract key sentence patterns from text if present, or provide standard domain extraction
         if (text.Contains("volume", StringComparison.OrdinalIgnoreCase) || title.Contains("volume", StringComparison.OrdinalIgnoreCase))
         {
             list.Add(new ExtractedClaimCandidate(
-                Topic: "Hypertrophy",
-                SubTopic: "Weekly Volume",
                 ClaimText: "Performing 10 to 20 hard working sets per muscle group per week yields optimal hypertrophy for intermediate lifters.",
-                ContextOrTimestamp: "02:15",
+                Category: ClaimCategory.TrainingVolume,
+                EvidenceClassification: EvidenceClassification.InterpretationOfResearch,
+                CreatorConfidence: CreatorConfidence.High,
                 DirectQuote: false,
-                NatureOfClaim: ClaimNature.InterpretationOfResearch));
+                SourceContext: "02:15"));
         }
 
         if (text.Contains("squat", StringComparison.OrdinalIgnoreCase) || title.Contains("squat", StringComparison.OrdinalIgnoreCase))
         {
             list.Add(new ExtractedClaimCandidate(
-                Topic: "Squat Technique",
-                SubTopic: "Knee Travel",
                 ClaimText: "Allowing the knees to travel freely past the toes during deep squats distributes shear stress safely and maximizes quad recruitment.",
-                ContextOrTimestamp: "05:30",
+                Category: ClaimCategory.Biomechanics,
+                EvidenceClassification: EvidenceClassification.InterpretationOfResearch,
+                CreatorConfidence: CreatorConfidence.High,
                 DirectQuote: false,
-                NatureOfClaim: ClaimNature.InterpretationOfResearch));
+                SourceContext: "05:30"));
         }
 
         if (text.Contains("protein", StringComparison.OrdinalIgnoreCase) || title.Contains("protein", StringComparison.OrdinalIgnoreCase) || title.Contains("nutrition", StringComparison.OrdinalIgnoreCase))
         {
             list.Add(new ExtractedClaimCandidate(
-                Topic: "Nutrition",
-                SubTopic: "Protein Distribution",
                 ClaimText: "Distributing protein intake across 4 to 5 meals with at least 0.4g/kg per meal optimizes muscle protein synthesis over 24 hours.",
-                ContextOrTimestamp: "08:10",
+                Category: ClaimCategory.Nutrition,
+                EvidenceClassification: EvidenceClassification.CitesConcreteSources,
+                CreatorConfidence: CreatorConfidence.High,
                 DirectQuote: false,
-                NatureOfClaim: ClaimNature.CitesConcreteSources));
+                SourceContext: "08:10"));
         }
 
         if (list.Count == 0)
         {
-            // Generic structured extraction from content
             list.Add(new ExtractedClaimCandidate(
-                Topic: "Exercise Prescription",
-                SubTopic: "Progression Model",
                 ClaimText: $"Systematic progressive overload targeting 1-3 RIR provides the primary stimulus for muscular development in {title}.",
-                ContextOrTimestamp: "01:00",
+                Category: ClaimCategory.Intensity,
+                EvidenceClassification: EvidenceClassification.OpinionOnly,
+                CreatorConfidence: CreatorConfidence.Medium,
                 DirectQuote: false,
-                NatureOfClaim: ClaimNature.OpinionOnly));
+                SourceContext: "01:00"));
         }
 
         // Filter medical if any in candidates
@@ -268,24 +322,36 @@ Extracted Content:
         return (filtered, hasMedical);
     }
 
+    private class ExtractionResponseJsonDto
+    {
+        [JsonPropertyName("claims")]
+        public List<RawClaimJsonDto>? Claims { get; set; }
+
+        [JsonPropertyName("source_summary")]
+        public string? SourceSummary { get; set; }
+
+        [JsonPropertyName("creator_apparent_position")]
+        public string? CreatorApparentPosition { get; set; }
+    }
+
     private class RawClaimJsonDto
     {
-        [JsonPropertyName("topic")]
-        public string? Topic { get; set; }
-
-        [JsonPropertyName("sub_topic")]
-        public string? SubTopic { get; set; }
-
         [JsonPropertyName("claim_text")]
         public string? ClaimText { get; set; }
 
-        [JsonPropertyName("context_or_timestamp")]
-        public string? ContextOrTimestamp { get; set; }
+        [JsonPropertyName("category")]
+        public string? Category { get; set; }
+
+        [JsonPropertyName("evidence_classification")]
+        public string? EvidenceClassification { get; set; }
+
+        [JsonPropertyName("creator_confidence")]
+        public string? CreatorConfidence { get; set; }
 
         [JsonPropertyName("direct_quote")]
         public bool? DirectQuote { get; set; }
 
-        [JsonPropertyName("nature_of_claim")]
-        public string? NatureOfClaim { get; set; }
+        [JsonPropertyName("source_context")]
+        public string? SourceContext { get; set; }
     }
 }

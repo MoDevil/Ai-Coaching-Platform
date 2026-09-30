@@ -5,7 +5,6 @@ using AiCoachOs.Domain.ExpertIngestion;
 using AiCoachOs.Domain.Knowledge;
 using AiCoachOs.Infrastructure.Ai;
 using AiCoachOs.Infrastructure.ExpertIngestion;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -46,6 +45,12 @@ public class ExpertIngestionUnitTests
     }
 
     [Fact]
+    public void MedicalContentDetector_HasExactLockedWarningConstant()
+    {
+        Assert.Equal("This content may contain medical claims. Review carefully. AI Coach OS does not validate medical advice.", MedicalContentDetector.MedicalWarningNotice);
+    }
+
+    [Fact]
     public void ExpertContentIngestion_DomainInvariants_AndStatusRecalculation()
     {
         // Arrange
@@ -54,19 +59,33 @@ public class ExpertIngestionUnitTests
             Guid.NewGuid(),
             coachId,
             "https://youtube.com/watch?v=test1234",
-            IngestionContentType.YouTube,
-            "Hypertrophy Deep Dive");
+            "Hypertrophy Deep Dive",
+            IngestionSourceType.YouTubeVideo);
 
         Assert.Equal(IngestionStatus.Processing, ingestion.Status);
         Assert.False(ingestion.ContainsMedicalClaims);
 
-        // Act - Set content & complete
-        ingestion.SetExtractedContent("Short snippet", 500, false);
-        Assert.Equal(500, ingestion.WordCount);
+        // Act - Set stats & complete
+        ingestion.SetExtractedStats(1250, false);
+        Assert.Equal(1250, ingestion.ExtractedTextLength);
         Assert.False(ingestion.WasTruncated);
 
-        var claim1 = new ExpertClaim(Guid.NewGuid(), ingestion.Id, "Hypertrophy", "Volume is essential.", ClaimNature.InterpretationOfResearch);
-        var claim2 = new ExpertClaim(Guid.NewGuid(), ingestion.Id, "Hypertrophy", "Frequency matters.", ClaimNature.InterpretationOfResearch);
+        var claim1 = new ExpertClaim(
+            Guid.NewGuid(), 
+            ingestion.Id, 
+            "Volume is essential for hypertrophy.", 
+            ClaimCategory.TrainingVolume, 
+            EvidenceClassification.InterpretationOfResearch, 
+            CreatorConfidence.High);
+
+        var claim2 = new ExpertClaim(
+            Guid.NewGuid(), 
+            ingestion.Id, 
+            "Training frequency of 2x weekly is optimal.", 
+            ClaimCategory.Frequency, 
+            EvidenceClassification.InterpretationOfResearch, 
+            CreatorConfidence.High);
+
         ingestion.AddClaim(claim1);
         ingestion.AddClaim(claim2);
 
@@ -79,10 +98,10 @@ public class ExpertIngestionUnitTests
         ingestion.RecalculateOverallStatus();
         Assert.Equal(IngestionStatus.PartiallyApproved, ingestion.Status);
 
-        // Approve 2nd claim -> FullyApproved
+        // Approve 2nd claim -> Completed
         claim2.Approve(Guid.NewGuid(), coachId, "Verified");
         ingestion.RecalculateOverallStatus();
-        Assert.Equal(IngestionStatus.FullyApproved, ingestion.Status);
+        Assert.Equal(IngestionStatus.Completed, ingestion.Status);
     }
 
     [Fact]
@@ -94,32 +113,32 @@ public class ExpertIngestionUnitTests
         var claim = new ExpertClaim(
             Guid.NewGuid(),
             ingestionId,
-            "Squat Technique",
-            "Knees traveling past toes is safe.",
-            ClaimNature.InterpretationOfResearch,
-            subTopic: "Knee Travel",
-            contextOrTimestamp: "03:45",
-            directQuote: false);
+            "Knees traveling past toes is safe and biomechanically sound.",
+            ClaimCategory.Biomechanics,
+            EvidenceClassification.InterpretationOfResearch,
+            CreatorConfidence.High,
+            directQuote: false,
+            sourceContext: "03:45");
 
-        Assert.Equal(ExpertClaimReviewStatus.Pending, claim.ReviewStatus);
+        Assert.Equal(CoachReviewStatus.PendingReview, claim.CoachReviewStatus);
         Assert.Null(claim.ApprovedKnowledgeClaimId);
 
         // Act - Defer
         claim.Defer(coachId, "Need further literature review");
-        Assert.Equal(ExpertClaimReviewStatus.Deferred, claim.ReviewStatus);
-        Assert.Equal("Need further literature review", claim.CoachNotes);
+        Assert.Equal(CoachReviewStatus.Deferred, claim.CoachReviewStatus);
+        Assert.Equal("Need further literature review", claim.CoachNote);
 
         // Act - Reject
         claim.Reject(coachId, "Contradicts primary safety baseline");
-        Assert.Equal(ExpertClaimReviewStatus.Rejected, claim.ReviewStatus);
+        Assert.Equal(CoachReviewStatus.Rejected, claim.CoachReviewStatus);
 
         // Act - Approve
         var knowledgeClaimId = Guid.NewGuid();
         claim.Approve(knowledgeClaimId, coachId, "Approved into M3");
-        Assert.Equal(ExpertClaimReviewStatus.Approved, claim.ReviewStatus);
+        Assert.Equal(CoachReviewStatus.Approved, claim.CoachReviewStatus);
         Assert.Equal(knowledgeClaimId, claim.ApprovedKnowledgeClaimId);
         Assert.Equal(coachId, claim.ReviewedByCoachId);
-        Assert.NotNull(claim.ReviewedAtUtc);
+        Assert.NotNull(claim.CoachReviewedAt);
     }
 
     [Fact]
@@ -129,27 +148,22 @@ public class ExpertIngestionUnitTests
         var source = new ExpertSource(
             Guid.NewGuid(),
             "Dr. Mike Israetel",
-            "Renaissance Periodization",
-            ExpertPlatform.YouTube,
-            "Hypertrophy & Programming",
-            CredibilityTier.High,
-            "PhD in Sport Physiology");
+            ExpertSourceType.YouTubeChannel,
+            "https://youtube.com/@RenaissancePeriodization");
 
         Assert.Equal("Dr. Mike Israetel", source.Name);
-        Assert.Equal(CredibilityTier.High, source.CredibilityTier);
+        Assert.Equal(ExpertSourceType.YouTubeChannel, source.SourceType);
+        Assert.Equal("https://youtube.com/@RenaissancePeriodization", source.Url);
 
         // Act
         source.Update(
             "Dr. Michael Israetel",
-            "Renaissance Periodization YouTube",
-            ExpertPlatform.YouTube,
-            "Hypertrophy",
-            CredibilityTier.High,
-            "Updated Bio");
+            ExpertSourceType.YouTubeChannel,
+            "https://rpstrength.com");
 
         // Assert
         Assert.Equal("Dr. Michael Israetel", source.Name);
-        Assert.Equal("Renaissance Periodization YouTube", source.ChannelOrPublication);
+        Assert.Equal("https://rpstrength.com", source.Url);
         Assert.NotNull(source.UpdatedAtUtc);
     }
 
@@ -159,7 +173,7 @@ public class ExpertIngestionUnitTests
         // Arrange
         var supportingClaim = new KnowledgeClaim(
             Guid.NewGuid(),
-            "Hypertrophy",
+            "TrainingVolume",
             "What weekly volume maximizes hypertrophy?",
             "Performing 10 to 20 sets per week increases muscle hypertrophy in trained individuals.",
             EvidenceLevel.MetaAnalysis,
@@ -167,7 +181,7 @@ public class ExpertIngestionUnitTests
 
         var conflictingClaim = new KnowledgeClaim(
             Guid.NewGuid(),
-            "Squat Technique",
+            "Biomechanics",
             "Should knees pass toes in squats?",
             "Allowing knees to travel past toes is ineffective and suboptimal for knee safety.",
             EvidenceLevel.Mechanistic,
@@ -184,26 +198,26 @@ public class ExpertIngestionUnitTests
         var candidates = new List<ExtractedClaimCandidate>
         {
             new ExtractedClaimCandidate(
-                Topic: "Hypertrophy",
-                SubTopic: "Volume",
                 ClaimText: "Higher weekly set volume increases hypertrophy effectively.",
-                ContextOrTimestamp: "01:00",
+                Category: ClaimCategory.TrainingVolume,
+                EvidenceClassification: EvidenceClassification.InterpretationOfResearch,
+                CreatorConfidence: CreatorConfidence.High,
                 DirectQuote: false,
-                NatureOfClaim: ClaimNature.InterpretationOfResearch),
+                SourceContext: "01:00"),
             new ExtractedClaimCandidate(
-                Topic: "Squat Technique",
-                SubTopic: "Knee Travel",
                 ClaimText: "Knee travel past toes is optimal, beneficial, and superior for quad recruitment.",
-                ContextOrTimestamp: "05:00",
+                Category: ClaimCategory.Biomechanics,
+                EvidenceClassification: EvidenceClassification.InterpretationOfResearch,
+                CreatorConfidence: CreatorConfidence.High,
                 DirectQuote: false,
-                NatureOfClaim: ClaimNature.InterpretationOfResearch),
+                SourceContext: "05:00"),
             new ExtractedClaimCandidate(
-                Topic: "Novel Topic XYZ",
-                SubTopic: "Unexplored",
                 ClaimText: "Brand new isolated assertion with no prior literature.",
-                ContextOrTimestamp: "08:00",
+                Category: ClaimCategory.General,
+                EvidenceClassification: EvidenceClassification.OpinionOnly,
+                CreatorConfidence: CreatorConfidence.Low,
                 DirectQuote: false,
-                NatureOfClaim: ClaimNature.OpinionOnly)
+                SourceContext: "08:00")
         };
 
         // Act
@@ -212,13 +226,13 @@ public class ExpertIngestionUnitTests
         // Assert
         Assert.Equal(3, matches.Count);
 
-        // Match 1: Aligned on Hypertrophy / Volume -> Supporting
+        // Match 1: Aligned on TrainingVolume -> Supporting
         Assert.Equal(supportingClaim.Id, matches[0].SupportingClaimId);
 
-        // Match 2: Opposing polarity on Squat Technique -> Conflicting
+        // Match 2: Opposing polarity on Biomechanics -> Conflicting
         Assert.Equal(conflictingClaim.Id, matches[1].ConflictingClaimId);
 
-        // Match 3: Novel topic -> New territory (both null)
+        // Match 3: Novel general topic -> New territory (both null)
         Assert.Null(matches[2].SupportingClaimId);
         Assert.Null(matches[2].ConflictingClaimId);
     }

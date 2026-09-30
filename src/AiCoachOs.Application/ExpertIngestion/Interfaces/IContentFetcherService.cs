@@ -7,6 +7,6 @@ public interface IContentFetcherService
 {
     Task<FetchedContentResult> FetchContentAsync(
         string sourceUrl, 
-        IngestionContentType? overrideContentType = null, 
+        IngestionSourceType? overrideSourceType = null, 
         CancellationToken cancellationToken = default);
 }

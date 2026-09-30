@@ -11,18 +11,20 @@ import {
   SubmitIngestionRequestDto,
   ReviewClaimRequestDto,
   ExpertClaimDto,
-  IngestionContentType,
+  ExpertSourceType,
+  IngestionSourceType,
   IngestionStatus,
-  ClaimNature,
-  ExpertClaimReviewStatus,
-  CredibilityTier,
-  ExpertPlatform,
-  IngestionContentTypeLabels,
+  ClaimCategory,
+  EvidenceClassification,
+  CoachReviewStatus,
+  CreatorConfidence,
+  ExpertSourceTypeLabels,
+  IngestionSourceTypeLabels,
   IngestionStatusLabels,
-  ClaimNatureLabels,
-  ExpertClaimReviewStatusLabels,
-  CredibilityTierLabels,
-  ExpertPlatformLabels
+  ClaimCategoryLabels,
+  EvidenceClassificationLabels,
+  CoachReviewStatusLabels,
+  CreatorConfidenceLabels
 } from '../../models/expert-ingestion.models';
 
 @Component({
@@ -47,20 +49,17 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
   submitUrl = '';
   submitTitle = '';
   submitSourceId: string | null = null;
-  submitContentType: IngestionContentType = IngestionContentType.YouTube;
+  submitSourceType: IngestionSourceType = IngestionSourceType.YouTubeVideo;
 
   // Source creation form
   showSourceModal = false;
   newSourceName = '';
-  newSourceChannel = '';
-  newSourcePlatform: ExpertPlatform = ExpertPlatform.YouTube;
-  newSourceDomain = '';
-  newSourceCredibility: CredibilityTier = CredibilityTier.High;
-  newSourceBio = '';
+  newSourceType: ExpertSourceType = ExpertSourceType.YouTubeChannel;
+  newSourceUrl = '';
 
   // Claim review modal / form
   selectedClaimForReview: ExpertClaimDto | null = null;
-  reviewDecision: ExpertClaimReviewStatus = ExpertClaimReviewStatus.Approved;
+  reviewDecision: CoachReviewStatus = CoachReviewStatus.Approved;
   reviewNotes = '';
   reviewCreateNewKnowledgeClaim = true;
   reviewQuestion = '';
@@ -68,12 +67,13 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
   reviewEgyptSpecificNotes = '';
 
   // Labels for template
-  contentTypeLabels = IngestionContentTypeLabels;
+  sourceTypeLabels = ExpertSourceTypeLabels;
+  ingestionSourceTypeLabels = IngestionSourceTypeLabels;
   statusLabels = IngestionStatusLabels;
-  natureLabels = ClaimNatureLabels;
-  reviewStatusLabels = ExpertClaimReviewStatusLabels;
-  credibilityLabels = CredibilityTierLabels;
-  platformLabels = ExpertPlatformLabels;
+  categoryLabels = ClaimCategoryLabels;
+  evidenceLabels = EvidenceClassificationLabels;
+  reviewStatusLabels = CoachReviewStatusLabels;
+  confidenceLabels = CreatorConfidenceLabels;
 
   private pollSub?: Subscription;
 
@@ -96,7 +96,7 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
         this.ingestions = data;
         this.isLoading = false;
       },
-      error: (err) => {
+      error: () => {
         this.errorMessage = 'Failed loading expert ingestions.';
         this.isLoading = false;
       }
@@ -123,7 +123,7 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
         this.selectedIngestion = data;
         this.isLoading = false;
       },
-      error: (err) => {
+      error: () => {
         this.errorMessage = 'Failed loading ingestion details.';
         this.isLoading = false;
       }
@@ -142,9 +142,9 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
 
     const payload: SubmitIngestionRequestDto = {
       sourceUrl: this.submitUrl.trim(),
-      title: this.submitTitle.trim() || undefined,
-      sourceId: this.submitSourceId || undefined,
-      contentType: this.submitContentType
+      sourceTitle: this.submitTitle.trim() || undefined,
+      expertSourceId: this.submitSourceId || undefined,
+      sourceType: this.submitSourceType
     };
 
     this.ingestionService.submitIngestion(payload).subscribe({
@@ -170,27 +170,22 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
   }
 
   onCreateSource(): void {
-    if (!this.newSourceName.trim() || !this.newSourceChannel.trim() || !this.newSourceDomain.trim()) {
+    if (!this.newSourceName.trim() || !this.newSourceUrl.trim()) {
       this.errorMessage = 'Please complete all required fields for the expert source.';
       return;
     }
 
     const payload: CreateExpertSourceDto = {
       name: this.newSourceName.trim(),
-      channelOrPublication: this.newSourceChannel.trim(),
-      platform: this.newSourcePlatform,
-      primaryDomain: this.newSourceDomain.trim(),
-      credibilityTier: this.newSourceCredibility,
-      bio: this.newSourceBio.trim() || null
+      sourceType: this.newSourceType,
+      url: this.newSourceUrl.trim()
     };
 
     this.ingestionService.createSource(payload).subscribe({
       next: (source) => {
         this.showSourceModal = false;
         this.newSourceName = '';
-        this.newSourceChannel = '';
-        this.newSourceDomain = '';
-        this.newSourceBio = '';
+        this.newSourceUrl = '';
         this.successMessage = `Expert source '${source.name}' created.`;
         this.loadSources();
       },
@@ -202,10 +197,10 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
 
   openReviewModal(claim: ExpertClaimDto): void {
     this.selectedClaimForReview = claim;
-    this.reviewDecision = ExpertClaimReviewStatus.Approved;
-    this.reviewNotes = claim.coachNotes || '';
+    this.reviewDecision = CoachReviewStatus.Approved;
+    this.reviewNotes = claim.coachNote || '';
     this.reviewCreateNewKnowledgeClaim = claim.supportingClaimId == null;
-    this.reviewQuestion = `What does expert consensus assert regarding ${claim.topic}?`;
+    this.reviewQuestion = `What does expert consensus assert regarding ${this.categoryLabels[claim.claimCategory]}?`;
     this.reviewPractitionerNotes = '';
     this.reviewEgyptSpecificNotes = '';
   }
@@ -228,7 +223,7 @@ export class ExpertIngestionComponent implements OnInit, OnDestroy {
     this.ingestionService.reviewClaim(ingestionId, claimId, payload).subscribe({
       next: (updatedClaim) => {
         this.selectedClaimForReview = null;
-        this.successMessage = `Claim review saved (${this.reviewStatusLabels[updatedClaim.reviewStatus]}).`;
+        this.successMessage = `Claim review saved (${this.reviewStatusLabels[updatedClaim.coachReviewStatus]}).`;
         this.selectIngestion(ingestionId);
         this.loadIngestions();
       },

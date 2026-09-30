@@ -46,7 +46,7 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
         var getSources = await client.GetAsync("/api/expert-sources");
         getSources.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        var postSource = await client.PostAsJsonAsync("/api/expert-sources", new CreateExpertSourceDto("Name", "Channel", ExpertPlatform.YouTube, "Domain", CredibilityTier.High));
+        var postSource = await client.PostAsJsonAsync("/api/expert-sources", new CreateExpertSourceDto("Name", ExpertSourceType.YouTubeChannel, "https://youtube.com/@channel"));
         postSource.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -58,11 +58,8 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
 
         var createDto = new CreateExpertSourceDto(
             Name: "Dr. Eric Helms",
-            ChannelOrPublication: "3D Muscle Journey",
-            Platform: ExpertPlatform.YouTube,
-            PrimaryDomain: "Natural Bodybuilding & Nutrition",
-            CredibilityTier: CredibilityTier.High,
-            Bio: "PhD, CSCS, Author of Muscle & Strength Pyramids");
+            SourceType: ExpertSourceType.YouTubeChannel,
+            Url: "https://youtube.com/@3DMJ");
 
         var response = await _client.PostAsJsonAsync("/api/expert-sources", createDto);
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -70,7 +67,8 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
         var created = await response.Content.ReadFromJsonAsync<ExpertSourceDto>();
         created.Should().NotBeNull();
         created!.Name.Should().Be(createDto.Name);
-        created.Platform.Should().Be(ExpertPlatform.YouTube);
+        created.SourceType.Should().Be(ExpertSourceType.YouTubeChannel);
+        created.Url.Should().Be(createDto.Url);
 
         var listResponse = await _client.GetAsync("/api/expert-sources");
         listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -86,7 +84,7 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var url = $"https://example.com/article/dup_{Guid.NewGuid():N}";
-        var request = new SubmitIngestionRequestDto(SourceUrl: url, Title: "Volume Masterclass", ContentType: IngestionContentType.Article);
+        var request = new SubmitIngestionRequestDto(SourceUrl: url, SourceTitle: "Volume Masterclass", SourceType: IngestionSourceType.Article);
 
         // First submission -> 202 Accepted
         var firstResponse = await _client.PostAsJsonAsync("/api/expert-ingestions", request);
@@ -106,10 +104,8 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
         // 1. Create Expert Source
         var sourceDto = new CreateExpertSourceDto(
             Name: "Renaissance Periodization",
-            ChannelOrPublication: "RP Strength Web",
-            Platform: ExpertPlatform.Article,
-            PrimaryDomain: "Hypertrophy Science",
-            CredibilityTier: CredibilityTier.High);
+            SourceType: ExpertSourceType.Blog,
+            Url: "https://rpstrength.com");
 
         var sourceResp = await _client.PostAsJsonAsync("/api/expert-sources", sourceDto);
         var source = await sourceResp.Content.ReadFromJsonAsync<ExpertSourceDto>();
@@ -118,9 +114,9 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
         var url = $"https://example.com/hypertrophy-volume-{Guid.NewGuid():N}";
         var submitDto = new SubmitIngestionRequestDto(
             SourceUrl: url,
-            SourceId: source!.Id,
-            Title: "Hypertrophy Volume Targets",
-            ContentType: IngestionContentType.Article);
+            ExpertSourceId: source!.Id,
+            SourceTitle: "Hypertrophy Volume Targets",
+            SourceType: IngestionSourceType.Article);
 
         var submitResp = await _client.PostAsJsonAsync("/api/expert-ingestions", submitDto);
         submitResp.StatusCode.Should().Be(HttpStatusCode.Accepted);
@@ -152,7 +148,7 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
 
         // 4. Review Claim -> Approve
         var reviewDto = new ReviewClaimRequestDto(
-            Decision: ExpertClaimReviewStatus.Approved,
+            Decision: CoachReviewStatus.Approved,
             Notes: "High evidence practical guideline.",
             CreateNewKnowledgeClaim: true,
             NewClaimQuestion: "What is the optimal weekly volume threshold?",
@@ -166,9 +162,9 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
         reviewResp.StatusCode.Should().Be(HttpStatusCode.OK);
         var reviewedClaim = await reviewResp.Content.ReadFromJsonAsync<ExpertClaimDto>();
         reviewedClaim.Should().NotBeNull();
-        reviewedClaim!.ReviewStatus.Should().Be(ExpertClaimReviewStatus.Approved);
+        reviewedClaim!.CoachReviewStatus.Should().Be(CoachReviewStatus.Approved);
         reviewedClaim.ApprovedKnowledgeClaimId.Should().NotBeNull();
-        reviewedClaim.CoachNotes.Should().Be(reviewDto.Notes);
+        reviewedClaim.CoachNote.Should().Be(reviewDto.Notes);
     }
 
     [Fact]
@@ -180,7 +176,7 @@ public class ExpertIngestionIntegrationTests : IClassFixture<CustomWebApplicatio
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
 
         var url = $"https://youtube.com/watch?v=isolated_{Guid.NewGuid():N}";
-        var submitDto = new SubmitIngestionRequestDto(SourceUrl: url, Title: "Private Analysis");
+        var submitDto = new SubmitIngestionRequestDto(SourceUrl: url, SourceTitle: "Private Analysis");
 
         var submitResp = await _client.PostAsJsonAsync("/api/expert-ingestions", submitDto);
         submitResp.StatusCode.Should().Be(HttpStatusCode.Accepted);

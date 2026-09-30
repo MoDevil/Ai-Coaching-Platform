@@ -4,102 +4,93 @@ namespace AiCoachOs.Application.ExpertIngestion.Dtos;
 
 public record SubmitIngestionRequestDto(
     string SourceUrl,
-    Guid? SourceId = null,
-    string? Title = null,
-    IngestionContentType? ContentType = null
+    Guid? ExpertSourceId = null,
+    string? SourceTitle = null,
+    IngestionSourceType? SourceType = null,
+    DateTime? PublishedAt = null
 );
 
 public record ExpertSourceDto(
     Guid Id,
     string Name,
-    string ChannelOrPublication,
-    ExpertPlatform Platform,
-    string PrimaryDomain,
-    CredibilityTier CredibilityTier,
-    string? Bio,
+    ExpertSourceType SourceType,
+    string Url,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc
 );
 
 public record CreateExpertSourceDto(
     string Name,
-    string ChannelOrPublication,
-    ExpertPlatform Platform,
-    string PrimaryDomain,
-    CredibilityTier CredibilityTier,
-    string? Bio = null
+    ExpertSourceType SourceType,
+    string Url
 );
 
 public record UpdateExpertSourceDto(
     string Name,
-    string ChannelOrPublication,
-    ExpertPlatform Platform,
-    string PrimaryDomain,
-    CredibilityTier CredibilityTier,
-    string? Bio = null
+    ExpertSourceType SourceType,
+    string Url
 );
 
 public record ExpertClaimDto(
     Guid Id,
     Guid IngestionId,
-    string Topic,
-    string? SubTopic,
     string ClaimText,
-    string? ContextOrTimestamp,
+    ClaimCategory ClaimCategory,
+    EvidenceClassification EvidenceClassification,
+    CreatorConfidence CreatorConfidence,
     bool DirectQuote,
-    ClaimNature NatureOfClaim,
+    string? SourceContext,
     Guid? SupportingClaimId,
     string? SupportingClaimText,
     Guid? ConflictingClaimId,
     string? ConflictingClaimText,
-    ExpertClaimReviewStatus ReviewStatus,
-    string? CoachNotes,
+    CoachReviewStatus CoachReviewStatus,
+    DateTime? CoachReviewedAt,
+    string? CoachNote,
     Guid? ApprovedKnowledgeClaimId,
-    DateTime? ReviewedAtUtc,
     Guid? ReviewedByCoachId
 );
 
 public record ExpertContentIngestionSummaryDto(
     Guid Id,
     Guid CoachId,
-    Guid? SourceId,
+    Guid? ExpertSourceId,
     string? SourceName,
     string SourceUrl,
-    IngestionContentType ContentType,
-    string Title,
-    int WordCount,
+    string SourceTitle,
+    IngestionSourceType SourceType,
+    DateTime? PublishedAt,
+    int ExtractedTextLength,
     bool WasTruncated,
     IngestionStatus Status,
     string? FailureReason,
     bool ContainsMedicalClaims,
-    bool MedicalWarningAcknowledged,
     int ClaimCount,
     DateTime SubmittedAtUtc,
-    DateTime? CompletedAtUtc
+    DateTime? ProcessedAtUtc
 );
 
 public record ExpertContentIngestionDto(
     Guid Id,
     Guid CoachId,
-    Guid? SourceId,
+    Guid? ExpertSourceId,
     string? SourceName,
     string SourceUrl,
-    IngestionContentType ContentType,
-    string Title,
-    string? RawExtractedTextSnippet,
-    int WordCount,
+    string SourceTitle,
+    IngestionSourceType SourceType,
+    DateTime? PublishedAt,
+    int ExtractedTextLength,
     bool WasTruncated,
     IngestionStatus Status,
     string? FailureReason,
     bool ContainsMedicalClaims,
-    bool MedicalWarningAcknowledged,
     IReadOnlyList<ExpertClaimDto> Claims,
     DateTime SubmittedAtUtc,
-    DateTime? CompletedAtUtc
+    DateTime? ProcessedAtUtc
 );
 
 public record ReviewClaimRequestDto(
-    ExpertClaimReviewStatus Decision,
+    CoachReviewStatus Decision,
     string? Notes = null,
     Guid? ExistingKnowledgeClaimIdToLink = null,
     bool CreateNewKnowledgeClaim = false,
@@ -111,25 +102,27 @@ public record ReviewClaimRequestDto(
 public record FetchedContentResult(
     string RawText,
     string Title,
-    IngestionContentType ContentType,
-    int WordCount,
+    IngestionSourceType SourceType,
+    int ExtractedTextLength,
     bool WasTruncated,
     bool IsSuccess,
     string? ErrorMessage = null
 );
 
 public record ExtractedClaimCandidate(
-    string Topic,
-    string? SubTopic,
     string ClaimText,
-    string? ContextOrTimestamp,
+    ClaimCategory Category,
+    EvidenceClassification EvidenceClassification,
+    CreatorConfidence CreatorConfidence,
     bool DirectQuote,
-    ClaimNature NatureOfClaim
+    string? SourceContext
 );
 
 public record ExtractedClaimsResult(
     bool IsSuccess,
     IReadOnlyList<ExtractedClaimCandidate> Claims,
+    string? SourceSummary,
+    string? CreatorApparentPosition,
     bool ContainsMedicalContent,
     string? ErrorMessage = null
 );

@@ -38,13 +38,13 @@
             <span class="badge" [ngClass]="'badge-' + item.status">
               {{ statusLabels[item.status] }}
             </span>
-            <span class="content-type">{{ contentTypeLabels[item.contentType] }}</span>
+            <span class="content-type">{{ ingestionSourceTypeLabels[item.sourceType] }}</span>
           </div>
-          <h4 class="card-title">{{ item.title }}</h4>
+          <h4 class="card-title">{{ item.sourceTitle }}</h4>
           <p class="source-url">{{ item.sourceUrl }}</p>
           <div class="card-footer">
             <span>{{ item.claimCount }} claims</span>
-            <span>{{ item.wordCount | number }} words</span>
+            <span>{{ item.extractedTextLength | number }} chars</span>
             <span>{{ item.submittedAtUtc | date:'short' }}</span>
           </div>
           <div *ngIf="item.containsMedicalClaims" class="medical-flag">
@@ -63,7 +63,7 @@
       <div *ngIf="selectedIngestion" class="detail-content">
         <div class="detail-header">
           <div>
-            <h3>{{ selectedIngestion.title }}</h3>
+            <h3>{{ selectedIngestion.sourceTitle }}</h3>
             <p class="source-info">
               <strong>Source:</strong> {{ selectedIngestion.sourceName || 'Unknown / General Web' }} &bull;
               <a [href]="selectedIngestion.sourceUrl" target="_blank" rel="noopener">Open Source URL ↗</a>
@@ -79,20 +79,20 @@
         <!-- Medical disclaimer if flagged -->
         <div *ngIf="selectedIngestion.containsMedicalClaims" class="medical-banner">
           <h4>⚠ Medical Content Guardrail</h4>
-          <p>Automated scan detected medical / pharmaceutical terminology. Clinical claims have been excluded from coaching claims to maintain safe non-medical boundaries.</p>
+          <p>This content may contain medical claims. Review carefully. AI Coach OS does not validate medical advice.</p>
         </div>
 
         <!-- Failure notification if failed -->
-        <div *ngIf="selectedIngestion.status === 6 && selectedIngestion.failureReason" class="alert alert-danger">
+        <div *ngIf="selectedIngestion.status === 5 && selectedIngestion.failureReason" class="alert alert-danger">
           <strong>Ingestion Failed:</strong> {{ selectedIngestion.failureReason }}
         </div>
 
-        <!-- Extracted text summary -->
-        <div class="text-snippet-box" *ngIf="selectedIngestion.rawExtractedTextSnippet">
+        <!-- Extracted stats banner -->
+        <div class="text-snippet-box">
           <div class="snippet-header">
-            <strong>Extracted Content Preview ({{ selectedIngestion.wordCount | number }} words{{ selectedIngestion.wasTruncated ? ' - Truncated at 15k words' : '' }})</strong>
+            <strong>Extracted Content Summary ({{ selectedIngestion.extractedTextLength | number }} characters{{ selectedIngestion.wasTruncated ? ' - Truncated' : '' }})</strong>
           </div>
-          <p class="snippet-text">{{ selectedIngestion.rawExtractedTextSnippet }}</p>
+          <p class="transient-note"><em>Transcript / article processed transiently for claim extraction in accordance with copyright boundaries.</em></p>
         </div>
 
         <!-- Extracted Claims Section -->
@@ -111,24 +111,24 @@
           </div>
 
           <div class="claims-list">
-            <div *ngFor="let claim of selectedIngestion.claims" class="claim-card" [class.approved]="claim.reviewStatus === 2" [class.rejected]="claim.reviewStatus === 3">
+            <div *ngFor="let claim of selectedIngestion.claims" class="claim-card" [class.approved]="claim.coachReviewStatus === 2" [class.rejected]="claim.coachReviewStatus === 3">
               <div class="claim-top">
                 <div class="claim-topic">
-                  <span class="topic-badge">{{ claim.topic }}</span>
-                  <span *ngIf="claim.subTopic" class="subtopic-badge">{{ claim.subTopic }}</span>
-                  <span class="nature-badge">{{ natureLabels[claim.natureOfClaim] }}</span>
+                  <span class="topic-badge">{{ categoryLabels[claim.claimCategory] }}</span>
+                  <span class="nature-badge">{{ evidenceLabels[claim.evidenceClassification] }}</span>
+                  <span class="confidence-badge">Confidence: {{ confidenceLabels[claim.creatorConfidence] }}</span>
                 </div>
                 <div class="review-status">
-                  <span class="badge" [ngClass]="'review-' + claim.reviewStatus">
-                    {{ reviewStatusLabels[claim.reviewStatus] }}
+                  <span class="badge" [ngClass]="'review-' + claim.coachReviewStatus">
+                    {{ reviewStatusLabels[claim.coachReviewStatus] }}
                   </span>
                 </div>
               </div>
 
               <p class="claim-text">{{ claim.claimText }}</p>
 
-              <div *ngIf="claim.contextOrTimestamp" class="claim-context">
-                <strong>Context / Timestamp:</strong> {{ claim.contextOrTimestamp }}
+              <div *ngIf="claim.sourceContext" class="claim-context">
+                <strong>Context / Timestamp:</strong> {{ claim.sourceContext }}
               </div>
 
               <!-- M3 Deterministic Comparison Badges -->
@@ -146,13 +146,13 @@
                 </div>
               </div>
 
-              <div *ngIf="claim.coachNotes" class="coach-notes-box">
-                <strong>Coach Notes:</strong> {{ claim.coachNotes }}
+              <div *ngIf="claim.coachNote" class="coach-notes-box">
+                <strong>Coach Note:</strong> {{ claim.coachNote }}
               </div>
 
               <div class="claim-actions">
                 <button class="btn btn-sm btn-primary" (click)="openReviewModal(claim)">
-                  {{ claim.reviewStatus === 1 ? 'Review Claim' : 'Edit Review' }}
+                  {{ claim.coachReviewStatus === 1 ? 'Review Claim' : 'Edit Review' }}
                 </button>
               </div>
             </div>
@@ -185,16 +185,17 @@
           <label>Link to Expert Source (Optional)</label>
           <select [(ngModel)]="submitSourceId" class="form-control">
             <option [ngValue]="null">-- General / Unspecified Source --</option>
-            <option *ngFor="let s of sources" [ngValue]="s.id">{{ s.name }} ({{ s.channelOrPublication }})</option>
+            <option *ngFor="let s of sources" [ngValue]="s.id">{{ s.name }} ({{ s.url }})</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Content Type Override</label>
-          <select [(ngModel)]="submitContentType" class="form-control">
+          <select [(ngModel)]="submitSourceType" class="form-control">
             <option [ngValue]="1">YouTube Video</option>
-            <option [ngValue]="2">Web Article / Transcript</option>
-            <option [ngValue]="3">Podcast Transcript</option>
+            <option [ngValue]="2">Web Article / Blog</option>
+            <option [ngValue]="3">Podcast Episode</option>
+            <option [ngValue]="4">Other</option>
           </select>
         </div>
       </div>
@@ -216,38 +217,22 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Expert / Author Name *</label>
+          <label>Expert / Channel Name *</label>
           <input type="text" [(ngModel)]="newSourceName" placeholder="e.g. Dr. Brad Schoenfeld" class="form-control" />
         </div>
         <div class="form-group">
-          <label>Channel / Publication *</label>
-          <input type="text" [(ngModel)]="newSourceChannel" placeholder="e.g. Look Great Naked / YouTube" class="form-control" />
-        </div>
-        <div class="form-group">
-          <label>Primary Platform</label>
-          <select [(ngModel)]="newSourcePlatform" class="form-control">
-            <option [ngValue]="1">YouTube</option>
-            <option [ngValue]="2">Web Article</option>
-            <option [ngValue]="3">Podcast</option>
-            <option [ngValue]="4">Book</option>
+          <label>Source Type *</label>
+          <select [(ngModel)]="newSourceType" class="form-control">
+            <option [ngValue]="1">YouTube Channel</option>
+            <option [ngValue]="2">Podcast</option>
+            <option [ngValue]="3">Blog</option>
+            <option [ngValue]="4">Research Group</option>
+            <option [ngValue]="5">Other</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Primary Domain *</label>
-          <input type="text" [(ngModel)]="newSourceDomain" placeholder="e.g. Hypertrophy, Biomechanics, Sports Nutrition" class="form-control" />
-        </div>
-        <div class="form-group">
-          <label>Credibility Tier</label>
-          <select [(ngModel)]="newSourceCredibility" class="form-control">
-            <option [ngValue]="1">High (Peer-Reviewed / Elite)</option>
-            <option [ngValue]="2">Medium (Established Coach)</option>
-            <option [ngValue]="3">Low / Unverified</option>
-            <option [ngValue]="4">Practitioner / Field Expert</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Bio / Context</label>
-          <textarea [(ngModel)]="newSourceBio" rows="3" placeholder="Brief expert credentials and domain focus..." class="form-control"></textarea>
+          <label>Author / Channel Homepage URL *</label>
+          <input type="url" [(ngModel)]="newSourceUrl" placeholder="https://..." class="form-control" />
         </div>
       </div>
       <div class="modal-footer">
@@ -267,8 +252,7 @@
       <div class="modal-body">
         <div class="review-claim-preview">
           <div class="claim-topic">
-            <span class="topic-badge">{{ selectedClaimForReview.topic }}</span>
-            <span *ngIf="selectedClaimForReview.subTopic" class="subtopic-badge">{{ selectedClaimForReview.subTopic }}</span>
+            <span class="topic-badge">{{ categoryLabels[selectedClaimForReview.claimCategory] }}</span>
           </div>
           <p class="claim-quote">"{{ selectedClaimForReview.claimText }}"</p>
         </div>
