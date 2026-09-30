@@ -48,7 +48,7 @@ public class ExceptionHandlingMiddlewareTests : IClassFixture<CustomWebApplicati
         await middleware.InvokeAsync(context);
 
         context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
-        context.Response.ContentType.Should().Be("application/json");
+        context.Response.ContentType.Should().Be("application/problem+json");
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var body = await JsonDocument.ParseAsync(context.Response.Body);
@@ -94,6 +94,9 @@ public class ExceptionHandlingMiddlewareTests : IClassFixture<CustomWebApplicati
         var problem = await JsonSerializer.DeserializeAsync<ProblemDetails>(context.Response.Body, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         problem.Should().NotBeNull();
         problem!.Status.Should().Be(403);
+        problem.Title.Should().Be("Forbidden",
+            "a 403 response must not be labelled 'Internal Server Error'");
+        problem.Detail.Should().Be("Forbidden access.");
     }
 
     [Fact]

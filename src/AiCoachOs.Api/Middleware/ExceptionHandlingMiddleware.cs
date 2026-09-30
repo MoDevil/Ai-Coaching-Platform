@@ -30,10 +30,8 @@ public class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
-
         var response = context.Response;
-        response.ContentType = "application/json";
+        response.ContentType = "application/problem+json";
 
         var statusCode = exception switch
         {
@@ -48,6 +46,18 @@ public class ExceptionHandlingMiddleware
             InvalidOperationException => HttpStatusCode.BadRequest,
             _ => HttpStatusCode.InternalServerError
         };
+
+        // Validation failures are an expected outcome of a public API, not a server fault, so they
+        // are logged as warnings. Logging every rejected request at Error with a stack trace would
+        // bury genuine 5xx incidents in noise.
+        if (statusCode == HttpStatusCode.InternalServerError)
+        {
+            _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
+        }
+        else
+        {
+            _logger.LogWarning("Request rejected with {StatusCode}: {Message}", (int)statusCode, exception.Message);
+        }
 
         response.StatusCode = (int)statusCode;
 
@@ -84,6 +94,7 @@ public class ExceptionHandlingMiddleware
     {
         HttpStatusCode.BadRequest => "Bad Request",
         HttpStatusCode.Unauthorized => "Unauthorized",
+        HttpStatusCode.Forbidden => "Forbidden",
         HttpStatusCode.NotFound => "Not Found",
         HttpStatusCode.Conflict => "Conflict",
         _ => "Internal Server Error"

@@ -1,7 +1,5 @@
-using AiCoachOs.Application.Common.Exceptions;
 using AiCoachOs.Application.TrainingProfiles.DTOs;
 using AiCoachOs.Application.TrainingProfiles.Services;
-using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,17 +11,10 @@ namespace AiCoachOs.Api.Controllers;
 public class TrainingProfilesController : ControllerBase
 {
     private readonly ITrainingProfileService _trainingProfileService;
-    private readonly IValidator<UpdateTrainingProfileRequestDto> _updateValidator;
-    private readonly IValidator<TrainingAvailabilityDto> _availabilityValidator;
 
-    public TrainingProfilesController(
-        ITrainingProfileService trainingProfileService,
-        IValidator<UpdateTrainingProfileRequestDto> updateValidator,
-        IValidator<TrainingAvailabilityDto> availabilityValidator)
+    public TrainingProfilesController(ITrainingProfileService trainingProfileService)
     {
         _trainingProfileService = trainingProfileService;
-        _updateValidator = updateValidator;
-        _availabilityValidator = availabilityValidator;
     }
 
     [HttpGet]
@@ -41,15 +32,6 @@ public class TrainingProfilesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateProfile(Guid clientId, [FromBody] UpdateTrainingProfileRequestDto request, CancellationToken ct)
     {
-        var validation = await _updateValidator.ValidateAsync(request, ct);
-        if (!validation.IsValid)
-        {
-            var errors = validation.Errors
-                .GroupBy(e => e.PropertyName)
-                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
-            throw new Application.Common.Exceptions.ValidationException(errors);
-        }
-
         var profile = await _trainingProfileService.UpdateProfileAsync(clientId, request, ct);
         return Ok(profile);
     }
@@ -60,15 +42,6 @@ public class TrainingProfilesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAvailability(Guid clientId, [FromBody] TrainingAvailabilityDto availability, CancellationToken ct)
     {
-        var validation = await _availabilityValidator.ValidateAsync(availability, ct);
-        if (!validation.IsValid)
-        {
-            var errors = validation.Errors
-                .GroupBy(e => e.PropertyName)
-                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
-            throw new Application.Common.Exceptions.ValidationException(errors);
-        }
-
         var profile = await _trainingProfileService.UpdateAvailabilityAsync(clientId, availability, ct);
         return Ok(profile);
     }
