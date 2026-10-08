@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -19,6 +20,64 @@ namespace AiCoachOs.Infrastructure;
 
 public static class DependencyInjection
 {
+    /// <summary>
+    /// The providers that derive from <see cref="Ai.OpenAiCompatibleChatProvider"/>, in the order
+    /// they are offered to the router. The router itself orders by the Priority in configuration,
+    /// so this order only decides which providers are registered at all.
+    /// </summary>
+    /// <remarks>
+    /// Anthropic and Gemini are deliberately absent: they speak their own request and response
+    /// shapes and are registered separately.
+    /// </remarks>
+    private static readonly (string Name, Type ProviderType, string DefaultKeyEnvVar)[] OpenAiCompatibleProviders =
+    {
+        ("Groq", typeof(AiCoachOs.Infrastructure.Ai.GroqAiProvider), "GROQ_API_KEYS"),
+        ("OpenRouter", typeof(AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider), "OPENROUTER_API_KEYS"),
+        ("Cerebras", typeof(AiCoachOs.Infrastructure.Ai.CerebrasAiProvider), "CEREBRAS_API_KEYS"),
+        ("SambaNova", typeof(AiCoachOs.Infrastructure.Ai.SambaNovaAiProvider), "SAMBANOVA_API_KEYS"),
+        ("xAI", typeof(AiCoachOs.Infrastructure.Ai.XAiProvider), "XAI_API_KEYS"),
+        ("HuggingFace", typeof(AiCoachOs.Infrastructure.Ai.HuggingFaceAiProvider), "HUGGINGFACE_API_KEYS"),
+    };
+
+    private static readonly string[] OpenAiCompatibleProviderNames =
+        OpenAiCompatibleProviders.Select(p => p.Name).ToArray();
+
+    private static readonly string RecognisedProviderNames =
+        "Router, Anthropic, Gemini, " + string.Join(", ", OpenAiCompatibleProviderNames) + ", Mock";
+
+    /// <summary>
+    /// Registers a provider that derives from <see cref="Ai.OpenAiCompatibleChatProvider"/> as a
+    /// typed <see cref="HttpClient"/> and a scoped instance, wiring its model and key environment
+    /// variable from the <c>AiProviders</c> configuration section.
+    /// </summary>
+    private static void RegisterOpenAiCompatibleProvider(
+        IServiceCollection services,
+        AiCoachOs.Application.Ai.Models.AiProviderOptions options,
+        string name,
+        Type providerType,
+        string defaultKeyEnvVar)
+    {
+        services.AddScoped(providerType, sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger(providerType);
+            var config = options.Providers
+                .FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+            var keySelector = new AiCoachOs.Infrastructure.Ai.RotatingKeySelector(
+                string.IsNullOrWhiteSpace(config?.ApiKeysEnvVar) ? defaultKeyEnvVar : config.ApiKeysEnvVar);
+
+            // Empty rather than null so the provider falls back to its built-in default model.
+            return ActivatorUtilities.CreateInstance(
+                sp,
+                providerType,
+                httpClient,
+                keySelector,
+                logger,
+                config?.Model ?? string.Empty);
+        });
+    }
+
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -157,8 +216,13 @@ public static class DependencyInjection
 
         services.AddHttpClient<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
         services.AddHttpClient<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>();
-        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.GroqAiProvider>();
-        services.AddHttpClient<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>();
+
+        // Every OpenAI-compatible provider shares one HttpClient registration and one factory
+        // shape; only the name and key environment variable differ.
+        foreach (var openAiCompatibleProvider in OpenAiCompatibleProviderNames)
+        {
+            services.AddHttpClient(openAiCompatibleProvider);
+        }
 
         services.AddScoped<AiCoachOs.Infrastructure.Ai.MockAiProvider>();
         services.AddScoped<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>();
@@ -170,32 +234,28 @@ public static class DependencyInjection
             var keySelector = new AiCoachOs.Infrastructure.Ai.RotatingKeySelector(cfg?.ApiKeysEnvVar ?? "GEMINI_API_KEYS");
             return new AiCoachOs.Infrastructure.Ai.GeminiAiProvider(http, keySelector, logger, cfg?.Model);
         });
-        services.AddScoped<AiCoachOs.Infrastructure.Ai.GroqAiProvider>(sp =>
+
+        // Name to (concrete type, default key environment variable). Adding a provider means adding
+        // one entry here plus the matching appsettings block; the fallback chain in
+        // AiProviderRouter picks it up automatically.
+        foreach (var (name, providerType, defaultKeyEnvVar) in OpenAiCompatibleProviders)
         {
-            var http = sp.GetRequiredService<HttpClient>();
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AiCoachOs.Infrastructure.Ai.GroqAiProvider>>();
-            var cfg = aiProviderOptions.Providers.FirstOrDefault(p => string.Equals(p.Name, "Groq", StringComparison.OrdinalIgnoreCase));
-            var keySelector = new AiCoachOs.Infrastructure.Ai.RotatingKeySelector(cfg?.ApiKeysEnvVar ?? "GROQ_API_KEYS");
-            return new AiCoachOs.Infrastructure.Ai.GroqAiProvider(http, keySelector, logger, cfg?.Model);
-        });
-        services.AddScoped<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>(sp =>
-        {
-            var http = sp.GetRequiredService<HttpClient>();
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>>();
-            var cfg = aiProviderOptions.Providers.FirstOrDefault(p => string.Equals(p.Name, "OpenRouter", StringComparison.OrdinalIgnoreCase));
-            var keySelector = new AiCoachOs.Infrastructure.Ai.RotatingKeySelector(cfg?.ApiKeysEnvVar ?? "OPENROUTER_API_KEYS");
-            return new AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider(http, keySelector, logger, cfg?.Model);
-        });
+            RegisterOpenAiCompatibleProvider(services, aiProviderOptions, name, providerType, defaultKeyEnvVar);
+        }
 
         services.AddScoped<AiCoachOs.Infrastructure.Ai.AiProviderRouter>(sp =>
         {
             var providers = new List<AiCoachOs.Application.Ai.Interfaces.IAiProvider>
             {
                 sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.AnthropicAiProvider>(),
-                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>(),
-                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GroqAiProvider>(),
-                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>()
+                sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>()
             };
+
+            foreach (var (_, providerType, _) in OpenAiCompatibleProviders)
+            {
+                providers.Add((AiCoachOs.Application.Ai.Interfaces.IAiProvider)sp.GetRequiredService(providerType));
+            }
+
             var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiCoachOs.Application.Ai.Models.AiProviderOptions>>();
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AiCoachOs.Infrastructure.Ai.AiProviderRouter>>();
             return new AiCoachOs.Infrastructure.Ai.AiProviderRouter(providers, options, logger);
@@ -208,8 +268,8 @@ public static class DependencyInjection
         if (string.IsNullOrWhiteSpace(configuredProvider))
         {
             throw new InvalidOperationException(
-                "AiSettings:Provider is not configured. Set it to Router, Anthropic, Gemini, Groq, OpenRouter, " +
-                "or Mock (Mock is permitted in Development only).");
+                "AiSettings:Provider is not configured. Set it to one of: " +
+                RecognisedProviderNames + ", or Mock (Mock is permitted in Development only).");
         }
 
         switch (configuredProvider.ToLowerInvariant())
@@ -222,12 +282,6 @@ public static class DependencyInjection
                 break;
             case "gemini":
                 services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GeminiAiProvider>());
-                break;
-            case "groq":
-                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.GroqAiProvider>());
-                break;
-            case "openrouter":
-                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.OpenRouterAiProvider>());
                 break;
             case "mock":
                 var allowMock = configuration.GetValue("AiSettings:AllowMockProvider", false)
@@ -243,9 +297,21 @@ public static class DependencyInjection
                 services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(sp => sp.GetRequiredService<AiCoachOs.Infrastructure.Ai.MockAiProvider>());
                 break;
             default:
-                throw new InvalidOperationException(
-                    $"AiSettings:Provider '{configuredProvider}' is not a recognised provider. " +
-                    "Expected one of: Router, Anthropic, Gemini, Groq, OpenRouter, Mock.");
+                // OpenAI-compatible providers are selected by name from the shared table so a
+                // provider cannot be registered for the router yet be missing from the switch.
+                var openAiMatch = OpenAiCompatibleProviders
+                    .FirstOrDefault(p => string.Equals(p.Name, configuredProvider, StringComparison.OrdinalIgnoreCase));
+
+                if (openAiMatch.ProviderType is null)
+                {
+                    throw new InvalidOperationException(
+                        $"AiSettings:Provider '{configuredProvider}' is not a recognised provider. " +
+                        $"Expected one of: {RecognisedProviderNames}, Mock.");
+                }
+
+                services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiProvider>(
+                    sp => (AiCoachOs.Application.Ai.Interfaces.IAiProvider)sp.GetRequiredService(openAiMatch.ProviderType));
+                break;
         }
 
         services.AddScoped<AiCoachOs.Application.Ai.Interfaces.IAiReasoningService, AiCoachOs.Infrastructure.Ai.AiReasoningService>();
