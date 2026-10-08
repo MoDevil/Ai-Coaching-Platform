@@ -27,7 +27,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(64));
 
     private static readonly Lazy<string> ConnectionString = new(ResolveConnectionString);
-    private static readonly object MigrationGate = new();
 
     private static string ResolveConnectionString()
     {
@@ -68,21 +67,4 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         });
     }
 
-    /// <summary>
-    /// Migrations run against the host's real service provider rather than a throwaway container
-    /// built from the service collection, so singletons registered here see a migrated database.
-    /// </summary>
-    protected override IHost CreateHost(IHostBuilder builder)
-    {
-        var host = base.CreateHost(builder);
-
-        lock (MigrationGate)
-        {
-            using var scope = host.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.Database.Migrate();
-        }
-
-        return host;
     }
-}

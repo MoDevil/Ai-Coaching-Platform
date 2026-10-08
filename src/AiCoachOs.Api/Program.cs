@@ -2,6 +2,7 @@ using AiCoachOs.Api.Filters;
 using AiCoachOs.Api.Middleware;
 using AiCoachOs.Application;
 using AiCoachOs.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -94,6 +95,21 @@ app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.MapControllers();
 
+// Ensure the schema exists before seeding, which matters on a fresh database (CI, new dev
+// machines, and the integration-test fixture). Serialized because integration tests start many
+// hosts against one database in parallel. Production deployments apply migrations explicitly via
+// `dotnet ef database update`, so this is limited to non-production to keep that contract.
+if (!app.Environment.IsProduction())
+{
+    lock (AppStartupMigrations.Gate)
+    {
+        using var bootstrapScope = app.Services.CreateScope();
+        var bootstrapContext = bootstrapScope.ServiceProvider
+            .GetRequiredService<AiCoachOs.Infrastructure.Persistence.ApplicationDbContext>();
+        bootstrapContext.Database.Migrate();
+    }
+}
+
 // Seed baseline exercise library and substance safety knowledge
 using (var scope = app.Services.CreateScope())
 {
@@ -103,6 +119,16 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+/// <summary>
+/// Integration tests start dozens of host instances against one shared database, and each host
+/// reaches the startup migration at once. A single process-wide gate means the first host creates
+/// the schema and the rest find it already applied, instead of racing to run the same DDL.
+/// </summary>
+internal static class AppStartupMigrations
+{
+    internal static readonly object Gate = new();
+}
 
 // Make Program class accessible to WebApplicationFactory in integration tests
 public partial class Program { }
