@@ -4,6 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Required for `dotnet user-secrets`. The secrets themselves stay outside the repository in
+         %APPDATA%, and this GUID only identifies the project locally. -->
+    <UserSecretsId>aicoachos-api-local-dev</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

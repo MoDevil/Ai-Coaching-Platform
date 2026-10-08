@@ -5,7 +5,7 @@ Evidence-based coaching operating system for human gym coaches in Egypt.
 ## Architecture & Technology Stack
 - **Backend**: .NET 8 (ASP.NET Core), C# 12, Entity Framework Core 8, PostgreSQL
 - **Frontend**: Angular 16 (mixed standalone + NgModule components), TypeScript 5.1
-- **AI Engine**: Multi-Provider Router with round-robin key rotation and automated fallback (Anthropic, Gemini, Groq, OpenRouter)
+- **AI Engine**: Multi-Provider Router with round-robin key rotation and automated fallback (Anthropic, Gemini, xAI, Groq, Cerebras, SambaNova, HuggingFace, OpenRouter)
 - **Architecture**: Modular Monolith with clean domain separation (M0–M20)
 
 ## Quick Start (Development)
@@ -39,12 +39,23 @@ $env:GEMINI_API_KEYS="key1,key2"
 $env:OPENROUTER_API_KEYS="key1,key2"
 ```
 
-| Variable | Provider |
-| :--- | :--- |
-| `ANTHROPIC_API_KEYS` | Anthropic |
-| `GEMINI_API_KEYS` | Gemini |
-| `GROQ_API_KEYS` | Groq |
-| `OPENROUTER_API_KEYS` | OpenRouter |
+The router walks the chain in the `Priority` order configured under `AiProviders:Providers` in
+`src/AiCoachOs.Api/appsettings.json` and moves to the next entry whenever the current provider fails
+or exhausts all of its keys. Set keys only for the providers you intend to use.
+
+| Priority | Variable | Provider | Default model |
+| :--- | :--- | :--- | :--- |
+| 1 | `ANTHROPIC_API_KEYS` | Anthropic | `claude-sonnet-4-6` |
+| 2 | `GEMINI_API_KEYS` | Gemini | `gemini-2.0-flash` |
+| 3 | `XAI_API_KEYS` | xAI | `grok-4.6` |
+| 4 | `GROQ_API_KEYS` | Groq | `llama-3.3-70b-versatile` |
+| 5 | `CEREBRAS_API_KEYS` | Cerebras | `qwen-3.8-27b` |
+| 6 | `SAMBANOVA_API_KEYS` | SambaNova | `gpt-oss-120b` |
+| 7 | `HUGGINGFACE_API_KEYS` | HuggingFace | `openai/gpt-oss-120b` |
+| 8 | `OPENROUTER_API_KEYS` | OpenRouter | `openai/gpt-4o-mini` |
+
+Reorder or disable entries by editing `AiProviders:Providers` in `src/AiCoachOs.Api/appsettings.json`.
+Set `"Enabled": false` to skip a provider without deleting it.
 
 Then select a provider with `dotnet user-secrets set "AiSettings:Provider" "Router" --project src/AiCoachOs.Api`.
 
@@ -53,14 +64,19 @@ explicitly set). It returns fabricated recommendations and must never be used fo
 
 ### Backend Setup
 ```bash
-# Navigate to backend and run
-dotnet restore
+# Apply EF Core migrations to the local database
+dotnet ef database update --project src/AiCoachOs.Infrastructure --startup-project src/AiCoachOs.Api
+
+# Build and run
 dotnet build
 dotnet run --project src/AiCoachOs.Api
 ```
 
-API runs on the port configured in `src/AiCoachOs.Api/Properties/launchSettings.json` with Swagger
-available at `/swagger` (Development only).
+The API listens on `http://localhost:5076` and `https://localhost:7194`. Swagger UI is at
+`http://localhost:5076/swagger` (Development only). `http://localhost:5076/health` returns `Healthy`.
+
+If you get `Jwt:SecretKey is not configured`, the user-secrets step above was skipped or was run from
+a different folder. User secrets are per-project and per-user, so run it from the repository root.
 
 ### Frontend Setup
 ```bash
