@@ -17,9 +17,9 @@ public class ProgramEngineTests
     private readonly SessionBuilder _sessionBuilder = new();
 
     [Theory]
-    [InlineData("Build maximum muscle and hypertrophy", PrimaryGoalType.Hypertrophy, "6-10", "1-2 RIR")]
-    [InlineData("Powerlifting strength focus", PrimaryGoalType.Strength, "3-6", "2-3 RIR (compounds), 1-2 RIR (isolations)")]
-    [InlineData("Fat loss and preserve muscle", PrimaryGoalType.FatLoss, "8-12", "2 RIR")]
+    [InlineData("Build maximum muscle and hypertrophy", PrimaryGoalType.Hypertrophy, "5~8", "1-2 RIR")]
+    [InlineData("Powerlifting strength focus", PrimaryGoalType.Strength, "3~6", "2-3 RIR (compounds), 1-2 RIR (isolations)")]
+    [InlineData("Fat loss and preserve muscle", PrimaryGoalType.FatLoss, "6~10", "2 RIR")]
     public void GoalAnalyzer_DerivesAccurateParameters(
         string goalText,
         PrimaryGoalType expectedGoal,

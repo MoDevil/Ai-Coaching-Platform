@@ -168,6 +168,7 @@ public class SessionBuilder : ISessionBuilder
                 coachingNote: coachingNote);
 
             session.AddSlot(slot);
+            _slotMetadata[slot.Id] = new SlotMetadata(warmupSets, alt1, alt2);
             accumulatedMinutes += slotTimeMinutes;
         }
 

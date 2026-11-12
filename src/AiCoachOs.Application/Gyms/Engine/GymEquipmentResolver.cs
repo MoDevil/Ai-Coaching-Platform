@@ -88,6 +88,6 @@ public class GymEquipmentResolver : IGymEquipmentResolver
             return fallback;
         }
 
-        return new HashSet<Guid>();
+        return new HashSet<Guid> { Bodyweight };
     }
 }
