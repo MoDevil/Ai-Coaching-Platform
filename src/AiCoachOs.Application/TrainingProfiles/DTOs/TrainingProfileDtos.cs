@@ -28,7 +28,8 @@ public record TrainingProfileDto(
     string? ExerciseConstraints,
     IReadOnlyList<ClientTrainingPriorityDto> Priorities,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc
+    DateTime? UpdatedAtUtc,
+    Guid? GymProfileId
 );
 
 public record UpdateTrainingProfileRequestDto(
@@ -42,3 +43,4 @@ public record UpdateTrainingProfileRequestDto(
     string? ExerciseConstraints,
     List<ClientTrainingPriorityDto>? Priorities
 );
+

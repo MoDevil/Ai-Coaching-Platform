@@ -1,4 +1,6 @@
 :root {
+  --bg-hover: #f1f5f9;
+
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --primary-light: #eff6ff;
@@ -18,6 +20,27 @@
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+[data-theme="dark"] {
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-light: #1e3a8a;
+  --success: #22c55e;
+  --success-light: #064e3b;
+  --warning: #f59e0b;
+  --warning-light: #78350f;
+  --danger: #ef4444;
+  --danger-hover: #f87171;
+  --danger-light: #7f1d1d;
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --bg-hover: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
 }
 
 * {
@@ -95,7 +118,7 @@ a:hover {
 
 .btn-primary {
   background-color: var(--primary);
-  color: #ffffff;
+  color: var(--bg-card);
 }
 
 .btn-primary:hover {
@@ -104,19 +127,19 @@ a:hover {
 }
 
 .btn-secondary {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   color: var(--text-main);
   border-color: var(--border);
 }
 
 .btn-secondary:hover {
-  background-color: #f1f5f9;
+  background-color: var(--bg-hover);
   text-decoration: none;
 }
 
 .btn-danger {
   background-color: var(--danger);
-  color: #ffffff;
+  color: var(--bg-card);
 }
 
 .btn-danger:hover {
@@ -147,7 +170,7 @@ a:hover {
   font-size: 0.875rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   color: var(--text-main);
   outline: none;
   transition: border-color 0.15s ease-in-out;
@@ -156,6 +179,12 @@ a:hover {
 .form-control:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Fix: native <select> option text inherits custom color incorrectly in Chromium */
+select option {
+  color: var(--text-main) !important;
+  background-color: var(--bg-card) !important;
 }
 
 .form-text {
@@ -198,7 +227,7 @@ a:hover {
 }
 
 .badge-archived {
-  background-color: #f1f5f9;
+  background-color: var(--bg-hover);
   color: var(--text-muted);
 }
 
@@ -233,7 +262,7 @@ a:hover {
 }
 
 .data-table th {
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
   font-weight: 600;
@@ -250,7 +279,7 @@ a:hover {
 }
 
 .data-table tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
 }
 
 /* Common Status & Priority Badges */
@@ -265,7 +294,7 @@ a:hover {
 .status-1 { background: #fef3c7; color: #92400e; }
 .status-2 { background: #dcfce7; color: #166534; }
 .status-3 { background: #e0e7ff; color: #3730a3; }
-.status-4 { background: #f1f5f9; color: #475569; }
+.status-4 { background: var(--bg-hover); color: var(--text-muted); }
 
 .overall-1 { background: #dcfce7; color: #166534; }
 .overall-2 { background: #fef3c7; color: #92400e; }
@@ -277,7 +306,7 @@ a:hover {
 .trend-4 { color: #64748b; font-weight: 500; font-size: 0.8rem; }
 
 .prio-1 { background: #fee2e2; color: #991b1b; }
-.prio-2 { background: #f1f5f9; color: #475569; }
+.prio-2 { background: var(--bg-hover); color: var(--text-muted); }
 
 .btn-success {
   background-color: #16a34a;
@@ -297,9 +326,9 @@ a:hover {
 
 /* Adaptive Coaching & Card Styles */
 .adaptation-dashboard {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   padding: 1.5rem;
   margin-bottom: 2rem;
 }
@@ -315,13 +344,13 @@ a:hover {
 .adaptation-header h3 {
   margin: 0 0 0.25rem 0;
   font-size: 1.25rem;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .feedback-banner {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary);
   padding: 0.75rem 1rem;
   border-radius: 6px;
   margin-bottom: 1rem;
@@ -329,7 +358,7 @@ a:hover {
 }
 
 .assessment-card {
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border);
   padding-top: 1.25rem;
 }
 
@@ -365,7 +394,7 @@ a:hover {
 .metric-val {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .metric-lbl {
@@ -374,14 +403,14 @@ a:hover {
 }
 
 .narrative-summary {
-  background: #f8fafc;
+  background: var(--bg-hover);
   padding: 0.85rem 1rem;
   border-radius: 6px;
-  color: #334155;
+  color: var(--text-muted);
   font-size: 0.925rem;
   line-height: 1.5;
   margin-bottom: 1.25rem;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid var(--primary);
 }
 
 .exercise-records-section {
@@ -391,7 +420,7 @@ a:hover {
 .exercise-records-section h4,
 .recommendations-section h4 {
   font-size: 1.05rem;
-  color: #1e293b;
+  color: var(--text-main);
   margin: 0 0 0.75rem 0;
 }
 
@@ -402,10 +431,10 @@ a:hover {
 }
 
 .record-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.75rem;
-  background: #fafafa;
+  background: var(--bg-hover);
 }
 
 .rec-title {
@@ -425,7 +454,7 @@ a:hover {
 
 .rec-rationale {
   font-size: 0.8rem;
-  color: #475569;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -441,11 +470,11 @@ a:hover {
 }
 
 .rec-card {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 0.85rem;
-  background: white;
+  background: var(--bg-card);
 }
 
 .rec-card-header {
@@ -457,11 +486,11 @@ a:hover {
 
 .action-tag {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .ex-name {
-  color: #475569;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -474,16 +503,16 @@ a:hover {
 
 .rec-card-rationale {
   font-size: 0.875rem;
-  color: #334155;
+  color: var(--text-muted);
   margin: 0 0 0.5rem 0;
 }
 
 .change-detail {
-  background: #f1f5f9;
+  background: var(--bg-hover);
   padding: 0.4rem 0.6rem;
   border-radius: 4px;
   font-size: 0.8rem;
-  color: #1e293b;
+  color: var(--text-main);
   margin-bottom: 0.75rem;
 }
 
@@ -508,7 +537,7 @@ a:hover {
 
 .decision-input {
   padding: 0.3rem 0.5rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 0.825rem;
   min-width: 180px;
@@ -521,7 +550,18 @@ a:hover {
 
 .decision-note-display {
   font-size: 0.825rem;
-  color: #475569;
+  color: var(--text-muted);
 }
 
 
+
+
+/* Fix for native select dropdowns in dark mode */
+select.form-control {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+}
+select.form-control option {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+}

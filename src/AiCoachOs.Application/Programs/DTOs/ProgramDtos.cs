@@ -6,7 +6,11 @@ public record GenerateProgramRequestDto(
     Guid ClientId,
     string? ProgramName = null,
     string? CoachNotes = null,
-    int NumberOfWeeks = 4);
+    int NumberOfWeeks = 4,
+    int? SessionsPerWeekOverride = null,
+    int? SessionDurationOverride = null,
+    string? InjuryConstraintsOverride = null,
+    List<Guid>? AvailableEquipmentOverride = null);
 
 public record UpdateProgramStatusDto(
     ProgramStatus Status);
@@ -87,13 +91,16 @@ public record ExerciseSlotDto(
     string ExerciseName,
     string MovementPatternName,
     int Order,
+    string WarmupSets,
     int TargetSets,
     string TargetRepRange,
     string EffortGuideline,
     int RestSeconds,
     string SelectionRationale,
     ProgressionRuleDto? ProgressionRule,
-    string? CoachingNote);
+    string? CoachingNote,
+    string? Alternative1Name,
+    string? Alternative2Name);
 
 public record ProgressionRuleDto(
     ProgressionRuleType Type,

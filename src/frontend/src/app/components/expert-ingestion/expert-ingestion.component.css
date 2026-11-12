@@ -14,11 +14,11 @@
 .header-actions h2 {
   margin: 0 0 0.25rem 0;
   font-size: 1.75rem;
-  color: #1e293b;
+  color: var(--text-main);
 }
 
 .subtitle {
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -37,27 +37,27 @@
 }
 
 .btn-primary {
-  background-color: #2563eb;
+  background-color: var(--primary);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1d4ed8;
+  background-color: var(--primary-hover);
 }
 
 .btn-secondary {
-  background-color: #e2e8f0;
-  color: #1e293b;
+  background-color: var(--border);
+  color: var(--text-main);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #cbd5e1;
+  background-color: var(--border);
 }
 
 .btn-outline {
   background: transparent;
-  border-color: #cbd5e1;
-  color: #475569;
+  border-color: var(--border);
+  color: var(--text-muted);
 }
 
 .btn-sm {
@@ -77,14 +77,14 @@
 }
 
 .alert-danger {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--danger-light);
+  color: var(--danger);
   border: 1px solid #fca5a5;
 }
 
 .alert-success {
   background-color: #dcfce7;
-  color: #166534;
+  color: var(--success);
   border: 1px solid #86efac;
 }
 
@@ -96,8 +96,8 @@
 }
 
 .ingestion-list-panel, .ingestion-detail-panel {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1.25rem;
 }
@@ -112,7 +112,7 @@
 .panel-header h3 {
   margin: 0;
   font-size: 1.15rem;
-  color: #334155;
+  color: var(--text-muted);
 }
 
 .ingestion-cards {
@@ -124,22 +124,22 @@
 }
 
 .ingestion-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.9rem;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
 }
 
 .ingestion-card:hover {
   border-color: #3b82f6;
-  background-color: #f1f5f9;
+  background-color: var(--bg-hover);
 }
 
 .ingestion-card.active {
-  border-color: #2563eb;
-  background-color: #eff6ff;
+  border-color: var(--primary);
+  background-color: var(--primary-light);
 }
 
 .card-header {
@@ -152,13 +152,13 @@
 .card-title {
   margin: 0 0 0.4rem 0;
   font-size: 0.95rem;
-  color: #0f172a;
+  color: var(--text-main);
   line-height: 1.3;
 }
 
 .source-url {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0 0 0.5rem 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -169,14 +169,14 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .medical-flag {
   margin-top: 0.5rem;
   padding: 0.25rem 0.5rem;
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--warning-light);
+  color: var(--warning);
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -190,21 +190,21 @@
   font-weight: 600;
 }
 
-.badge-1 { background-color: #e0f2fe; color: #0369a1; } /* Processing */
-.badge-2 { background-color: #fef3c7; color: #b45309; } /* PendingReview */
+.badge-1 { background-color: var(--primary-light); color: var(--primary); } /* Processing */
+.badge-2 { background-color: var(--warning-light); color: #b45309; } /* PendingReview */
 .badge-3 { background-color: #e0e7ff; color: #4338ca; } /* PartiallyApproved */
-.badge-4 { background-color: #dcfce7; color: #15803d; } /* FullyApproved */
-.badge-5 { background-color: #fee2e2; color: #b91c1c; } /* Rejected */
+.badge-4 { background-color: #dcfce7; color: var(--success); } /* FullyApproved */
+.badge-5 { background-color: var(--danger-light); color: var(--danger); } /* Rejected */
 .badge-6 { background-color: #f3f4f6; color: #4b5563; } /* Failed */
 
-.review-1 { background-color: #fef3c7; color: #b45309; } /* Pending */
-.review-2 { background-color: #dcfce7; color: #15803d; } /* Approved */
-.review-3 { background-color: #fee2e2; color: #b91c1c; } /* Rejected */
-.review-4 { background-color: #e2e8f0; color: #475569; } /* Deferred */
+.review-1 { background-color: var(--warning-light); color: #b45309; } /* Pending */
+.review-2 { background-color: #dcfce7; color: var(--success); } /* Approved */
+.review-3 { background-color: var(--danger-light); color: var(--danger); } /* Rejected */
+.review-4 { background-color: var(--border); color: var(--text-muted); } /* Deferred */
 
 .content-type {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -213,30 +213,30 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1.25rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 1rem;
 }
 
 .detail-header h3 {
   margin: 0 0 0.4rem 0;
   font-size: 1.35rem;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .source-info {
   margin: 0;
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .source-info a {
-  color: #2563eb;
+  color: var(--primary);
   text-decoration: none;
 }
 
 .medical-banner {
-  background-color: #fffbeb;
-  border: 1px solid #fef3c7;
+  background-color: var(--warning-light);
+  border: 1px solid var(--warning-light);
   border-left: 4px solid #f59e0b;
   padding: 0.75rem 1rem;
   border-radius: 4px;
@@ -246,18 +246,18 @@
 .medical-banner h4 {
   margin: 0 0 0.25rem 0;
   font-size: 0.95rem;
-  color: #92400e;
+  color: var(--warning);
 }
 
 .medical-banner p {
   margin: 0;
   font-size: 0.85rem;
-  color: #78350f;
+  color: var(--warning);
 }
 
 .text-snippet-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.85rem;
   margin-bottom: 1.5rem;
@@ -265,14 +265,14 @@
 
 .snippet-header {
   font-size: 0.85rem;
-  color: #334155;
+  color: var(--text-muted);
   margin-bottom: 0.4rem;
 }
 
 .snippet-text {
   margin: 0;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-muted);
   line-height: 1.5;
   max-height: 120px;
   overflow-y: auto;
@@ -289,12 +289,12 @@
 .claims-header h4 {
   margin: 0 0 0.2rem 0;
   font-size: 1.1rem;
-  color: #1e293b;
+  color: var(--text-main);
 }
 
 .sub-text {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .claims-list {
@@ -304,19 +304,19 @@
 }
 
 .claim-card {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 1rem;
-  background: #ffffff;
+  background: var(--bg-card);
   transition: all 0.2s;
 }
 
 .claim-card.approved {
-  border-left: 4px solid #16a34a;
+  border-left: 4px solid var(--success);
 }
 
 .claim-card.rejected {
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--danger);
   opacity: 0.7;
 }
 
@@ -343,16 +343,16 @@
 }
 
 .subtopic-badge {
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--border);
+  color: var(--text-muted);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
 }
 
 .nature-badge {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-hover);
+  color: var(--text-muted);
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -360,19 +360,19 @@
 
 .claim-text {
   font-size: 0.95rem;
-  color: #1e293b;
+  color: var(--text-main);
   line-height: 1.4;
   margin: 0 0 0.6rem 0;
 }
 
 .claim-context {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 0.6rem;
 }
 
 .m3-comparison-box {
-  background: #f8fafc;
+  background: var(--bg-hover);
   border-radius: 4px;
   padding: 0.5rem 0.75rem;
   font-size: 0.8rem;
@@ -380,15 +380,15 @@
 }
 
 .comparison-item.support {
-  color: #15803d;
+  color: var(--success);
 }
 
 .comparison-item.conflict {
-  color: #b91c1c;
+  color: var(--danger);
 }
 
 .comparison-item.neutral {
-  color: #475569;
+  color: var(--text-muted);
 }
 
 .comp-label {
@@ -402,8 +402,8 @@
 
 .coach-notes-box {
   font-size: 0.825rem;
-  color: #334155;
-  background: #f1f5f9;
+  color: var(--text-muted);
+  background: var(--bg-hover);
   padding: 0.4rem 0.6rem;
   border-radius: 4px;
   margin-bottom: 0.75rem;
@@ -417,7 +417,7 @@
 .loading-state, .empty-state, .placeholder-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.95rem;
 }
 
@@ -436,7 +436,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   width: 90%;
   max-width: 550px;
@@ -453,13 +453,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 1.15rem;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .close-btn {
@@ -467,7 +467,7 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .modal-body {
@@ -481,8 +481,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-top: 1px solid var(--border);
+  background: var(--bg-hover);
 }
 
 .form-group {
@@ -493,14 +493,14 @@
   display: block;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--text-muted);
   margin-bottom: 0.35rem;
 }
 
 .form-control {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.9rem;
   box-sizing: border-box;
@@ -508,13 +508,13 @@
 
 .form-control:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 .form-hint {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 0.25rem;
   display: block;
 }
@@ -524,24 +524,24 @@
   flex-direction: column;
   gap: 0.5rem;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--text-main);
 }
 
 .checkbox-option {
   font-size: 0.875rem;
-  color: #1e293b;
+  color: var(--text-main);
 }
 
 .approval-fields {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.85rem;
   margin-bottom: 1rem;
 }
 
 .review-claim-preview {
-  background: #f1f5f9;
+  background: var(--bg-hover);
   border-radius: 6px;
   padding: 0.75rem;
   margin-bottom: 1rem;
@@ -550,6 +550,8 @@
 .claim-quote {
   font-style: italic;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--text-main);
   margin: 0.4rem 0 0 0;
 }
+
+

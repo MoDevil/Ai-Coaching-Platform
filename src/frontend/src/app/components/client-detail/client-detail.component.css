@@ -60,7 +60,7 @@
 }
 
 .consent-form {
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
   border-radius: var(--radius);
   padding: 1rem;
   border: 1px solid var(--border);
@@ -78,3 +78,5 @@
 .btn-block {
   width: 100%;
 }
+
+

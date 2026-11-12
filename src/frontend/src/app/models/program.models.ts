@@ -87,6 +87,7 @@ export interface ExerciseSlot {
   exerciseName: string;
   movementPatternName: string;
   order: number;
+  warmupSets: string;
   targetSets: number;
   targetRepRange: string;
   effortGuideline: string;
@@ -94,6 +95,8 @@ export interface ExerciseSlot {
   selectionRationale: string;
   progressionRule?: ProgressionRule;
   coachingNote?: string;
+  alternative1Name?: string;
+  alternative2Name?: string;
 }
 
 export interface TrainingSession {
@@ -187,6 +190,10 @@ export interface GenerateProgramRequest {
   programName?: string;
   coachNotes?: string;
   numberOfWeeks?: number;
+  sessionsPerWeekOverride?: number;
+  sessionDurationOverride?: number;
+  injuryConstraintsOverride?: string;
+  availableEquipmentOverride?: string[];
 }
 
 export interface UpdateProgramStatusRequest {

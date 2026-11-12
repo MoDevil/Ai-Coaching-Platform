@@ -49,6 +49,7 @@ export interface TrainingProfile {
   priorities: ClientTrainingPriority[];
   createdAtUtc: string;
   updatedAtUtc?: string;
+  gymProfileId?: string | null;
 }
 
 export interface UpdateTrainingProfileRequest {
@@ -62,3 +63,4 @@ export interface UpdateTrainingProfileRequest {
   exerciseConstraints?: string | null;
   priorities: ClientTrainingPriority[];
 }
+

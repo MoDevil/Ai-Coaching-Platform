@@ -1,4 +1,4 @@
-<header class="app-nav">
+﻿<header class="app-nav">
   <div class="nav-container">
     <div class="nav-brand">
       <a routerLink="/" class="brand-link">
@@ -16,7 +16,8 @@
         
         <div class="user-menu">
           <span class="coach-name">{{ user.coachName }}</span>
-          <button type="button" class="btn btn-secondary btn-sm" (click)="onLogout()">Logout</button>
+          <button type="button" class="btn btn-outline" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;" (click)="toggleTheme()">Toggle Theme</button>
+          <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" (click)="onLogout()">Logout</button>
         </div>
       </ng-container>
 
@@ -27,13 +28,5 @@
     </nav>
   </div>
 </header>
+<main class="app-main"><router-outlet></router-outlet></main>
 
-<main class="app-main">
-  <router-outlet></router-outlet>
-</main>
-
-<footer class="app-footer">
-  <div class="container">
-    <p>AI Coach OS — Evidence-Based Coaching Operating System</p>
-  </div>
-</footer>

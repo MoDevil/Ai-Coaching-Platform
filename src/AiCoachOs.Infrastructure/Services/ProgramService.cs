@@ -38,6 +38,38 @@ public class ProgramService : IProgramService
             throw new InvalidOperationException("Client must have a completed training profile before generating a program.");
         }
 
+        // Apply UI overrides dynamically
+        bool profileChanged = false;
+        if (request.SessionsPerWeekOverride.HasValue)
+        {
+            var avail = profile.WeeklyAvailability;
+            var newAvail = new AiCoachOs.Domain.TrainingProfiles.TrainingAvailability(
+                request.SessionsPerWeekOverride.Value,
+                avail.AvailableDays,
+                avail.PreferredDays);
+            profile.SetAvailability(newAvail);
+            profileChanged = true;
+        }
+
+        if (request.SessionDurationOverride.HasValue || request.InjuryConstraintsOverride != null || request.AvailableEquipmentOverride != null)
+        {
+            profile.UpdateProfile(
+                experienceLevel: profile.ExperienceLevel,
+                sessionDurationMinMinutes: profile.SessionDurationMinMinutes,
+                sessionDurationTargetMinutes: request.SessionDurationOverride ?? profile.SessionDurationTargetMinutes,
+                sessionDurationMaxMinutes: profile.SessionDurationMaxMinutes,
+                availableEquipmentIds: request.AvailableEquipmentOverride ?? profile.AvailableEquipmentIds,
+                exercisePreferences: profile.ExercisePreferences,
+                exerciseConstraints: request.InjuryConstraintsOverride ?? profile.ExerciseConstraints
+            );
+            profileChanged = true;
+        }
+
+        if (profileChanged)
+        {
+            // Entity is already tracked by EF Core. Changes will be persisted in SaveChangesAsync.
+        }
+
         // Load exercises with relationships (muscles, equipment, substitutions)
         var exercises = await _context.Exercises
             .Include(e => e.MovementPattern)
@@ -236,6 +268,19 @@ public class ProgramService : IProgramService
                                 IncrementCondition: sl.ProgressionRule.IncrementCondition)
                             : null;
 
+                        // Derive alternatives from substitution list
+                        string? alt1 = null, alt2 = null;
+                        if (ex != null)
+                        {
+                            var subs = ex.Substitutions.ToList();
+                            alt1 = subs.Count > 0 ? exerciseLookup.TryGetValue(subs[0].SubstituteExerciseId, out var e1) ? e1.Name : null : null;
+                            alt2 = subs.Count > 1 ? exerciseLookup.TryGetValue(subs[1].SubstituteExerciseId, out var e2) ? e2.Name : null : null;
+                        }
+
+                        // Warm-up sets: compounds get 1~3 if first/second, 1~2 later; isolations get 0
+                        bool slotIsCompound = ex?.Category == Domain.Exercises.ExerciseCategory.Compound;
+                        string warmupSets = slotIsCompound ? (sl.Order <= 2 ? "1~3" : "1~2") : "0";
+
                         return new ExerciseSlotDto(
                             Id: sl.Id,
                             TrainingSessionId: sl.TrainingSessionId,
@@ -243,13 +288,16 @@ public class ProgramService : IProgramService
                             ExerciseName: ex?.Name ?? "Unknown Exercise",
                             MovementPatternName: ex?.MovementPattern?.Name ?? string.Empty,
                             Order: sl.Order,
+                            WarmupSets: warmupSets,
                             TargetSets: sl.TargetSets,
                             TargetRepRange: sl.TargetRepRange,
                             EffortGuideline: sl.EffortGuideline,
                             RestSeconds: sl.RestSeconds,
                             SelectionRationale: sl.SelectionRationale,
                             ProgressionRule: ruleDto,
-                            CoachingNote: sl.CoachingNote);
+                            CoachingNote: sl.CoachingNote,
+                            Alternative1Name: alt1,
+                            Alternative2Name: alt2);
                     }).ToList().AsReadOnly();
 
                     return new TrainingSessionDto(

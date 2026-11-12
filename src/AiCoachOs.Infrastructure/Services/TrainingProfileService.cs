@@ -204,7 +204,9 @@ public class TrainingProfileService : ITrainingProfileService
             profile.ExerciseConstraints,
             priorityDtos,
             profile.CreatedAtUtc,
-            profile.UpdatedAtUtc
-        );
+            profile.UpdatedAtUtc,
+            profile.GymProfileId
+            );
     }
 }
+

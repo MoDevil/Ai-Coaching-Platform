@@ -36,6 +36,7 @@ export interface ClientSummary {
   primaryGoal?: string | null;
   createdAtUtc: string;
   pendingRecommendationCount?: number;
+  
 }
 
 export interface ConsentRecord {
@@ -61,6 +62,7 @@ export interface Client {
   updatedAtUtc?: string | null;
   consentRecords: ConsentRecord[];
   pendingRecommendationCount?: number;
+  
 }
 
 export interface CreateClientRequest {
@@ -90,3 +92,5 @@ export interface AddConsentRequest {
   isGranted: boolean;
   notes?: string | null;
 }
+
+

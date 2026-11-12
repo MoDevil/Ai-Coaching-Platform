@@ -318,15 +318,112 @@ public static class ExerciseLibrarySeeder
         overheadTriceps.AddMuscle(Musc.TricepsBrachii, true);
         overheadTriceps.AddEquipment(Equip.Cable, true);
 
+        // Ex 15: Incline DB Press
+        var incDbPressId = new Guid("44444444-4444-4444-4444-444444444415");
+        var incDbPress = new Exercise(incDbPressId, "Incline Dumbbell Press", ExerciseCategory.Compound, Patterns.HorizontalPush,
+            QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Moderate,
+            QualitativeRating.High, QualitativeRating.High, ResistanceProfile.Lengthened,
+            "DB Incline Press", "Shoulder flexion and adduction", subGroupChestPress);
+        incDbPress.AddMuscle(Musc.PectoralisMajor, true);
+        incDbPress.AddMuscle(Musc.AnteriorDeltoid, true);
+        incDbPress.AddEquipment(Equip.Dumbbell, true);
+        incDbPress.AddEquipment(Equip.Bench, true);
+
+        // Ex 16: Dumbbell Overhead Press
+        var dbOhpId = new Guid("44444444-4444-4444-4444-444444444416");
+        var dbOhp = new Exercise(dbOhpId, "Dumbbell Overhead Press", ExerciseCategory.Compound, Patterns.VerticalPush,
+            QualitativeRating.Moderate, QualitativeRating.Moderate, QualitativeRating.High, QualitativeRating.Moderate,
+            QualitativeRating.High, QualitativeRating.High, ResistanceProfile.MidRange,
+            "Seated DB Press", "Shoulder abduction and elbow extension", subGroupSideDelt);
+        dbOhp.AddMuscle(Musc.AnteriorDeltoid, true);
+        dbOhp.AddMuscle(Musc.LateralDeltoid, true);
+        dbOhp.AddMuscle(Musc.TricepsBrachii, false);
+        dbOhp.AddEquipment(Equip.Dumbbell, true);
+        dbOhp.AddEquipment(Equip.Bench, true);
+
+        // Ex 17: Leg Press
+        var legPressId = new Guid("44444444-4444-4444-4444-444444444417");
+        var legPress = new Exercise(legPressId, "Leg Press Machine", ExerciseCategory.Machine, Patterns.Squat,
+            QualitativeRating.High, QualitativeRating.Moderate, QualitativeRating.High, QualitativeRating.Moderate,
+            QualitativeRating.High, QualitativeRating.High, ResistanceProfile.Lengthened,
+            "45 Degree Leg Press", "Knee extension, hip extension", subGroupSquat);
+        legPress.AddMuscle(Musc.Quadriceps, true);
+        legPress.AddMuscle(Musc.GluteusMaximus, true);
+        legPress.AddEquipment(Equip.Machine, true);
+
+        // Ex 18: Leg Extension
+        var legExtId = new Guid("44444444-4444-4444-4444-444444444418");
+        var legExt = new Exercise(legExtId, "Machine Leg Extension", ExerciseCategory.Isolation, Patterns.KneeExtension,
+            QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low,
+            QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.Shortened,
+            "Quad Extension", "Knee extension", subGroupSquat);
+        legExt.AddMuscle(Musc.Quadriceps, true);
+        legExt.AddEquipment(Equip.Machine, true);
+
+        // Ex 19: Seated Leg Curl
+        var legCurlId = new Guid("44444444-4444-4444-4444-444444444419");
+        var legCurl = new Exercise(legCurlId, "Seated Leg Curl", ExerciseCategory.Isolation, Patterns.KneeFlexion,
+            QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low,
+            QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.Lengthened,
+            "Machine Hamstring Curl", "Knee flexion", subGroupHinge);
+        legCurl.AddMuscle(Musc.Hamstrings, true);
+        legCurl.AddEquipment(Equip.Machine, true);
+
+        // Ex 20: Dumbbell Bicep Curl
+        var dbCurlId = new Guid("44444444-4444-4444-4444-444444444420");
+        var dbCurl = new Exercise(dbCurlId, "Dumbbell Bicep Curl", ExerciseCategory.Isolation, Patterns.ElbowFlexion,
+            QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.Moderate, QualitativeRating.Low,
+            QualitativeRating.Moderate, QualitativeRating.Moderate, ResistanceProfile.MidRange,
+            "DB Curl", "Elbow flexion", Guid.NewGuid());
+        dbCurl.AddMuscle(Musc.BicepsBrachii, true);
+        dbCurl.AddEquipment(Equip.Dumbbell, true);
+
+        // Ex 21: Cable Bicep Curl
+        var cableCurlId = new Guid("44444444-4444-4444-4444-444444444421");
+        var cableCurl = new Exercise(cableCurlId, "Cable Bicep Curl", ExerciseCategory.Isolation, Patterns.ElbowFlexion,
+            QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low,
+            QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.Lengthened,
+            "Rope Curl, Straight Bar Cable Curl", "Elbow flexion", Guid.NewGuid());
+        cableCurl.AddMuscle(Musc.BicepsBrachii, true);
+        cableCurl.AddEquipment(Equip.Cable, true);
+
+        // Ex 22: Machine Calf Raise
+        var calfId = new Guid("44444444-4444-4444-4444-444444444422");
+        // We don't have an Ankle pattern seeded. Use Trunk/Core or create a fallback. Actually, wait. I can just map it to an existing pattern like Knee Flexion as a hack? No, let's map it to KneeExtension pattern for now but muscles are Calves. We don't have Calves in Muscles list!
+        // Wait, the user didn't complain about calves, they complained about anterior deltoid and biceps. I'll skip calves to avoid schema issues, or just add Abs.
+
+        // Ex 22: Cable Crunch
+        var crunchId = new Guid("44444444-4444-4444-4444-444444444423");
+        var crunch = new Exercise(crunchId, "Kneeling Cable Crunch", ExerciseCategory.Isolation, Patterns.TrunkCore,
+            QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low,
+            QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.MidRange,
+            "Rope Crunch", "Spinal flexion", Guid.NewGuid());
+        crunch.AddMuscle(Musc.RectusAbdominis, true);
+        crunch.AddEquipment(Equip.Cable, true);
+
+        // Ex 23: Machine Chest Press
+        var machChestId = new Guid("44444444-4444-4444-4444-444444444424");
+        var machChest = new Exercise(machChestId, "Machine Chest Press", ExerciseCategory.Machine, Patterns.HorizontalPush,
+            QualitativeRating.High, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low,
+            QualitativeRating.High, QualitativeRating.High, ResistanceProfile.Lengthened,
+            "Seated Chest Press", "Shoulder horizontal adduction", subGroupChestPress);
+        machChest.AddMuscle(Musc.PectoralisMajor, true);
+        machChest.AddMuscle(Musc.AnteriorDeltoid, false);
+        machChest.AddMuscle(Musc.TricepsBrachii, false);
+        machChest.AddEquipment(Equip.Machine, true);
+
         // Add substitutions preserving training intent
         squat.AddSubstitution(hackSquatId, "Machine-guided squat preserves quad stimulus with reduced spinal loading and greater stability.");
         hackSquat.AddSubstitution(squatId, "Free-weight bilateral squat matches knee-dominant stimulus with higher axial stability requirement.");
+        squat.AddSubstitution(legPressId, "Leg press provides complete axial deloading while maintaining quad and glute stimulus.");
+        legPress.AddSubstitution(hackSquatId, "Hack squat provides similar machine-based stability with slightly different hip/knee angles.");
 
         rdl.AddSubstitution(dbRdlId, "Dumbbell variant preserves lengthened hamstring loading with neutral wrist/arm path.");
         dbRdl.AddSubstitution(rdlId, "Barbell variant preserves lengthened hamstring loading with greater absolute loading capacity.");
 
         bench.AddSubstitution(dbBenchId, "Dumbbell press preserves horizontal push with greater convergent range of motion.");
         dbBench.AddSubstitution(benchId, "Barbell bench press preserves horizontal push with higher external stability.");
+        bench.AddSubstitution(machChestId, "Machine chest press provides highest stability for pectoralis isolation.");
 
         cableRow.AddSubstitution(tbarRowId, "Chest-supported row preserves horizontal pull with complete spinal deloading.");
         tbarRow.AddSubstitution(cableRowId, "Cable row preserves horizontal pull with customizable handle attachments.");
@@ -339,13 +436,70 @@ public static class ExerciseLibrarySeeder
 
         pushdown.AddSubstitution(overheadTricepsId, "Overhead extension places triceps long head into greater stretch/lengthened bias.");
         overheadTriceps.AddSubstitution(pushdownId, "Pushdown emphasizes shortened range with lower shoulder mobility requirement.");
+        
+        dbCurl.AddSubstitution(cableCurlId, "Cable curl provides constant tension across the entire range of motion.");
+        cableCurl.AddSubstitution(dbCurlId, "Dumbbell curl allows for unilateral focus and supination.");
 
         await context.ExercisesDbSet.AddRangeAsync(new[]
         {
             squat, hackSquat, rdl, dbRdl, bench, dbBench, cableRow,
-            tbarRow, latPulldown, pullUp, dbLatRaise, cableLatRaise, pushdown, overheadTriceps
+            tbarRow, latPulldown, pullUp, dbLatRaise, cableLatRaise, pushdown, overheadTriceps,
+            incDbPress, dbOhp, legPress, legExt, legCurl, dbCurl, cableCurl, crunch, machChest
         });
         await context.SaveChangesAsync();
+        } // End of !hasExercises
+
+        var existingExerciseCount = await context.ExercisesDbSet.CountAsync();
+        if (existingExerciseCount > 0 && existingExerciseCount < 20)
+        {
+            var dbOhpId = new Guid("44444444-4444-4444-4444-444444444416");
+            if (!await context.ExercisesDbSet.AnyAsync(e => e.Id == dbOhpId))
+            {
+                // Re-declare variables for missing exercises to add them
+                var subGroupChestPress = Guid.NewGuid();
+                var subGroupSideDelt = Guid.NewGuid();
+                var subGroupSquat = Guid.NewGuid();
+                var subGroupHinge = Guid.NewGuid();
+                
+                var incDbPress = new Exercise(new Guid("44444444-4444-4444-4444-444444444415"), "Incline Dumbbell Press", ExerciseCategory.Compound, Patterns.HorizontalPush,
+                    QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Moderate, QualitativeRating.High, QualitativeRating.High, ResistanceProfile.Lengthened, "DB Incline Press", "Shoulder flexion and adduction", subGroupChestPress);
+                incDbPress.AddMuscle(Musc.PectoralisMajor, true); incDbPress.AddMuscle(Musc.AnteriorDeltoid, true); incDbPress.AddEquipment(Equip.Dumbbell, true); incDbPress.AddEquipment(Equip.Bench, true);
+                
+                var dbOhp = new Exercise(dbOhpId, "Dumbbell Overhead Press", ExerciseCategory.Compound, Patterns.VerticalPush,
+                    QualitativeRating.Moderate, QualitativeRating.Moderate, QualitativeRating.High, QualitativeRating.Moderate, QualitativeRating.High, QualitativeRating.High, ResistanceProfile.MidRange, "Seated DB Press", "Shoulder abduction and elbow extension", subGroupSideDelt);
+                dbOhp.AddMuscle(Musc.AnteriorDeltoid, true); dbOhp.AddMuscle(Musc.LateralDeltoid, true); dbOhp.AddMuscle(Musc.TricepsBrachii, false); dbOhp.AddEquipment(Equip.Dumbbell, true); dbOhp.AddEquipment(Equip.Bench, true);
+                
+                var legPress = new Exercise(new Guid("44444444-4444-4444-4444-444444444417"), "Leg Press Machine", ExerciseCategory.Machine, Patterns.Squat,
+                    QualitativeRating.High, QualitativeRating.Moderate, QualitativeRating.High, QualitativeRating.Moderate, QualitativeRating.High, QualitativeRating.High, ResistanceProfile.Lengthened, "45 Degree Leg Press", "Knee extension, hip extension", subGroupSquat);
+                legPress.AddMuscle(Musc.Quadriceps, true); legPress.AddMuscle(Musc.GluteusMaximus, true); legPress.AddEquipment(Equip.Machine, true);
+                
+                var legExt = new Exercise(new Guid("44444444-4444-4444-4444-444444444418"), "Machine Leg Extension", ExerciseCategory.Isolation, Patterns.KneeExtension,
+                    QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.Shortened, "Quad Extension", "Knee extension", subGroupSquat);
+                legExt.AddMuscle(Musc.Quadriceps, true); legExt.AddEquipment(Equip.Machine, true);
+                
+                var legCurl = new Exercise(new Guid("44444444-4444-4444-4444-444444444419"), "Seated Leg Curl", ExerciseCategory.Isolation, Patterns.KneeFlexion,
+                    QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.Lengthened, "Machine Hamstring Curl", "Knee flexion", subGroupHinge);
+                legCurl.AddMuscle(Musc.Hamstrings, true); legCurl.AddEquipment(Equip.Machine, true);
+                
+                var dbCurl = new Exercise(new Guid("44444444-4444-4444-4444-444444444420"), "Dumbbell Bicep Curl", ExerciseCategory.Isolation, Patterns.ElbowFlexion,
+                    QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.Moderate, QualitativeRating.Moderate, ResistanceProfile.MidRange, "DB Curl", "Elbow flexion", Guid.NewGuid());
+                dbCurl.AddMuscle(Musc.BicepsBrachii, true); dbCurl.AddEquipment(Equip.Dumbbell, true);
+                
+                var cableCurl = new Exercise(new Guid("44444444-4444-4444-4444-444444444421"), "Cable Bicep Curl", ExerciseCategory.Isolation, Patterns.ElbowFlexion,
+                    QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.Lengthened, "Rope Curl", "Elbow flexion", Guid.NewGuid());
+                cableCurl.AddMuscle(Musc.BicepsBrachii, true); cableCurl.AddEquipment(Equip.Cable, true);
+                
+                var crunch = new Exercise(new Guid("44444444-4444-4444-4444-444444444423"), "Kneeling Cable Crunch", ExerciseCategory.Isolation, Patterns.TrunkCore,
+                    QualitativeRating.Moderate, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Moderate, ResistanceProfile.MidRange, "Rope Crunch", "Spinal flexion", Guid.NewGuid());
+                crunch.AddMuscle(Musc.RectusAbdominis, true); crunch.AddEquipment(Equip.Cable, true);
+                
+                var machChest = new Exercise(new Guid("44444444-4444-4444-4444-444444444424"), "Machine Chest Press", ExerciseCategory.Machine, Patterns.HorizontalPush,
+                    QualitativeRating.High, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.Low, QualitativeRating.High, QualitativeRating.High, ResistanceProfile.Lengthened, "Seated Chest Press", "Shoulder horizontal adduction", subGroupChestPress);
+                machChest.AddMuscle(Musc.PectoralisMajor, true); machChest.AddEquipment(Equip.Machine, true);
+
+                await context.ExercisesDbSet.AddRangeAsync(new[] { incDbPress, dbOhp, legPress, legExt, legCurl, dbCurl, cableCurl, crunch, machChest });
+                await context.SaveChangesAsync();
+            }
         }
 
         var hasAnatomy = await context.AnatomicalRegionsDbSet.AnyAsync();

@@ -36,17 +36,28 @@ public class ExerciseSelector : IExerciseSelector
         RecoveryCapacity recoveryCapacity,
         IConstraintAnalyzer constraintAnalyzer)
     {
-        // 1. Filter candidates for the requested movement pattern
+        // 1. Filter candidates for the requested movement pattern that haven't been used this week
         var patternCandidates = allExercises
             .Where(e => e.MovementPatternId == movementPatternId && !alreadySelectedExerciseIds.Contains(e.Id))
             .ToList();
 
         if (patternCandidates.Count == 0)
         {
-            // Fallback: any exercise not already selected that targets priority muscles
+            // Fallback: if we ran out of unique exercises for this pattern across the week,
+            // we MUST reuse one we already did earlier in the week.
+            // Do NOT fall back to picking a random un-used exercise from a completely different pattern!
             patternCandidates = allExercises
-                .Where(e => !alreadySelectedExerciseIds.Contains(e.Id))
+                .Where(e => e.MovementPatternId == movementPatternId)
                 .ToList();
+                
+            if (patternCandidates.Count == 0)
+            {
+                // Extreme fallback: database literally has no exercises for this pattern at all.
+                // Try substituting based on primary muscles targeting instead.
+                patternCandidates = allExercises
+                    .Where(e => !alreadySelectedExerciseIds.Contains(e.Id))
+                    .ToList();
+            }
         }
 
         // Rank candidates

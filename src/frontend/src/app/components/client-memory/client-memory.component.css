@@ -17,7 +17,7 @@
 }
 
 .card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 8px;
   border: 1px solid #e0e0e0;
   padding: 1.25rem;
@@ -35,7 +35,7 @@
 
 .uncertain-card {
   padding: 0.5rem;
-  background: white;
+  background: var(--bg-card);
   border-radius: 4px;
   margin-top: 0.5rem;
   border-left: 4px solid #ffb300;
@@ -50,7 +50,7 @@
 }
 
 .conflict-card {
-  background: white;
+  background: var(--bg-card);
   padding: 0.75rem;
   border-radius: 6px;
   margin-top: 0.75rem;
@@ -130,7 +130,7 @@
 
 .memory-card.status-active {
   border-left: 4px solid #4caf50;
-  background: white;
+  background: var(--bg-card);
 }
 
 .memory-card.status-conflicted {
@@ -211,4 +211,6 @@
 .btn-secondary { background: #757575; color: white; }
 .btn-danger { background: #d32f2f; color: white; }
 .btn-success { background: #388e3c; color: white; }
-.btn-outline { background: white; border: 1px solid #ccc; color: #333; }
+.btn-outline { background: var(--bg-card); border: 1px solid #ccc; color: #333; }
+
+

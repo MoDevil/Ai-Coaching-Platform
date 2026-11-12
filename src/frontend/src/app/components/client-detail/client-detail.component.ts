@@ -32,6 +32,7 @@ import {
   EquipmentTier
 } from '../../models/gym.models';
 import { NutritionService } from '../../services/nutrition.service';
+import { TrainingProfileService } from '../../services/training-profile.service';
 import {
   ClientNutritionProfileDto,
   NutritionTargetCalculationResultDto,
@@ -164,6 +165,7 @@ export class ClientDetailComponent implements OnInit {
     private safetyService: SafetyService,
     private rehabService: RehabService,
     private nutritionService: NutritionService,
+    private trainingProfileService: TrainingProfileService,
     private gymService: GymService
   ) {}
 
@@ -181,6 +183,18 @@ export class ClientDetailComponent implements OnInit {
     this.loadEgyptianFoods();
     this.loadFoodSuggestions();
     this.loadGyms();
+    this.loadAssignedGym();
+  }
+
+  loadAssignedGym(): void {
+    this.trainingProfileService.getProfile(this.clientId).subscribe({
+      next: (profile) => {
+        if (profile) {
+          this.selectedGymId = profile.gymProfileId || null;
+        }
+      },
+      error: () => {}
+    });
   }
 
   loadGyms(): void {
@@ -510,7 +524,8 @@ export class ClientDetailComponent implements OnInit {
     this.clientService.getClientById(this.clientId).subscribe({
       next: (data) => {
         this.client = data;
-        this.isLoading = false;
+          
+          this.isLoading = false;
       },
       error: (err) => {
         this.isLoading = false;
@@ -572,3 +587,7 @@ export class ClientDetailComponent implements OnInit {
     return status === ClientStatus.Active ? 'badge-active' : 'badge-archived';
   }
 }
+
+
+
+

@@ -67,55 +67,58 @@ public class GoalAnalyzer : IGoalAnalyzer
 
     public GoalTrainingParameters DeriveParameters(GoalSnapshot goalSnapshot)
     {
+        // Evidence-based rest periods: Schoenfeld et al. 2016 showed 3+ min rest
+        // produces significantly greater hypertrophy and strength gains vs 1 min.
+        // Belghamdi templates prescribe 3~5 min universally.
         return goalSnapshot.PrimaryGoal switch
         {
             PrimaryGoalType.Strength => new GoalTrainingParameters(
                 PrimaryGoal: PrimaryGoalType.Strength,
-                CompoundRepRange: "3-6",
-                IsolationRepRange: "6-10",
+                CompoundRepRange: "3~6",
+                IsolationRepRange: "6~10",
                 EffortGuideline: "2-3 RIR (compounds), 1-2 RIR (isolations)",
-                CompoundRestSeconds: 180,
-                IsolationRestSeconds: 90,
-                BaselineSetsPerExercise: 3,
+                CompoundRestSeconds: 300,   // 5 min — heavy strength work
+                IsolationRestSeconds: 210,  // 3~5 min
+                BaselineSetsPerExercise: 2,
                 PriorityBonusSets: 1),
 
             PrimaryGoalType.Hypertrophy => new GoalTrainingParameters(
                 PrimaryGoal: PrimaryGoalType.Hypertrophy,
-                CompoundRepRange: "6-10",
-                IsolationRepRange: "10-15",
+                CompoundRepRange: "5~8",
+                IsolationRepRange: "6~10",
                 EffortGuideline: "1-2 RIR",
-                CompoundRestSeconds: 120,
-                IsolationRestSeconds: 75,
-                BaselineSetsPerExercise: 3,
+                CompoundRestSeconds: 270,   // 3~5 min
+                IsolationRestSeconds: 210,  // 3~5 min
+                BaselineSetsPerExercise: 2,
                 PriorityBonusSets: 1),
 
             PrimaryGoalType.FatLoss => new GoalTrainingParameters(
                 PrimaryGoal: PrimaryGoalType.FatLoss,
-                CompoundRepRange: "8-12",
-                IsolationRepRange: "12-15",
+                CompoundRepRange: "6~10",
+                IsolationRepRange: "8~12",
                 EffortGuideline: "2 RIR",
-                CompoundRestSeconds: 90,
-                IsolationRestSeconds: 60,
-                BaselineSetsPerExercise: 3,
+                CompoundRestSeconds: 210,   // 3~5 min — preserve strength in deficit
+                IsolationRestSeconds: 180,  // 3 min
+                BaselineSetsPerExercise: 2,
                 PriorityBonusSets: 0),
 
             PrimaryGoalType.Recomposition => new GoalTrainingParameters(
                 PrimaryGoal: PrimaryGoalType.Recomposition,
-                CompoundRepRange: "6-10",
-                IsolationRepRange: "10-12",
+                CompoundRepRange: "5~8",
+                IsolationRepRange: "6~10",
                 EffortGuideline: "1-2 RIR",
-                CompoundRestSeconds: 120,
-                IsolationRestSeconds: 75,
-                BaselineSetsPerExercise: 3,
+                CompoundRestSeconds: 270,   // 3~5 min
+                IsolationRestSeconds: 210,  // 3~5 min
+                BaselineSetsPerExercise: 2,
                 PriorityBonusSets: 1),
 
             _ => new GoalTrainingParameters(
                 PrimaryGoal: PrimaryGoalType.GeneralFitness,
-                CompoundRepRange: "8-12",
-                IsolationRepRange: "10-15",
+                CompoundRepRange: "6~10",
+                IsolationRepRange: "8~12",
                 EffortGuideline: "2-3 RIR",
-                CompoundRestSeconds: 90,
-                IsolationRestSeconds: 60,
+                CompoundRestSeconds: 210,   // 3~5 min
+                IsolationRestSeconds: 180,  // 3 min
                 BaselineSetsPerExercise: 2,
                 PriorityBonusSets: 1)
         };

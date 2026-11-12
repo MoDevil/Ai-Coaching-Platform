@@ -124,12 +124,21 @@ public class ProgramBuilder : IProgramBuilder
         var vPullId = FindPatternId("Vertical Pull");
         var lungeId = FindPatternId("Lunge");
         var carryId = FindPatternId("Carry");
+        
+        // Isolation patterns
+        var elbFlexId = FindPatternId("Elbow Flexion");
+        var elbExtId = FindPatternId("Elbow Extension");
+        var shdAbdId = FindPatternId("Shoulder Abduction");
+        var kneeExtId = FindPatternId("Knee Extension");
+        var kneeFlexId = FindPatternId("Knee Flexion");
+        var coreId = FindPatternId("Core") ?? FindPatternId("Trunk");
 
         // Distribute patterns dynamically across the requested number of weekly sessions
         // to avoid high fatigue overlap across consecutive sessions
         var sessionConfigs = BuildDynamicSessionConfigurations(
             constraints.SessionsPerWeek,
             squatId, hingeId, hPushId, hPullId, vPushId, vPullId, lungeId, carryId,
+            elbFlexId, elbExtId, shdAbdId, kneeExtId, kneeFlexId, coreId,
             allPatterns.Select(p => p.Id).ToList());
 
         // 6. Instantiate Program & ProgramVersion
@@ -171,6 +180,9 @@ public class ProgramBuilder : IProgramBuilder
         for (int weekNum = 1; weekNum <= totalWeeks; weekNum++)
         {
             var week = new TrainingWeek(Guid.NewGuid(), versionId, weekNum);
+            
+            // Track used exercises across the entire week to ensure variety
+            var programUsedIds = new HashSet<Guid>();
 
             for (int sessionIndex = 0; sessionIndex < sessionConfigs.Count; sessionIndex++)
             {
@@ -178,8 +190,6 @@ public class ProgramBuilder : IProgramBuilder
                 DayOfWeek? plannedDay = sessionIndex < constraints.PlannedDays.Count
                     ? constraints.PlannedDays[sessionIndex]
                     : null;
-
-                var sessionUsedIds = new HashSet<Guid>();
 
                 var session = _sessionBuilder.BuildSession(
                     trainingWeekId: week.Id,
@@ -199,7 +209,7 @@ public class ProgramBuilder : IProgramBuilder
                     targetDurationMinutes: constraints.TargetDurationMinutes,
                     exerciseSelector: _exerciseSelector,
                     constraintAnalyzer: _constraintAnalyzer,
-                    sessionUsedExerciseIds: sessionUsedIds);
+                    sessionUsedExerciseIds: programUsedIds); // Keep accumulating used IDs across the week
 
                 week.AddSession(session);
             }
@@ -309,80 +319,80 @@ public class ProgramBuilder : IProgramBuilder
     private static List<SessionConfig> BuildDynamicSessionConfigurations(
         int sessionsPerWeek,
         Guid? squatId, Guid? hingeId, Guid? hPushId, Guid? hPullId, Guid? vPushId, Guid? vPullId, Guid? lungeId, Guid? carryId,
+        Guid? elbFlexId, Guid? elbExtId, Guid? shdAbdId, Guid? kneeExtId, Guid? kneeFlexId, Guid? coreId,
         List<Guid> fallbackPatterns)
     {
         // Deterministic distribution of movement patterns according to available session count
-        // Notice: This is NOT a fixed split template (like PPL or Bro Split); it dynamically balances
-        // opposing planar forces and lower/upper stimulus to avoid overlapping fatigue bottlenecks.
-
         List<Guid> ValidList(params Guid?[] ids) => ids.Where(i => i.HasValue).Select(i => i!.Value).ToList();
 
+        // Science-based split archetypes derived from Belghamdi templates.
+        // Pattern order within each session follows compound-first, isolation-last principle.
         return sessionsPerWeek switch
         {
             1 => new List<SessionConfig>
             {
-                new("Full Body Comprehensive", "Full body multi-planar stimulus balancing major knee, hip, pushing and pulling actions.",
-                    ValidList(squatId, hPushId, hingeId, hPullId, vPushId, vPullId, lungeId))
+                new("Full Body", "Complete full-body stimulus: compound knee/hip + push/pull + accessory isolation.",
+                    ValidList(squatId, hPushId, hingeId, hPullId, vPushId, shdAbdId, elbFlexId, elbExtId, coreId))
             },
 
             2 => new List<SessionConfig>
             {
-                new("Foundation A", "Lower knee/quad emphasis combined with upper horizontal push/pull patterns.",
-                    ValidList(squatId, hPushId, hPullId, lungeId, carryId)),
-                new("Foundation B", "Posterior chain hip hinge emphasis combined with upper vertical push/pull patterns.",
-                    ValidList(hingeId, vPushId, vPullId, squatId, hPushId))
+                new("Full Body #1", "Anterior bias: quad-dominant squat + horizontal pressing + lateral delts + triceps + core.",
+                    ValidList(squatId, hPushId, hPullId, shdAbdId, elbExtId, kneeExtId, coreId)),
+                new("Full Body #2", "Posterior bias: hip hinge + vertical pulling + rear delts + biceps + hamstrings.",
+                    ValidList(hingeId, vPullId, vPushId, kneeFlexId, elbFlexId, coreId))
             },
 
             3 => new List<SessionConfig>
             {
-                new("Session 1 (Lower / Push)", "Squat and horizontal pushing focus with complementary pulling and core stability.",
-                    ValidList(squatId, hPushId, hPullId, lungeId)),
-                new("Session 2 (Posterior / Pull)", "Hip hinge and vertical pulling focus with overhead pressing actions.",
-                    ValidList(hingeId, vPullId, vPushId, hPullId)),
-                new("Session 3 (Balanced Compound)", "Multi-planar integration combining single-leg, horizontal push, and hinge patterns.",
-                    ValidList(lungeId, hPushId, squatId, vPullId, carryId))
+                new("Full Body #1", "Upper push emphasis + back width + quads + hamstrings + arms.",
+                    ValidList(vPushId, hPullId, shdAbdId, vPullId, elbFlexId, elbExtId, kneeFlexId, kneeExtId, coreId)),
+                new("Full Body #2", "Lower quad emphasis + horizontal push + back + shoulders + arms.",
+                    ValidList(squatId, kneeFlexId, hPushId, hPullId, vPushId, elbFlexId, elbExtId, coreId)),
+                new("Full Body #3", "Posterior chain emphasis + incline push + back thickness + lateral delts + arms.",
+                    ValidList(hingeId, hPullId, hPushId, kneeExtId, shdAbdId, elbFlexId, elbExtId, coreId))
             },
 
             4 => new List<SessionConfig>
             {
-                new("Session 1 (Lower Quadriceps & Horizontal Push)", "Knee flexion/extension dominant paired with horizontal pushing vectors.",
-                    ValidList(squatId, hPushId, lungeId, hPullId)),
-                new("Session 2 (Posterior Chain & Vertical Pull)", "Hip extension dominant paired with vertical pulling vectors.",
-                    ValidList(hingeId, vPullId, vPushId, carryId)),
-                new("Session 3 (Lower Unilateral & Overhead Push)", "Single-leg knee stability paired with vertical pushing and horizontal pulling.",
-                    ValidList(lungeId, vPushId, hPullId, squatId)),
-                new("Session 4 (Posterior Hinge & Horizontal Pull)", "Hip-dominant hinge paired with horizontal chest and rowing actions.",
-                    ValidList(hingeId, hPullId, hPushId, vPullId))
+                new("Anterior A", "Front-body focus: shoulder press + chest press + squat + lateral raises + triceps + abs + leg extension.",
+                    ValidList(vPushId, hPushId, squatId, shdAbdId, elbExtId, coreId, kneeExtId)),
+                new("Posterior A", "Back-body focus: row + lat pulldown + RDL + rear delts + leg curl + biceps.",
+                    ValidList(hPullId, vPullId, hingeId, kneeFlexId, elbFlexId)),
+                new("Anterior B", "Front-body volume: incline press + shoulder press + leg extension + lateral raises + triceps.",
+                    ValidList(hPushId, vPushId, kneeExtId, shdAbdId, elbExtId)),
+                new("Posterior B", "Back-body volume: row variations + biceps + RDL + rear delts + leg curl.",
+                    ValidList(hPullId, vPullId, elbFlexId, hingeId, kneeFlexId))
             },
 
             5 => new List<SessionConfig>
             {
-                new("Session 1 (Knee Dominant & Chest)", "Squat mechanics and horizontal pressing.",
-                    ValidList(squatId, hPushId, lungeId)),
-                new("Session 2 (Hip Dominant & Upper Back)", "Hip hinge mechanics and horizontal rowing.",
-                    ValidList(hingeId, hPullId, carryId)),
-                new("Session 3 (Overhead Vectors & Vertical Pull)", "Vertical pushing and vertical pulling balance.",
-                    ValidList(vPushId, vPullId, hPushId)),
-                new("Session 4 (Unilateral Lower & Posterior Chain)", "Single-leg stability and hamstring/glute stimulus.",
-                    ValidList(lungeId, hingeId, squatId)),
-                new("Session 5 (Full Upper Hypertrophy / Volume Output)", "Upper body antagonist pairings.",
-                    ValidList(hPushId, hPullId, vPushId, vPullId))
+                new("Push", "Chest + shoulders + triceps: lateral raises, incline press, flat press, triceps, abs.",
+                    ValidList(shdAbdId, hPushId, elbExtId, coreId)),
+                new("Pull", "Back + biceps + rear delts: row, lat row, pulldown, shrugs, curls.",
+                    ValidList(hPullId, vPullId, elbFlexId)),
+                new("Lower A", "Quad emphasis: squat/hack + leg extension + leg curl.",
+                    ValidList(squatId, kneeExtId, kneeFlexId)),
+                new("Upper", "Balanced upper: row + press + pulldown + shoulder press + tricep + curls + lateral raises.",
+                    ValidList(hPullId, hPushId, vPullId, vPushId, elbExtId, elbFlexId, shdAbdId)),
+                new("Lower B", "Posterior emphasis: SLDL/RDL + leg curl + leg extension + abs.",
+                    ValidList(hingeId, kneeFlexId, kneeExtId, coreId))
             },
 
             _ => new List<SessionConfig>
             {
-                new("Session 1 (Knee Dominant & Push)", "Squat and horizontal pressing.",
-                    ValidList(squatId, hPushId, lungeId)),
-                new("Session 2 (Hip Dominant & Pull)", "Deadlift/hinge and horizontal pulling.",
-                    ValidList(hingeId, hPullId, carryId)),
-                new("Session 3 (Vertical Vectors)", "Vertical press and vertical pull balance.",
-                    ValidList(vPushId, vPullId)),
-                new("Session 4 (Lower Hypertrophy Focus)", "Combined knee and hip stimulus.",
-                    ValidList(squatId, hingeId, lungeId)),
-                new("Session 5 (Horizontal Vectors Focus)", "Horizontal push and row emphasis.",
-                    ValidList(hPushId, hPullId)),
-                new("Session 6 (Work Capacity & Multi-Planar)", "Unilateral movements and functional carries.",
-                    ValidList(lungeId, carryId, vPullId))
+                new("Push", "Chest + shoulders + triceps.",
+                    ValidList(hPushId, vPushId, shdAbdId, elbExtId)),
+                new("Pull", "Back + biceps + rear delts.",
+                    ValidList(hPullId, vPullId, elbFlexId)),
+                new("Lower A", "Quad-dominant lower.",
+                    ValidList(squatId, kneeExtId, kneeFlexId, coreId)),
+                new("Upper", "Balanced upper body.",
+                    ValidList(hPullId, hPushId, vPullId, vPushId, elbFlexId, elbExtId, shdAbdId)),
+                new("Lower B", "Posterior-dominant lower.",
+                    ValidList(hingeId, kneeFlexId, kneeExtId, coreId)),
+                new("Arms & Shoulders", "Direct arm and shoulder work.",
+                    ValidList(shdAbdId, elbFlexId, elbExtId, coreId))
             }
         };
     }

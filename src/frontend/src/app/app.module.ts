@@ -20,6 +20,13 @@ import { SubstanceReferenceComponent } from './components/substance-reference/su
 import { ClientMemoryComponent } from './components/client-memory/client-memory.component';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
+// Standalone components — imported into imports[], not declarations[]
+import { ClientPhotosComponent } from './components/client-photos/client-photos.component';
+import { ClientVideosComponent } from './components/client-videos/client-videos.component';
+import { ExpertIngestionComponent } from './components/expert-ingestion/expert-ingestion.component';
+import { ClientRecommendationsComponent } from './components/client-recommendations/client-recommendations.component';
+import { RecommendationDetailComponent } from './components/recommendation-detail/recommendation-detail.component';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -42,7 +49,13 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
     HttpClientModule,
     ReactiveFormsModule,
     FormsModule,
-    AppRoutingModule
+    AppRoutingModule,
+    // Standalone components loaded by router
+    ClientPhotosComponent,
+    ClientVideosComponent,
+    ExpertIngestionComponent,
+    ClientRecommendationsComponent,
+    RecommendationDetailComponent
   ],
   providers: [
     {

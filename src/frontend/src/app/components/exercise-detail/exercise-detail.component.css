@@ -30,7 +30,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--bg-hover);
 }
 
 .qual-row:last-child {
@@ -48,24 +48,24 @@
   font-weight: 700;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  background-color: #f1f5f9;
-  color: #334155;
+  background-color: var(--bg-hover);
+  color: var(--text-muted);
   border: 1px solid var(--border);
 }
 
 .rating-high {
-  background-color: #f0fdf4;
-  color: #15803d;
+  background-color: var(--success-light);
+  color: var(--success);
 }
 
 .rating-moderate {
-  background-color: #fffbeb;
+  background-color: var(--warning-light);
   color: #b45309;
 }
 
 .rating-low {
-  background-color: #f1f5f9;
-  color: #475569;
+  background-color: var(--bg-hover);
+  color: var(--text-muted);
 }
 
 .muscle-group-title {
@@ -98,7 +98,7 @@
 
 .sub-item {
   padding: 1rem;
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
   border-radius: var(--radius);
   border: 1px solid var(--border);
 }
@@ -134,3 +134,5 @@
   line-height: 1.6;
   font-size: 0.875rem;
 }
+
+

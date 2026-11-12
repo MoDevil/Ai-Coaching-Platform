@@ -26,8 +26,13 @@ public interface ISessionBuilder
         HashSet<Guid> sessionUsedExerciseIds);
 }
 
+public record SlotMetadata(string WarmupSets, string? Alternative1Name, string? Alternative2Name);
+
 public class SessionBuilder : ISessionBuilder
 {
+    private readonly Dictionary<Guid, SlotMetadata> _slotMetadata = new();
+
+    public IReadOnlyDictionary<Guid, SlotMetadata> SlotMetadataMap => _slotMetadata;
     public TrainingSession BuildSession(
         Guid trainingWeekId,
         int dayNumber,
@@ -91,6 +96,16 @@ public class SessionBuilder : ISessionBuilder
             string repRange = isCompound ? parameters.CompoundRepRange : parameters.IsolationRepRange;
             int restSeconds = isCompound ? parameters.CompoundRestSeconds : parameters.IsolationRestSeconds;
 
+            // Warm-up sets: compounds get warm-up sets based on position in session
+            // First compound = heavy warm-up (1~3), later compounds = lighter (1~2), isolations = 0
+            string warmupSets;
+            if (isCompound && currentOrder <= 2)
+                warmupSets = "1~3";
+            else if (isCompound)
+                warmupSets = "1~2";
+            else
+                warmupSets = "0";
+
             // Sets derived from baseline + muscle priority bonus
             int sets = parameters.BaselineSetsPerExercise;
             bool targetsPriorityMuscle = ex.Muscles.Any(m =>
@@ -104,9 +119,9 @@ public class SessionBuilder : ISessionBuilder
             }
 
             // Adjust sets for recovery capacity:
-            if (recoveryCapacity == RecoveryCapacity.Low && sets > 3)
+            if (recoveryCapacity == RecoveryCapacity.Low && sets > 2)
             {
-                sets = 3;
+                sets = 2;
             }
 
             // Estimated exercise slot duration:
@@ -126,6 +141,19 @@ public class SessionBuilder : ISessionBuilder
                     incrementValue: "+1 rep per set",
                     incrementCondition: "When reaching upper rep boundary across all sets");
 
+            // Coaching note based on movement pattern
+            string? coachingNote = isCompound
+                ? "Control full ROM. Warm-up sets at 50-80% of working weight."
+                : "Slow eccentric, full stretch at bottom, squeeze at top.";
+
+            // Find substitution alternatives from exercise DB
+            var alt1 = ex.Substitutions.Count > 0
+                ? allExercises.FirstOrDefault(e => e.Id == ex.Substitutions.First().SubstituteExerciseId)?.Name
+                : null;
+            var alt2 = ex.Substitutions.Count > 1
+                ? allExercises.FirstOrDefault(e => e.Id == ex.Substitutions.Skip(1).First().SubstituteExerciseId)?.Name
+                : null;
+
             var slot = new ExerciseSlot(
                 id: Guid.NewGuid(),
                 trainingSessionId: sessionId,
@@ -137,7 +165,7 @@ public class SessionBuilder : ISessionBuilder
                 restSeconds: restSeconds,
                 selectionRationale: candidate.Rationale,
                 progressionRule: progressionRule,
-                coachingNote: isCompound ? "Prioritize consistent bar path and stable bracing." : "Control eccentric phase through full active range of motion.");
+                coachingNote: coachingNote);
 
             session.AddSlot(slot);
             accumulatedMinutes += slotTimeMinutes;

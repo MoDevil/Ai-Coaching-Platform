@@ -36,6 +36,16 @@ export class ProgramDetailComponent implements OnInit {
   errorMessage: string | null = null;
   activeWeekTab = 1;
 
+  // Generate form state
+  showGenerateForm = false;
+  isGenerating = false;
+  generateNotes = '';
+  generateWeeks = 4;
+  generateSessions: number | null = null;
+  generateDuration: number | null = null;
+  generateInjuries = '';
+  generateError: string | null = null;
+
   // M7 Adaptive Coaching State
   assessments: AdaptationAssessment[] = [];
   latestAssessment: AdaptationAssessment | null = null;
@@ -184,6 +194,36 @@ export class ProgramDetailComponent implements OnInit {
       },
       error: (err) => {
         this.adaptationFeedback = err.error?.message || 'Failed to submit recommendation decision.';
+      }
+    });
+  }
+
+  generateProgram(): void {
+    if (!this.clientId) return;
+    this.isGenerating = true;
+    this.generateError = null;
+
+    this.programService.generateProgram({
+      clientId: this.clientId,
+      coachNotes: this.generateNotes.trim() || undefined,
+      numberOfWeeks: this.generateWeeks,
+      sessionsPerWeekOverride: this.generateSessions || undefined,
+      sessionDurationOverride: this.generateDuration || undefined,
+      injuryConstraintsOverride: this.generateInjuries.trim() || undefined
+    }).subscribe({
+      next: (p) => {
+        this.program = p;
+        this.isGenerating = false;
+        this.showGenerateForm = false;
+        this.errorMessage = null;
+        if (p.activeVersion?.weeks?.length) {
+          this.activeWeekTab = p.activeVersion.weeks[0].weekNumber;
+        }
+        this.loadAssessments(p.id);
+      },
+      error: (err) => {
+        this.isGenerating = false;
+        this.generateError = err.error?.message || err.error?.detail || 'Failed to generate program. Please check the client has a training profile set up.';
       }
     });
   }
