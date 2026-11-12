@@ -40,10 +40,17 @@ jobs:
       - name: Build solution
         run: dotnet build AiCoachOs.sln --no-restore --configuration Release
 
-      - name: Run unit & integration tests
+      - name: Run unit tests
+        run: >
+          dotnet test tests/AiCoachOs.UnitTests/AiCoachOs.UnitTests.csproj
+          --no-build --configuration Release --verbosity normal
+
+      - name: Run integration tests
         env:
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=aicoachos_test;Username=postgres;Password=postgrespassword;"
-        run: dotnet test AiCoachOs.sln --no-build --configuration Release --verbosity normal
+        run: >
+          dotnet test tests/AiCoachOs.IntegrationTests/AiCoachOs.IntegrationTests.csproj
+          --no-build --configuration Release --verbosity normal
 
   frontend-build-and-test:
     name: Frontend Build & Test (Angular)
